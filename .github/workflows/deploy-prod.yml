@@ -1,4 +1,7 @@
-name: Deploy to EC2 via ECR
+# This workflow will build and push a new container image to Amazon ECR,
+# and then will deploy directly to EC2, when there is a push to the "main" branch.
+
+name: Deploy to Prod
 
 on:
   push:
@@ -8,10 +11,14 @@ env:
   AWS_REGION: us-west-1
   ECR_REPOSITORY: parse-n-plate
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout
@@ -33,6 +40,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Build a docker container and push it to ECR
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -64,7 +72,7 @@ jobs:
               -p 80:3000 \
               ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
             
-            # Clean up old images
+            # Clean up old images to save space
             docker image prune -f
             
             # Show running containers
