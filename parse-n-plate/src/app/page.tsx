@@ -25,7 +25,7 @@ export default function Home() {
         <SearchForm setError={setError}/>
       </main>
       <footer className="flex items-center justify-center">
-        FOOTER CONTENT HERE
+        FOOTER CONTENT HERE SOON
       </footer>
     </div>
   );
