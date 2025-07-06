@@ -1,20 +1,20 @@
-"use client"
+'use client';
 
-import SearchForm from "@/components/ui/search-form"
-import {useState} from "react";
-import {Alert, AlertTitle} from "@/components/ui/alert";
-import {CircleAlert} from "lucide-react";
+import SearchForm from '@/components/ui/search-form';
+import { useState } from 'react';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+import { CircleAlert } from 'lucide-react';
 
 export default function Home() {
   const [error, setError] = useState(false);
   return (
     <div className="max-w-4xl mx-auto px-6 py-16">
-      {error && <Alert variant={"destructive"} className="bg-red-100 text-red-800 border border-red-300 mb-10">
+      {error && <Alert variant={'destructive'} className="bg-red-100 text-red-800 border border-red-300 mb-10">
         <AlertTitle className="flex flex-row">
-            <CircleAlert className="mr-2"/>
-            <p className="font-bold pt-0.5 pl-2">
+          <CircleAlert className="mr-2"/>
+          <p className="font-bold pt-0.5 pl-2">
               Hmm... That URL doesn’t look right.
-            </p>
+          </p>
         </AlertTitle>
       </Alert>}
       <main className="flex flex-col items-center justify-center">

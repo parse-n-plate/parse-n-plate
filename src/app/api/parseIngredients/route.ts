@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import { NextRequest, NextResponse } from 'next/server';
+import Groq from 'groq-sdk';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,22 +11,22 @@ export async function POST(req: NextRequest) {
 
     if (!text) {
       return NextResponse.json(
-        { error: "Text input is required" },
-        { status: 400 }
+        { error: 'Text input is required' },
+        { status: 400 },
       );
     }
 
     const response = await groq.chat.completions.create({
-      model: "mistral-saba-24b",
+      model: 'mistral-saba-24b',
       messages: [
         {
-          role: "system",
-          content: "Given the ingredients, return an array of objects, each with amount, units (like cups, teaspoons, grams – NOT sizes like inch, oz, lb), and ingredient. If a size like ‘6 inch’ is describing the ingredient (e.g. ‘2 6-inch tortillas’), treat it as part of the ingredient and leave units empty. If no amount is found, use ‘As much as you like’. Return raw JSON only. No explanation"
+          role: 'system',
+          content: 'Given the ingredients, return an array of objects, each with amount, units (like cups, teaspoons, grams – NOT sizes like inch, oz, lb), and ingredient. If a size like ‘6 inch’ is describing the ingredient (e.g. ‘2 6-inch tortillas’), treat it as part of the ingredient and leave units empty. If no amount is found, use ‘As much as you like’. Return raw JSON only. No explanation',
         },
         {
-          role: "user",
-          content: text.slice(0, 10000) // Limit to first 10k characters
-        }
+          role: 'user',
+          content: text.slice(0, 10000), // Limit to first 10k characters
+        },
       ],
     });
 
@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     
     if (!result) {
       return NextResponse.json(
-        { error: "No response from Groq" },
-        { status: 500 }
+        { error: 'No response from Groq' },
+        { status: 500 },
       );
     }
 
@@ -45,17 +45,17 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Recipe parsing failed:", error);
+    console.error('Recipe parsing failed:', error);
     return NextResponse.json(
-      { error: "Failed to parse recipe", details: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { error: 'Failed to parse recipe', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 },
     );
   }
 }
 
 export async function GET() {
   return NextResponse.json({ 
-    message: "Recipe parsing API endpoint", 
-    usage: "Send POST request with { text: 'your recipe text here' }" 
+    message: 'Recipe parsing API endpoint', 
+    usage: 'Send POST request with { text: \'your recipe text here\' }', 
   });
 }

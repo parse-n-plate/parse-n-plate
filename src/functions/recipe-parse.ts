@@ -1,5 +1,5 @@
 export async function fetchHtml(url: string) {
-  console.log("Parsing recipe to HTML:", url);
+  console.log('Parsing recipe to HTML:', url);
   const res = await fetch(`/api/fetchHtml?url=${encodeURIComponent(url)}`);
   return await res.json();
 }

@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -54,11 +54,11 @@ export default function ParsedRecipePage() {
           <ul className="space-y-2">
             {Array.isArray(parsedRecipe.ingredients) &&
               parsedRecipe.ingredients.map((ingredient, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <span className="text-gray-500 text-sm">•</span>
-                <span>{ingredient}</span>
-              </li>
-            ))}
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-gray-500 text-sm">•</span>
+                  <span>{ingredient}</span>
+                </li>
+              ))}
           </ul>
         </div>
 
@@ -70,13 +70,13 @@ export default function ParsedRecipePage() {
           <ol className="space-y-3">
             {Array.isArray(parsedRecipe.instructions) &&
               parsedRecipe.instructions.map((instruction, index) => (
-              <li key={index} className="flex items-start gap-3">
-                <span className="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0">
-                  {index + 1}
-                </span>
-                <span>{instruction}</span>
-              </li>
-            ))}
+                <li key={index} className="flex items-start gap-3">
+                  <span className="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  <span>{instruction}</span>
+                </li>
+              ))}
           </ol>
         </div>
       </div>

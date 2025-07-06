@@ -1,4 +1,4 @@
-import PPLogo from "@/components/ui/Navbar/pplogo"
+import PPLogo from '@/components/ui/Navbar/pplogo';
 
 export default function Navbar() {
   return (

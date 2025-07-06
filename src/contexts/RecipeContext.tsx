@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface ParsedRecipe {
@@ -51,7 +51,7 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
     <RecipeContext.Provider value={{
       parsedRecipe,
       setParsedRecipe: setParsedRecipeWithStorage,
-      clearRecipe
+      clearRecipe,
     }}>
       {children}
     </RecipeContext.Provider>
