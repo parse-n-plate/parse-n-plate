@@ -10,6 +10,7 @@ on:
 env:
   AWS_REGION: us-west-1
   ECR_REPOSITORY: parse-n-plate
+  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
 permissions:
   contents: read
