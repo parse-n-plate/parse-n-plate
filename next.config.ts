@@ -1,5 +1,11 @@
 import type { NextConfig } from 'next';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
+const cspValue = isDev
+  ? "default-src 'self' 'unsafe-inline' 'unsafe-eval';"
+  : "default-src 'self'; script-src 'self' 'unsafe-inline'; object-src 'none';";
+
 const securityHeaders = [
   {
     key: 'Strict-Transport-Security',
@@ -7,7 +13,7 @@ const securityHeaders = [
   },
   {
     key: 'Content-Security-Policy',
-    value: "default-src 'self'; script-src 'self'; object-src 'none'",
+    value: cspValue,
   },
   {
     key: 'X-Frame-Options',
