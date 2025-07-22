@@ -120,3 +120,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom font classes for Figma design */
+.font-domine {
+  font-family: var(--font-domine), serif;
+}
+
+.font-albert {
+  font-family: var(--font-albert), sans-serif;
+}

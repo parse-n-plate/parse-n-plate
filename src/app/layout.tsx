@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Domine, Albert_Sans } from 'next/font/google';
 import { Separator } from '@/components/ui/separator';
 import Navbar from '@/components/ui/Navbar';
 import { RecipeProvider } from '@/contexts/RecipeContext';
@@ -17,6 +18,16 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const domine = Domine({
+  variable: '--font-domine',
+  subsets: ['latin'],
+});
+
+const albertSans = Albert_Sans({
+  variable: '--font-albert',
+  subsets: ['latin'],
+});
+
 export const metadata: Metadata = {
   title: 'Parse and Plate',
   description: 'Ad free recipes',
@@ -30,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${domine.variable} ${albertSans.variable} antialiased`}
       >
         <RecipeProvider>
           <ParsedRecipesProvider>

@@ -3,47 +3,40 @@
 import SearchForm from '@/components/ui/search-form';
 import RecentRecipesList from '@/components/RecentRecipesList';
 import { useState } from 'react';
-import { Alert, AlertTitle } from '@/components/ui/alert';
-import { CircleAlert } from 'lucide-react';
 
 export default function Home() {
   const [error, setError] = useState(false);
   return (
-    <div className="w-full max-w-4xl mx-auto px-6 py-16">
-      {error && (
-        <Alert
-          variant={'destructive'}
-          className="bg-red-100 text-red-800 border border-red-300 mb-10"
-        >
-          <AlertTitle className="flex flex-row">
-            <CircleAlert className="mr-2" />
-            <p className="font-bold pt-0.5 pl-2">
-              Hmm... That URL doesn't look right.
-            </p>
-          </AlertTitle>
-        </Alert>
-      )}
-      {/* Hero Section */}
-      <section className="w-full text-center mb-12">
-        <h1 className="text-5xl font-bold text-gray-900 mb-4">{/* Larger for hero */}
-          What are you whipping up in your kitchen today?
-        </h1>
-        <h3 className="text-lg text-gray-500">
-          Clean, ad-free recipes from any cooking website
-        </h3>
-      </section>
-      {/* Search Section */}
-      <section className="w-full flex flex-col items-center mb-16">
-        <div className="w-full max-w-2xl">
+    <div className="bg-[#fbf7f2] min-h-screen">
+      {/* Main Content Container */}
+      <div className="max-w-md mx-auto px-4 pt-28 pb-16">
+        {/* Hero Section */}
+        <div className="mb-16">
+          <h1 className="font-domine text-[36px] text-black leading-none mb-5">
+            What are you cookin' up today?
+          </h1>
           <SearchForm setErrorAction={setError} />
+          
+          {/* Error Card - positioned below search input */}
+          {error && (
+            <div className="mt-5">
+              <div className="bg-[#ffb3b5] rounded-lg p-4">
+                <p className="font-albert text-[16px] text-[#7a2d2d] leading-[1.4]">
+                  Please enter a valid URL.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-      </section>
-      {/* Recent Recipes Section */}
-      <section className="w-full">
-        <RecentRecipesList />
-      </section>
-      <footer className="flex items-center justify-center mt-16">
-      </footer>
+      
+        {/* Recent Recipes Section */}
+        <div className="space-y-4">
+          <h2 className="font-domine text-[20px] text-black leading-none">
+            Recipes you've parsed
+          </h2>
+          <RecentRecipesList />
+        </div>
+      </div>
     </div>
   );
 }

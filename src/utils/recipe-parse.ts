@@ -20,7 +20,7 @@ export async function validateRecipeUrl(url: string): Promise<boolean> {
  */
 function extractJsonFromResponse(text: string): string {
   // First, try to clean common markdown patterns
-  const cleaned = text
+  let cleaned = text
     .replace(/^[\s`]*```(?:json)?/, '') // Remove starting ```json or ```
     .replace(/```[\s`]*$/, '') // Remove trailing ```
     .trim();
@@ -52,8 +52,8 @@ function getFallbackRecipeData(): [string, { groupName: string; ingredients: { a
       {
         groupName: "Main",
         ingredients: [
-          { amount: "1", units: "cup", ingredient: "ingredient" },
-          { amount: "1", units: "tablespoon", ingredient: "seasoning" }
+      { amount: "1", units: "cup", ingredient: "ingredient" },
+      { amount: "1", units: "tablespoon", ingredient: "seasoning" }
         ]
       }
     ]

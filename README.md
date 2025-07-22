@@ -57,3 +57,18 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 - Docker
 - AWS ECS/ECR/EC2 (Elastic Container Service & Elastic Container Repository for cloud hosting on EC2 instance)
+
+## Node.js Version
+
+This project uses [nvm](https://github.com/nvm-sh/nvm) to manage Node.js versions. The required version is specified in the `.nvmrc` file.
+
+**Before running or developing locally:**
+
+```
+nvm install # installs the version in .nvmrc
+nvm use     # switches to the correct version
+```
+
+If you use Husky or pre-commit hooks, make sure your shell session is using the correct Node version (`nvm use`).
+
+For CI/CD (e.g., GitHub Actions), ensure the workflow uses the Node version in `.nvmrc`.

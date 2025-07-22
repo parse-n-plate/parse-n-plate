@@ -1,7 +1,4 @@
 'use client';
-import { Button } from '@/components/ui/button';
-import { MoveRight } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import {
   parseIngredients,
@@ -13,6 +10,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
+import { Search, X } from 'lucide-react';
 
 interface SearchFormProps {
   setErrorAction: (error: boolean) => void;
@@ -26,6 +24,8 @@ export default function SearchForm({ setErrorAction }: SearchFormProps) {
   const router = useRouter();
 
   const handleParse = async () => {
+    if (!url.trim()) return;
+    
     try {
       setLoading(true);
 
@@ -99,21 +99,38 @@ export default function SearchForm({ setErrorAction }: SearchFormProps) {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleParse();
+    }
+  };
+
+  const clearInput = () => {
+    setUrl('');
+  };
+
   return (
-    <div className="flex gap-2 w-full">
-      <Input
-        type="string"
-        placeholder="Enter recipe URL"
+    <div className="relative">
+      <div className="bg-white rounded-full border border-[#d9d9d9] flex items-center px-4 py-3">
+        <Search className="w-4 h-4 text-[#1e1e1e] mr-2 flex-shrink-0" />
+        <input
+          type="text"
+          placeholder="Enter recipe URL here"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-      />
-      <Button
-        className="bg-yellow-400 hover:bg-yellow-300 cursor-pointer active:scale-90 transition h-14 px-6 text-lg"
-        onClick={handleParse}
-        disabled={loading}
-      >
-        {loading ? 'Processing...' : <MoveRight color="black" />}
-      </Button>
+          onKeyPress={handleKeyPress}
+          className="flex-1 bg-transparent font-albert text-[14px] text-[#1e1e1e] placeholder:text-[#1e1e1e] focus:outline-none border-none"
+          disabled={loading}
+        />
+        {url && (
+          <button
+            onClick={clearInput}
+            className="ml-2 p-1 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+          >
+            <X className="w-4 h-4 text-[#1e1e1e]" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

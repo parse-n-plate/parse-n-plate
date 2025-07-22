@@ -21,54 +21,32 @@ export default function RecentRecipesList() {
 
   if (displayRecipes.length === 0) {
     return (
-      <>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Recent Recipes</h2>
-        </div>
         <div className="text-center py-8">
-          <p className="text-gray-500 text-lg">No recent recipes yet.</p>
-          <p className="text-gray-400 text-sm mt-2">
+        <p className="font-albert text-[16px] text-[#757575]">No recent recipes yet.</p>
+        <p className="font-albert text-[14px] text-[#757575] mt-2">
             Parse your first recipe to see it here!
           </p>
-        </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Recent Recipes</h2>
-        <Button
-          onClick={clearRecipes}
-          variant="ghost"
-          size="sm"
-          className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+    <div className="space-y-2">
+      {displayRecipes.map((recipe) => (
+        <div
+          key={recipe.id}
+          className="bg-white rounded-lg border border-[#d9d9d9] p-6 hover:shadow-md transition-shadow"
         >
-          Clear All
-        </Button>
+          <div className="space-y-2">
+            <h3 className="font-albert text-[16px] text-[#1e1e1e] leading-[1.4]">
+              {recipe.title}
+            </h3>
+            <p className="font-albert text-[16px] text-[#757575] leading-[1.4]">
+              {recipe.summary}
+            </p>
       </div>
-      <div className="space-y-4">
-        {displayRecipes.map((recipe) => (
-          <Card key={recipe.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-xl font-bold text-gray-900">
-                  {recipe.title}
-                </CardTitle>
-                <span className="text-sm text-gray-400 flex-shrink-0 ml-4">
-                  {formatRelativeTime(recipe.parsedAt)}
-                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription className="text-gray-600">
-                {recipe.summary}
-              </CardDescription>
-            </CardContent>
-          </Card>
         ))}
-      </div>
-    </>
+    </div>
   );
 } 
