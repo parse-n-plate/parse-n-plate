@@ -17,6 +17,7 @@ interface RecipeContextType {
   parsedRecipe: ParsedRecipe | null;
   setParsedRecipe: (recipe: ParsedRecipe | null) => void;
   clearRecipe: () => void;
+  isLoaded: boolean; // Add this line
 }
 
 const RecipeContext = createContext<RecipeContextType | undefined>(undefined);
@@ -59,6 +60,7 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
         parsedRecipe,
         setParsedRecipe: setParsedRecipeWithStorage,
         clearRecipe,
+        isLoaded, // Add this line
       }}
     >
       {children}

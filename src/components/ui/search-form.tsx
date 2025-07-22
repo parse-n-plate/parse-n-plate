@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { Search, X } from 'lucide-react';
+import LoadingAnimation from './loading-animation';
 
 interface SearchFormProps {
   setErrorAction: (error: boolean) => void;
@@ -87,6 +88,8 @@ export default function SearchForm({ setErrorAction }: SearchFormProps) {
         title: scrapedData.title,
         summary: recipeSummary,
         url: url,
+        ingredients: scrapedData.ingredients,
+        instructions: scrapedData.instructions,
       });
 
       // Step 5: Redirect to the parsed recipe page
@@ -110,27 +113,30 @@ export default function SearchForm({ setErrorAction }: SearchFormProps) {
   };
 
   return (
-    <div className="relative">
-      <div className="bg-white rounded-full border border-[#d9d9d9] flex items-center px-4 py-3">
-        <Search className="w-4 h-4 text-[#1e1e1e] mr-2 flex-shrink-0" />
-        <input
-          type="text"
-          placeholder="Enter recipe URL here"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-          onKeyPress={handleKeyPress}
-          className="flex-1 bg-transparent font-albert text-[14px] text-[#1e1e1e] placeholder:text-[#1e1e1e] focus:outline-none border-none"
-          disabled={loading}
-        />
-        {url && (
-          <button
-            onClick={clearInput}
-            className="ml-2 p-1 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
-          >
-            <X className="w-4 h-4 text-[#1e1e1e]" />
-          </button>
-        )}
+    <>
+      <LoadingAnimation isVisible={loading} />
+      <div className="relative">
+        <div className="bg-white rounded-full border border-[#d9d9d9] flex items-center px-4 py-3">
+          <Search className="w-4 h-4 text-[#1e1e1e] mr-2 flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="Enter recipe URL here"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="flex-1 bg-transparent font-albert text-[14px] text-[#1e1e1e] placeholder:text-[#1e1e1e] focus:outline-none border-none"
+            disabled={loading}
+          />
+          {url && (
+            <button
+              onClick={clearInput}
+              className="ml-2 p-1 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+            >
+              <X className="w-4 h-4 text-[#1e1e1e]" />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

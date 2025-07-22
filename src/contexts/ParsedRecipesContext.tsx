@@ -10,6 +10,7 @@ import { ParsedRecipe, getRecentRecipes, addRecentRecipe, getRecipeById } from '
 
 interface ParsedRecipesContextType {
   recentRecipes: ParsedRecipe[];
+  isLoaded: boolean; // Add this line
   addRecipe: (recipe: Omit<ParsedRecipe, 'id' | 'parsedAt'>) => void;
   clearRecipes: () => void;
   removeRecipe: (id: string) => void;
@@ -81,6 +82,7 @@ export function ParsedRecipesProvider({ children }: { children: ReactNode }) {
     <ParsedRecipesContext.Provider
       value={{
         recentRecipes,
+        isLoaded, // Add this line
         addRecipe,
         clearRecipes,
         removeRecipe,
