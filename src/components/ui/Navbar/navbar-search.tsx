@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRouter } from 'next/navigation';
@@ -29,26 +29,29 @@ export default function NavbarSearch() {
   };
 
   // Search through cached recipes
-  const searchRecipes = (searchQuery: string) => {
-    if (!searchQuery.trim() || isUrl(searchQuery)) {
-      setSearchResults([]);
-      return;
-    }
+  const searchRecipes = useCallback(
+    (searchQuery: string) => {
+      if (!searchQuery.trim() || isUrl(searchQuery)) {
+        setSearchResults([]);
+        return;
+      }
 
-    const filtered = recentRecipes.filter(
-      (recipe) =>
-        recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.summary.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+      const filtered = recentRecipes.filter(
+        (recipe) =>
+          recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          recipe.summary.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
 
-    setSearchResults(filtered.slice(0, 5)); // Show max 5 results
-  };
+      setSearchResults(filtered.slice(0, 5)); // Show max 5 results
+    },
+    [recentRecipes],
+  );
 
   // Handle input changes
   useEffect(() => {
     searchRecipes(query);
     setShowDropdown(isFocused && query.trim() !== '' && !isUrl(query));
-  }, [query, isFocused, recentRecipes]);
+  }, [query, isFocused, recentRecipes, searchRecipes]);
 
   // Handle focus
   const handleFocus = () => {
@@ -94,7 +97,7 @@ export default function NavbarSearch() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSubmit(e as any);
+      handleSubmit(e as React.FormEvent);
     }
   };
 
@@ -115,8 +118,8 @@ export default function NavbarSearch() {
           className={`
             bg-stone-100 rounded-[9999px] border border-[#d9d9d9] 
             transition-all duration-300 ease-in-out
-            hover:border-[#FFA423] hover:border-opacity-80
-            ${isFocused ? 'shadow-sm border-[#FFA423] border-opacity-60' : ''}
+            hover:border-[#4F46E5] hover:border-opacity-80
+            ${isFocused ? 'shadow-sm border-[#4F46E5] border-opacity-60' : ''}
           `}
         >
           <div className="flex items-center px-4 py-3 relative">
@@ -132,8 +135,8 @@ export default function NavbarSearch() {
                   isFocused
                     ? query && !isUrl(query)
                       ? 'Search recipes...'
-                      : 'Try entering recipe URL'
-                    : 'Try entering recipe URL'
+                      : 'Try entering a recipe URL'
+                    : 'Try entering a recipe URL'
                 }
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
