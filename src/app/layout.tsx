@@ -42,6 +42,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${domine.variable} ${albertSans.variable} antialiased`}
+        suppressHydrationWarning={true}
       >
         <RecipeProvider>
           <ParsedRecipesProvider>
