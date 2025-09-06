@@ -33,7 +33,7 @@ const formatIngredient = (
 };
 
 export default function ParsedRecipePage() {
-  const { parsedRecipe, clearRecipe, isLoaded } = useRecipe();
+  const { parsedRecipe, isLoaded } = useRecipe();
   const router = useRouter();
 
   // Redirect if loaded and no recipe
@@ -58,149 +58,204 @@ export default function ParsedRecipePage() {
   }
 
   return (
-    <div className="bg-[#fbf7f2] min-h-screen">
+    <div className="bg-stone-50 min-h-screen relative">
       <div className="transition-opacity duration-300 ease-in-out opacity-100">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Hero Section */}
-          <div className="mb-8">
-            {/* Recipe Image Placeholder */}
-            <div className="w-full h-64 bg-gray-200 rounded-lg mb-6 flex items-center justify-center">
-              <span className="font-albert text-[16px] text-[#757575]">
-                Recipe Image Placeholder
-              </span>
-            </div>
-            
-            {/* Title and Parse Another Recipe Button */}
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex-1">
-                <h1 className="font-domine text-[32px] text-[#1e1e1e] leading-none mb-4">
-                  {parsedRecipe.title || 'Parsed Recipe'}
+        {/* Hero Section with Full-Width Image */}
+        <div className="relative h-[360px] w-full">
+          {/* Recipe Image with Gradient Overlay */}
+          <div
+            className="w-full h-full bg-cover bg-center rounded-b-[24px] flex items-end justify-between p-6"
+            style={{
+              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0) 57.5%, rgba(0, 0, 0, 0.6) 74.5%), linear-gradient(90deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%), url('https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&h=600&fit=crop')`,
+            }}
+          >
+            {/* Left Side - Title and Author */}
+            <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col">
+                <h1 className="font-domine text-[40px] text-stone-50 leading-[1.1] mb-1">
+                  {parsedRecipe.title || 'Beef Udon'}
                 </h1>
-                
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="bg-[#ffa424] text-white px-3 py-1 rounded-full text-sm font-albert">
-                    Main Course
+                <div className="flex items-center">
+                  <span className="font-albert text-[14px] text-stone-50 leading-[1.4]">
+                    Gage Minamoto
                   </span>
-                  <span className="bg-white border border-[#d9d9d9] text-[#1e1e1e] px-3 py-1 rounded-full text-sm font-albert">
-                    Italian
-                  </span>
-                  <span className="bg-white border border-[#d9d9d9] text-[#1e1e1e] px-3 py-1 rounded-full text-sm font-albert">
-                    Comfort Food
-                  </span>
-                </div>
-                
-                {/* Times */}
-                <div className="flex gap-6 text-sm font-albert text-[#757575]">
-                  <div className="flex items-center gap-1">
-                    <span>⏱️</span>
-                    <span>Prep: 15 min</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>🔥</span>
-                    <span>Cook: 30 min</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>🍽️</span>
-                    <span>Ready: 45 min</span>
-                  </div>
                 </div>
               </div>
-              
-              <button
-                onClick={() => {
-                  clearRecipe();
-                  router.push('/');
-                }}
-                className="bg-white border border-[#d9d9d9] rounded-lg px-4 py-2 font-albert text-[14px] text-[#1e1e1e] hover:bg-gray-50 transition-colors ml-4"
-              >
-                Parse Another Recipe
-              </button>
+
+              {/* Tags */}
+              <div className="flex gap-1 items-start">
+                <div className="bg-stone-100 border border-stone-200 rounded-full px-2 py-1 flex items-center gap-1">
+                  <span className="text-stone-600 text-xs">⏱️</span>
+                  <span className="font-albert-medium text-[12px] text-stone-600">
+                    10min
+                  </span>
+                </div>
+                <div className="bg-stone-100 border border-stone-200 rounded-full px-2 py-1 flex items-center gap-1">
+                  <span className="text-stone-600 text-xs">🥢</span>
+                  <span className="font-albert-medium text-[12px] text-stone-600">
+                    Japanese
+                  </span>
+                </div>
+                <div className="bg-stone-100 border border-stone-200 rounded-full px-2 py-1 flex items-center gap-1">
+                  <span className="text-stone-600 text-xs">🥢</span>
+                  <span className="font-albert-medium text-[12px] text-stone-600">
+                    Japanese
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Bookmark Button */}
+            <div className="bg-[#FFBA25] rounded-full p-2">
+              <div className="w-6 h-6 flex items-center justify-center">
+                <span className="text-white text-lg">🔖</span>
+              </div>
             </div>
           </div>
+        </div>
 
+        {/* Main Content */}
+        <div className="px-6 py-6 space-y-6">
           {/* Tabs Section */}
           <Tabs.Root defaultValue="prep" className="w-full">
             {/* Tab List */}
-            <Tabs.List className="flex border-b border-[#d9d9d9] mb-6">
+            <Tabs.List className="flex gap-3 items-center justify-start mb-6">
               <Tabs.Trigger
                 value="prep"
-                className="px-6 py-3 font-albert text-[16px] text-[#1e1e1e] border-b-2 border-transparent data-[state=active]:border-[#ffa424] data-[state=active]:text-[#ffa424] hover:text-[#ffa424] transition-colors"
+                className="flex-1 bg-stone-950 rounded-lg p-2 flex items-center justify-center gap-1 data-[state=active]:bg-stone-950 data-[state=inactive]:bg-stone-100 transition-colors"
               >
-                Prep
+                <span className="text-white text-sm">🔪</span>
+                <span className="font-albert-semibold text-[14px] text-stone-50 data-[state=inactive]:text-stone-600">
+                  Prep
+                </span>
               </Tabs.Trigger>
               <Tabs.Trigger
                 value="cook"
-                className="px-6 py-3 font-albert text-[16px] text-[#1e1e1e] border-b-2 border-transparent data-[state=active]:border-[#ffa424] data-[state=active]:text-[#ffa424] hover:text-[#ffa424] transition-colors"
+                className="flex-1 bg-stone-100 rounded-lg p-2 flex items-center justify-center gap-1 data-[state=active]:bg-stone-950 data-[state=inactive]:bg-stone-100 transition-colors"
               >
-                Cook
+                <span className="text-stone-600 text-sm">🍳</span>
+                <span className="font-albert-semibold text-[14px] text-stone-600 data-[state=active]:text-stone-50">
+                  Cook
+                </span>
               </Tabs.Trigger>
               <Tabs.Trigger
                 value="plate"
-                className="px-6 py-3 font-albert text-[16px] text-[#1e1e1e] border-b-2 border-transparent data-[state=active]:border-[#ffa424] data-[state=active]:text-[#ffa424] hover:text-[#ffa424] transition-colors"
+                className="flex-1 bg-stone-100 rounded-lg p-2 flex items-center justify-center gap-1 data-[state=active]:bg-stone-950 data-[state=inactive]:bg-stone-100 transition-colors"
               >
-                Plate
+                <span className="text-stone-600 text-sm">🍽️</span>
+                <span className="font-albert-semibold text-[14px] text-stone-600 data-[state=active]:text-stone-50">
+                  Plate
+                </span>
               </Tabs.Trigger>
             </Tabs.List>
 
             {/* Prep Tab Content */}
             <Tabs.Content value="prep" className="space-y-6">
-              {/* Recipe Description */}
-              <div className="bg-white rounded-lg border border-[#d9d9d9] p-6">
-                <h2 className="font-domine text-[24px] text-[#1e1e1e] mb-4 leading-none">
-                  About This Recipe
-                </h2>
-                <p className="font-albert text-[16px] text-[#1e1e1e] leading-[1.4] mb-6">
-                  A delicious recipe that will delight your taste buds. Perfect for any occasion and sure to become a family favorite.
+              {/* Recipe Description Card */}
+              <div className="bg-stone-100 rounded-lg p-4 space-y-4">
+                <p className="font-albert text-[14px] text-stone-600 leading-[1.4]">
+                  A steaming bowl of fragrant broth surrounds chewy noodles,
+                  creating a satisfying texture. Tender slices of beef add a
+                  sweet-savory flavor, enhancing the dish and offering a
+                  comforting balance of taste.
                 </p>
-                
-                {/* Times Again */}
-                <div className="flex gap-6 text-sm font-albert text-[#757575] mb-6">
-                  <div className="flex items-center gap-1">
-                    <span>⏱️</span>
-                    <span>Prep: 15 min</span>
+
+                {/* Timing and Rating Info */}
+                <div className="flex gap-1.5 items-start">
+                  <div className="flex-1 flex flex-col items-start">
+                    <span className="font-albert text-[10px] text-stone-400 uppercase leading-[1.4]">
+                      Cook
+                    </span>
+                    <span className="font-albert-semibold text-[16px] text-stone-950 leading-[1.2]">
+                      35min
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span>🔥</span>
-                    <span>Cook: 30 min</span>
+                  <div className="flex-1 flex flex-col items-start">
+                    <span className="font-albert text-[10px] text-stone-400 uppercase leading-[1.4]">
+                      Overall
+                    </span>
+                    <span className="font-albert-semibold text-[16px] text-stone-950 leading-[1.2]">
+                      50min
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span>🍽️</span>
-                    <span>Ready: 45 min</span>
+                  <div className="flex-1 flex flex-col items-start">
+                    <span className="font-albert text-[10px] text-stone-400 uppercase leading-[1.4]">
+                      Ready
+                    </span>
+                    <span className="font-albert-semibold text-[16px] text-stone-950 leading-[1.2]">
+                      6:27pm
+                    </span>
                   </div>
-                </div>
-                
-                {/* Rating and Skill Level */}
-                <div className="flex gap-8 mb-6">
-                  <div>
-                    <h3 className="font-domine text-[18px] text-[#1e1e1e] mb-2 leading-none">
+                  <div className="flex-1 flex flex-col items-start justify-between">
+                    <span className="font-albert text-[10px] text-stone-400 uppercase leading-[1.4]">
                       Rating
-                    </h3>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star} className="text-[#ffa424] text-lg">
-                          ⭐
-                        </span>
-                      ))}
-                      <span className="font-albert text-[14px] text-[#757575] ml-2">
-                        4.8 (127 reviews)
-                      </span>
+                    </span>
+                    <div className="flex items-center gap-0.5">
+                      <span className="text-stone-600 text-sm">⭐</span>
+                      <span className="text-stone-600 text-sm">⭐</span>
+                      <span className="text-stone-600 text-sm">⭐</span>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-domine text-[18px] text-[#1e1e1e] mb-2 leading-none">
-                      Skill Level
-                    </h3>
-                    <span className="bg-[#ffa424] text-white px-3 py-1 rounded-full text-sm font-albert">
-                      Intermediate
-                    </span>
+                </div>
+              </div>
+
+              {/* Recipe Skills Section */}
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <h2 className="font-domine text-[20px] text-stone-950 leading-[1.1]">
+                    Recipe Skills
+                  </h2>
+                  <p className="font-albert text-[14px] text-stone-600 leading-[1.4]">
+                    Skills you need to know to cook this recipe
+                  </p>
+                </div>
+
+                {/* Cooking Techniques */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-albert-medium text-[10px] text-stone-950 opacity-40 uppercase leading-[1.8]">
+                        Cooking Techniques
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-6 h-5 bg-stone-200 rounded"></div>
+                        <span className="font-albert text-[14px] text-stone-600">
+                          Simmering
+                        </span>
+                      </div>
+                    </div>
+                    <button className="bg-stone-100 rounded-full px-5 py-2">
+                      <span className="font-albert text-[14px] text-stone-600">
+                        Learn More
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Knife Skills */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-albert-medium text-[10px] text-stone-950 opacity-40 uppercase leading-[1.8]">
+                        Knife Skills
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-6 h-5 bg-stone-200 rounded"></div>
+                        <span className="font-albert text-[14px] text-stone-600">
+                          Chopping
+                        </span>
+                      </div>
+                    </div>
+                    <button className="bg-stone-100 rounded-full px-5 py-2">
+                      <span className="font-albert text-[14px] text-stone-600">
+                        Learn More
+                      </span>
+                    </button>
                   </div>
                 </div>
               </div>
 
               {/* Ingredients */}
-              <div className="bg-white rounded-lg border border-[#d9d9d9] p-6">
-                <h2 className="font-domine text-[24px] text-[#1e1e1e] mb-6 leading-none">
+              <div className="bg-stone-100 rounded-lg p-6">
+                <h2 className="font-domine text-[20px] text-stone-950 mb-6 leading-[1.1]">
                   Ingredients
                 </h2>
                 {Array.isArray(parsedRecipe.ingredients) &&
@@ -258,18 +313,18 @@ export default function ParsedRecipePage() {
 
             {/* Cook Tab Content */}
             <Tabs.Content value="cook" className="space-y-6">
-              <div className="bg-white rounded-lg border border-[#d9d9d9] p-6">
-                <h2 className="font-domine text-[24px] text-[#1e1e1e] mb-6 leading-none">
+              <div className="bg-stone-100 rounded-lg p-6">
+                <h2 className="font-domine text-[20px] text-stone-950 mb-6 leading-[1.1]">
                   Instructions
                 </h2>
                 <ol className="space-y-4">
                   {Array.isArray(parsedRecipe.instructions) &&
                     parsedRecipe.instructions.map((instruction, index) => (
                       <li key={index} className="flex items-start gap-3">
-                        <span className="bg-[#ffa424] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0 font-albert">
+                        <span className="bg-[#FFBA25] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0 font-albert">
                           {index + 1}
                         </span>
-                        <span className="font-albert text-[16px] text-[#1e1e1e] leading-[1.4]">
+                        <span className="font-albert text-[16px] text-stone-950 leading-[1.4]">
                           {instruction}
                         </span>
                       </li>
@@ -280,22 +335,45 @@ export default function ParsedRecipePage() {
 
             {/* Plate Tab Content */}
             <Tabs.Content value="plate" className="space-y-6">
-              <div className="bg-white rounded-lg border border-[#d9d9d9] p-6">
-                <h2 className="font-domine text-[24px] text-[#1e1e1e] mb-6 leading-none">
+              <div className="bg-stone-100 rounded-lg p-6">
+                <h2 className="font-domine text-[20px] text-stone-950 mb-6 leading-[1.1]">
                   Plate & Serve
                 </h2>
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">🍽️</div>
-                  <p className="font-albert text-[18px] text-[#757575]">
+                  <p className="font-albert text-[18px] text-stone-600">
                     Coming soon...
                   </p>
-                  <p className="font-albert text-[14px] text-[#757575] mt-2">
+                  <p className="font-albert text-[14px] text-stone-600 mt-2">
                     Plating suggestions and serving tips will be available here.
                   </p>
                 </div>
               </div>
             </Tabs.Content>
           </Tabs.Root>
+        </div>
+
+        {/* Bottom Toolbar */}
+        <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-[345px] h-[88px] flex items-center justify-center">
+          <div className="bg-stone-100 rounded-full w-full h-[88px] border border-[#ebebeb] border-[1.5px] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.15)]">
+            <div className="flex items-center justify-between px-6 py-4 h-full">
+              <div className="w-6 h-6 flex items-center justify-center">
+                <span className="text-stone-600 text-lg">⏱️</span>
+              </div>
+              <div className="w-6 h-6 flex items-center justify-center">
+                <span className="text-stone-600 text-lg">✅</span>
+              </div>
+              <div className="w-6 h-6 flex items-center justify-center">
+                <span className="text-stone-600 text-lg">✨</span>
+              </div>
+              <div className="w-6 h-6 flex items-center justify-center">
+                <span className="text-stone-600 text-lg">|</span>
+              </div>
+              <span className="font-albert-semibold text-[16px] text-stone-950">
+                Serves 2x
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
