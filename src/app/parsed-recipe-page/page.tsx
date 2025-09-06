@@ -58,13 +58,13 @@ export default function ParsedRecipePage() {
   }
 
   return (
-    <div className="bg-stone-50 min-h-screen relative">
+    <div className="bg-stone-50 min-h-screen relative max-w-full overflow-x-hidden">
       <div className="transition-opacity duration-300 ease-in-out opacity-100">
         {/* Hero Section with Full-Width Image */}
         <div className="relative h-[360px] w-full">
           {/* Recipe Image with Gradient Overlay */}
           <div
-            className="w-full h-full bg-cover bg-center rounded-b-[24px] flex items-end justify-between p-6"
+            className="w-full h-full bg-cover bg-center rounded-b-[24px] flex items-end justify-between p-4 md:p-6"
             style={{
               backgroundImage: `linear-gradient(rgba(0, 0, 0, 0) 57.5%, rgba(0, 0, 0, 0.6) 74.5%), linear-gradient(90deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%), url('https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&h=600&fit=crop')`,
             }}
@@ -115,7 +115,7 @@ export default function ParsedRecipePage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-6 py-6 space-y-6">
+        <div className="px-4 md:px-8 py-6 space-y-6">
           {/* Tabs Section */}
           <Tabs.Root defaultValue="prep" className="w-full">
             {/* Tab List */}
@@ -354,7 +354,7 @@ export default function ParsedRecipePage() {
         </div>
 
         {/* Bottom Toolbar */}
-        <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-[345px] h-[88px] flex items-center justify-center">
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[345px] h-[88px] flex items-center justify-center">
           <div className="bg-stone-100 rounded-full w-full h-[88px] border border-[#ebebeb] border-[1.5px] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.15)]">
             <div className="flex items-center justify-between px-6 py-4 h-full">
               <div className="w-6 h-6 flex items-center justify-center">
