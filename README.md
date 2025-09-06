@@ -87,7 +87,6 @@ The application includes a comprehensive error handling system:
 - **Structured Logging**: Timestamp, error code, message, URL, user agent
 - **Export Functionality**: JSON export for debugging sessions
 
-
 ## Node.js Version
 
 This project uses [nvm](https://github.com/nvm-sh/nvm) to manage Node.js versions. The required version is specified in the `.nvmrc` file.
