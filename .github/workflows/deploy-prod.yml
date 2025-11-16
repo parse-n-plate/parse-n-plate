@@ -1,16 +1,13 @@
-# This workflow will build and push a new container image to Amazon ECR,
-# and then will deploy directly to EC2, when there is a push to the "main" branch.
+# CI workflow for Parse N' Plate
+# Deployment is handled automatically by Vercel
 
-name: Deploy to Prod
+name: CI
 
 on:
   push:
     branches: ['main']
-
-env:
-  AWS_REGION: us-west-1
-  ECR_REPOSITORY: parse-n-plate
-  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+  pull_request:
+    branches: ['main']
 
 permissions:
   contents: read
@@ -37,66 +34,3 @@ jobs:
 
       - name: Run Prettier check
         run: npx prettier --check .
-
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag, and push image to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          # Build a docker container and push it to ECR
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:prod .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:prod
-
-      - name: Inject GROQ_API_KEY into task definition
-        run: |
-          sed -i "s|REPLACE_ME_GROQ_API_KEY|${{ secrets.GROQ_API_KEY }}|" .aws/task-definition.json
-
-      - name: Render Amazon ECS task definition
-        id: render-task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: .aws/task-definition.json
-          container-name: parse-n-plate-container-prod
-          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-1.amazonaws.com/${{ env.ECR_REPOSITORY }}:prod
-
-      - name: Deploy to AWS ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          service: parse-n-plate-service-prod
-          cluster: parse-n-plate-ecs-cluster
-          wait-for-service-stability: true
-        env:
-          AWS_REGION: us-west-1
-          AWS_DEFAULT_REGION: us-west-1
-
-      - name: Reload Nginx on EC2
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            sudo nginx -t && sudo systemctl reload nginx

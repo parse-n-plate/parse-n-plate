@@ -1,24 +1,16 @@
 # Parse & Plate
 
-A Next.js application that parses recipe URLs and extracts ingredients and instructions using a hybrid approach of Python scraping and AI processing.
+A Next.js application that parses recipe URLs and extracts ingredients and instructions using a hybrid approach of HTML scraping and AI processing.
 
 ## Features
 
 - **Recipe URL Parsing**: Extract recipes from popular cooking websites
-- **Hybrid Parsing**: Combines Python scraping with AI (Groq) for maximum accuracy
+- **Hybrid Parsing**: Combines intelligent HTML scraping with AI (Groq) for maximum accuracy
 - **Recent Recipes**: Track and display your recently parsed recipes
 - **Error Handling**: Comprehensive error handling with user-friendly messages
 - **Responsive Design**: Modern UI with Tailwind CSS and Shadcn components
 
 ## Getting Started
-
-First, install necessary python packages:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
 
 Install node dependencies:
 
@@ -56,19 +48,21 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Tech Stack
 
-- **Frontend**: React, Next.js, TypeScript, Tailwind CSS
+- **Frontend**: React 19, Next.js 15, TypeScript
+- **Styling**: Tailwind CSS 4
 - **UI Components**: Shadcn/ui, Lucide React icons
-- **Backend**: Next.js API Routes, Node.js
-- **Python Integration**: recipe-scrapers library, BeautifulSoup
+- **Backend**: Next.js API Routes (Serverless Functions)
+- **HTML Parsing**: Cheerio, Axios
 - **AI/ML**: Groq AI API (qwen/qwen3-32b, llama3-8b-8192 models)
 - **Data Persistence**: localStorage for recent recipes
 - **Error Handling**: Structured error responses, error logging system
 
 ## Infrastructure
 
-- **Containerization**: Docker
-- **Cloud Hosting**: AWS ECS/ECR/EC2 (Elastic Container Service & Elastic Container Repository)
-- **CI/CD**: GitHub Actions for automated deployment
+- **Hosting**: Vercel (serverless)
+- **Deployment**: Automatic via Vercel (Git push)
+- **CI**: GitHub Actions for linting
+- **Functions**: Vercel Serverless Functions
 
 ## Error Handling System
 
@@ -121,10 +115,11 @@ For CI/CD (e.g., GitHub Actions), ensure the workflow uses the Node version in `
 
 ### Recipe Parsing Improvements
 
-- Enhanced Python scraper with AllRecipes-specific selectors
+- Migrated from Python to Node.js for better Vercel compatibility
+- Enhanced scraper with comprehensive selectors for major recipe sites
 - Improved AI prompt formatting for better JSON responses
 - Added robust JSON extraction from AI responses
-- Implemented fallback mechanisms for parsing failures
+- Implemented multi-layer parsing with JSON-LD and HTML fallbacks
 
 ## Documentation
 

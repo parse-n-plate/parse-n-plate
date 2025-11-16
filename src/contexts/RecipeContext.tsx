@@ -9,10 +9,23 @@ import React, {
 
 interface ParsedRecipe {
   title?: string;
+  description?: string;          // NEW: Recipe description
+  imageUrl?: string;              // NEW: Recipe image URL
+  author?: string;                // NEW: Recipe author/source
+  cookTimeMinutes?: number;       // NEW: Cook time in minutes
+  prepTimeMinutes?: number;       // NEW: Prep time in minutes
+  totalTimeMinutes?: number;      // NEW: Total time in minutes
+  servings?: number;             // NEW: Number of servings
+  cuisine?: string[];            // NEW: Cuisine types/tags
+  rating?: number;               // NEW: Recipe rating (1-5)
+  skills?: {                    // NEW: Required cooking skills
+    techniques?: string[];      // Cooking techniques needed
+    knifework?: string[];       // Knife skills needed
+  };
   ingredients: {
     groupName: string;
     ingredients: { amount: string; units: string; ingredient: string }[];
-  }[]; // Can be grouped ingredients or flat array
+  }[];
   instructions: string[];
 }
 

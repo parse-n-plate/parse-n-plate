@@ -131,22 +131,17 @@ export default function SearchForm({
         return;
       }
 
-      // Step 2: Scrape with Python
-      let scrapedData = await recipeScrape(query);
+      // Step 2: Scrape with HTML scraper (Node.js)
+      const scrapedData = await recipeScrape(query);
 
-      // Debug: Log what the Python scraper returned
-      console.log('Python scraper response:', scrapedData);
+      // Debug: Log what the scraper returned
+      console.log('HTML scraper response:', scrapedData);
 
-      // Step 3: Parse with AI if python script fails to parse
-      if (
-        !scrapedData.success ||
-        scrapedData.error ||
-        !scrapedData.ingredients ||
-        scrapedData.ingredients.length === 0
-      ) {
-        console.log('Python scraper failed, falling back to AI parsing...');
+      // Check if scraping failed completely
+      if (!scrapedData.success || scrapedData.error) {
+        console.log('HTML scraper failed, trying AI parsing from raw HTML...');
 
-        // Proceed with the rest of steps only if URL was valid
+        // Fallback to raw HTML parsing if scraper failed
         const htmlRes = await fetchHtml(query);
 
         if (!htmlRes.success) {
@@ -157,56 +152,97 @@ export default function SearchForm({
           return;
         }
 
-        // Step 3.1: Parse ingredients with AI
+        // Parse both ingredients and instructions with AI from raw HTML
         const aiParsedIngredients = await parseIngredients(htmlRes.html);
-
-        if (!aiParsedIngredients.success) {
-          const errorMessage = handleError(aiParsedIngredients.error.code);
-          errorLogger.log(
-            aiParsedIngredients.error.code,
-            aiParsedIngredients.error.message,
-            query,
-          );
-          setErrorAction(true);
-          if (setErrorMessage) setErrorMessage(errorMessage);
-          return;
-        }
-
-        // Step 3.2: Parse instructions with AI
         const aiParsedInstructions = await parseInstructions(htmlRes.html);
 
-        if (!aiParsedInstructions.success) {
-          const errorMessage = handleError(aiParsedInstructions.error.code);
-          errorLogger.log(
-            aiParsedInstructions.error.code,
-            aiParsedInstructions.error.message,
-            query,
-          );
+        if (!aiParsedIngredients.success || !aiParsedInstructions.success) {
+          const errorCode = !aiParsedIngredients.success
+            ? aiParsedIngredients.error.code
+            : aiParsedInstructions.error.code;
+          const errorMessage = handleError(errorCode);
+          errorLogger.log(errorCode, 'AI parsing failed', query);
           setErrorAction(true);
           if (setErrorMessage) setErrorMessage(errorMessage);
           return;
         }
 
-        // Stitch final scrapedData format
-        scrapedData = {
-          title: aiParsedIngredients.data[0],
-          ingredients: aiParsedIngredients.data[1],
-          instructions: Array.isArray(aiParsedInstructions.data)
+        // Use AI-parsed data
+        scrapedData.title = aiParsedIngredients.data[0];
+        scrapedData.ingredients = aiParsedIngredients.data[1];
+        scrapedData.instructions = Array.isArray(aiParsedInstructions.data)
+          ? aiParsedInstructions.data
+          : [aiParsedInstructions.data];
+      } else {
+        // Step 3: HTML scraper succeeded, now clean up with AI
+        console.log(
+          'HTML scraper succeeded, sending to AI for cleanup and formatting...',
+        );
+
+        // Convert scraped ingredients array to text for AI
+        const ingredientsText = Array.isArray(scrapedData.ingredients)
+          ? scrapedData.ingredients.join('\n')
+          : scrapedData.ingredients;
+
+        // Convert scraped instructions array to text for AI
+        const instructionsText = Array.isArray(scrapedData.instructions)
+          ? scrapedData.instructions.join('\n')
+          : scrapedData.instructions;
+
+        // Step 3.1: AI cleanup and formatting for ingredients
+        const aiParsedIngredients = await parseIngredients(ingredientsText);
+
+        if (!aiParsedIngredients.success) {
+          console.warn(
+            'AI cleanup failed for ingredients, using raw scraped data',
+          );
+          // Keep the scraped data as-is if AI fails
+        } else {
+          // Use AI-cleaned and formatted data
+          scrapedData.title = aiParsedIngredients.data[0];
+          scrapedData.ingredients = aiParsedIngredients.data[1];
+        }
+
+        // Step 3.2: AI cleanup and formatting for instructions
+        const aiParsedInstructions = await parseInstructions(instructionsText);
+
+        if (!aiParsedInstructions.success) {
+          console.warn(
+            'AI cleanup failed for instructions, using raw scraped data',
+          );
+          // Keep the scraped data as-is if AI fails
+        } else {
+          // Use AI-cleaned instructions
+          scrapedData.instructions = Array.isArray(aiParsedInstructions.data)
             ? aiParsedInstructions.data
-            : [aiParsedInstructions.data],
-        };
+            : [aiParsedInstructions.data];
+        }
       }
 
       // Step 3: Store in context and redirect
-      // Convert flat ingredient array to grouped format
-      const formattedIngredients = Array.isArray(scrapedData.ingredients)
-        ? [
-            {
-              groupName: 'Main',
-              ingredients: scrapedData.ingredients,
-            },
-          ]
-        : scrapedData.ingredients;
+      // Convert flat ingredient array to grouped format (if needed)
+      // Check if ingredients are already in grouped format
+      const isAlreadyGrouped =
+        Array.isArray(scrapedData.ingredients) &&
+        scrapedData.ingredients.length > 0 &&
+        scrapedData.ingredients.every(
+          (item: unknown) =>
+            typeof item === 'object' &&
+            item !== null &&
+            'groupName' in item &&
+            'ingredients' in item,
+        );
+
+      const formattedIngredients = isAlreadyGrouped
+        ? scrapedData.ingredients // Already in grouped format, use as-is
+        : Array.isArray(scrapedData.ingredients)
+          ? [
+              {
+                groupName: 'Main',
+                ingredients: scrapedData.ingredients,
+              },
+            ]
+          : scrapedData.ingredients; // Fallback if it's already an object
 
       setParsedRecipe({
         title: scrapedData.title,

@@ -84,7 +84,48 @@ export async function parseIngredients(ingredients: string) {
     body: JSON.stringify({ text: ingredientsText }),
   });
 
-  const responseData = await res.json();
+  // Check if response is actually JSON before parsing
+  // If the API returns an HTML error page, we need to handle it gracefully
+  // Read response as text first (can only read body once)
+  const textResponse = await res.text();
+  let responseData;
+
+  // Check if response looks like HTML (starts with <) or is empty
+  if (textResponse.trim().startsWith('<') || textResponse.trim().length === 0) {
+    // Response is HTML error page or empty
+    console.error('parseIngredients: Received HTML or empty response:', {
+      status: res.status,
+      statusText: res.statusText,
+      contentType: res.headers.get('content-type'),
+      responsePreview: textResponse.slice(0, 200), // First 200 chars for debugging
+    });
+    return {
+      success: false,
+      error: {
+        code: 'ERR_AI_PARSE_FAILED',
+        message: `API returned HTML error page (status: ${res.status})`,
+      },
+    };
+  }
+
+  // Try to parse as JSON
+  try {
+    responseData = JSON.parse(textResponse);
+  } catch (jsonError) {
+    // If JSON parsing fails, log the error and return a helpful message
+    console.error('parseIngredients: Failed to parse JSON response:', {
+      error: jsonError,
+      status: res.status,
+      responsePreview: textResponse.slice(0, 200),
+    });
+    return {
+      success: false,
+      error: {
+        code: 'ERR_AI_PARSE_FAILED',
+        message: 'Failed to parse API response as JSON',
+      },
+    };
+  }
 
   if (!res.ok || !responseData.success) {
     console.error('parseIngredients API error:', responseData);
@@ -186,7 +227,48 @@ export async function parseInstructions(ingredients: string) {
     body: JSON.stringify({ text: ingredientsText }),
   });
 
-  const responseData = await res.json();
+  // Check if response is actually JSON before parsing
+  // If the API returns an HTML error page, we need to handle it gracefully
+  // Read response as text first (can only read body once)
+  const textResponse = await res.text();
+  let responseData;
+
+  // Check if response looks like HTML (starts with <) or is empty
+  if (textResponse.trim().startsWith('<') || textResponse.trim().length === 0) {
+    // Response is HTML error page or empty
+    console.error('parseInstructions: Received HTML or empty response:', {
+      status: res.status,
+      statusText: res.statusText,
+      contentType: res.headers.get('content-type'),
+      responsePreview: textResponse.slice(0, 200), // First 200 chars for debugging
+    });
+    return {
+      success: false,
+      error: {
+        code: 'ERR_AI_PARSE_FAILED',
+        message: `API returned HTML error page (status: ${res.status})`,
+      },
+    };
+  }
+
+  // Try to parse as JSON
+  try {
+    responseData = JSON.parse(textResponse);
+  } catch (jsonError) {
+    // If JSON parsing fails, log the error and return a helpful message
+    console.error('parseInstructions: Failed to parse JSON response:', {
+      error: jsonError,
+      status: res.status,
+      responsePreview: textResponse.slice(0, 200),
+    });
+    return {
+      success: false,
+      error: {
+        code: 'ERR_AI_PARSE_FAILED',
+        message: 'Failed to parse API response as JSON',
+      },
+    };
+  }
 
   if (!res.ok || !responseData.success) {
     console.error('parseInstructions API error:', responseData);
@@ -233,7 +315,48 @@ export async function recipeScrape(url: string) {
     body: JSON.stringify({ url }),
   });
 
-  const responseData = await res.json();
+  // Check if response is actually JSON before parsing
+  // If the API returns an HTML error page, we need to handle it gracefully
+  // Read response as text first (can only read body once)
+  const textResponse = await res.text();
+  let responseData;
+
+  // Check if response looks like HTML (starts with <) or is empty
+  if (textResponse.trim().startsWith('<') || textResponse.trim().length === 0) {
+    // Response is HTML error page or empty
+    console.error('recipeScrape: Received HTML or empty response:', {
+      status: res.status,
+      statusText: res.statusText,
+      contentType: res.headers.get('content-type'),
+      responsePreview: textResponse.slice(0, 200), // First 200 chars for debugging
+    });
+    return {
+      success: false,
+      error: {
+        code: 'ERR_AI_PARSE_FAILED',
+        message: `API returned HTML error page (status: ${res.status})`,
+      },
+    };
+  }
+
+  // Try to parse as JSON
+  try {
+    responseData = JSON.parse(textResponse);
+  } catch (jsonError) {
+    // If JSON parsing fails, log the error and return a helpful message
+    console.error('recipeScrape: Failed to parse JSON response:', {
+      error: jsonError,
+      status: res.status,
+      responsePreview: textResponse.slice(0, 200),
+    });
+    return {
+      success: false,
+      error: {
+        code: 'ERR_AI_PARSE_FAILED',
+        message: 'Failed to parse API response as JSON',
+      },
+    };
+  }
 
   if (!res.ok || !responseData.success) {
     console.error('recipeScrape API error:', responseData);

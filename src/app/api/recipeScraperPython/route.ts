@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
 import { formatError, ERROR_CODES } from '@/utils/formatError';
+import { parseRecipe } from '@/utils/scrape_recipe';
 
+/**
+ * API endpoint for recipe scraping using Node.js
+ * Migrated from Python to work with Vercel serverless functions
+ */
 export async function POST(req: NextRequest): Promise<Response> {
   try {
     const { url } = await req.json();
 
+    // Validate URL is provided and is a string
     if (!url || typeof url !== 'string') {
       return NextResponse.json(
         formatError(
@@ -15,7 +20,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       );
     }
 
-    // Basic URL validation
+    // Basic URL format validation
     try {
       new URL(url);
     } catch {
@@ -24,140 +29,70 @@ export async function POST(req: NextRequest): Promise<Response> {
       );
     }
 
-    return new Promise((resolve) => {
-      const process = spawn('python3', ['src/utils/scrape_recipe.py', url]);
+    console.log(`Starting recipe scrape for URL: ${url}`);
 
-      let data = '';
-      let error = '';
-      const timeout: NodeJS.Timeout = setTimeout(() => {
-        process.kill();
-        resolve(
-          NextResponse.json(
-            formatError(
-              ERROR_CODES.ERR_TIMEOUT,
-              'Python script execution timed out',
-            ),
-          ),
-        );
-      }, 30000); // 30 seconds timeout
+    // Call the Node.js scraper (no longer spawning Python process)
+    const result = await parseRecipe(url);
 
-      process.stdout.on('data', (chunk) => {
-        data += chunk.toString();
-      });
+    // Check if scraper returned an error
+    if ('error' in result) {
+      console.error('Scraper returned error:', result.error);
+      return NextResponse.json(
+        formatError(
+          ERROR_CODES.ERR_NO_RECIPE_FOUND,
+          'Could not extract recipe from this page',
+        ),
+      );
+    }
 
-      process.stderr.on('data', (chunk) => {
-        error += chunk.toString();
-      });
+    // Validate we have complete recipe data
+    const hasTitle =
+      result.title && typeof result.title === 'string' && result.title.trim().length > 0;
+    const hasIngredients =
+      result.ingredients && Array.isArray(result.ingredients) && result.ingredients.length > 0;
+    const hasInstructions =
+      result.instructions && Array.isArray(result.instructions) && result.instructions.length > 0;
 
-      process.on('close', (code) => {
-        clearTimeout(timeout);
+    if (!hasTitle && !hasIngredients && !hasInstructions) {
+      console.error('Incomplete recipe data:', result);
+      return NextResponse.json(
+        formatError(
+          ERROR_CODES.ERR_NO_RECIPE_FOUND,
+          'No recipe content found on this page',
+        ),
+      );
+    }
 
-        if (code === 0) {
-          try {
-            const json = JSON.parse(data);
+    // Return successful response with recipe data
+    console.log(
+      `Successfully scraped recipe: "${result.title}" with ${result.ingredients.length} ingredients and ${result.instructions.length} instructions`,
+    );
 
-            // Check if the Python script returned valid recipe data
-            if (!json || typeof json !== 'object') {
-              resolve(
-                NextResponse.json(
-                  formatError(
-                    ERROR_CODES.ERR_NO_RECIPE_FOUND,
-                    'No recipe data returned from Python script',
-                  ),
-                ),
-              );
-              return;
-            }
-
-            // Check if we have at least some basic recipe information
-            const hasTitle =
-              json.title &&
-              typeof json.title === 'string' &&
-              json.title.trim().length > 0;
-            const hasIngredients =
-              json.ingredients &&
-              Array.isArray(json.ingredients) &&
-              json.ingredients.length > 0;
-            const hasInstructions =
-              json.instructions &&
-              (Array.isArray(json.instructions) ||
-                typeof json.instructions === 'string');
-
-            if (!hasTitle && !hasIngredients && !hasInstructions) {
-              resolve(
-                NextResponse.json(
-                  formatError(
-                    ERROR_CODES.ERR_NO_RECIPE_FOUND,
-                    'No recipe content found on this page',
-                  ),
-                ),
-              );
-              return;
-            }
-
-            resolve(NextResponse.json({ success: true, ...json }));
-          } catch (err) {
-            console.error('Error parsing Python output:', err);
-            console.error('Raw Python output:', data);
-            resolve(
-              NextResponse.json(
-                formatError(
-                  ERROR_CODES.ERR_AI_PARSE_FAILED,
-                  'Failed to parse Python script output',
-                ),
-              ),
-            );
-          }
-        } else {
-          console.error('Python script error:', error);
-          console.error('Python script exit code:', code);
-
-          if (
-            error.includes('ModuleNotFoundError') ||
-            error.includes('ImportError')
-          ) {
-            resolve(
-              NextResponse.json(
-                formatError(
-                  ERROR_CODES.ERR_UNKNOWN,
-                  'Python dependencies not installed',
-                ),
-              ),
-            );
-          } else if (error.includes('FileNotFoundError')) {
-            resolve(
-              NextResponse.json(
-                formatError(ERROR_CODES.ERR_UNKNOWN, 'Python script not found'),
-              ),
-            );
-          } else {
-            resolve(
-              NextResponse.json(
-                formatError(
-                  ERROR_CODES.ERR_UNKNOWN,
-                  'Python script execution failed',
-                ),
-              ),
-            );
-          }
-        }
-      });
-
-      process.on('error', (err) => {
-        clearTimeout(timeout);
-        console.error('Process spawn error:', err);
-        resolve(
-          NextResponse.json(
-            formatError(
-              ERROR_CODES.ERR_UNKNOWN,
-              'Failed to start Python script',
-            ),
-          ),
-        );
-      });
+    return NextResponse.json({
+      success: true,
+      title: result.title,
+      ingredients: result.ingredients,
+      instructions: result.instructions,
     });
   } catch (error) {
     console.error('Recipe scraper error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Check for timeout errors
+    if (errorMessage.includes('timeout')) {
+      return NextResponse.json(
+        formatError(ERROR_CODES.ERR_TIMEOUT, 'Request timed out'),
+      );
+    }
+
+    // Check for network errors
+    if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNREFUSED')) {
+      return NextResponse.json(
+        formatError(ERROR_CODES.ERR_FETCH_FAILED, 'Could not connect to recipe site'),
+      );
+    }
+
+    // Generic error fallback
     return NextResponse.json(
       formatError(ERROR_CODES.ERR_UNKNOWN, 'An unexpected error occurred'),
     );
