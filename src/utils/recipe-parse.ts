@@ -365,3 +365,87 @@ export async function recipeScrape(url: string) {
 
   return responseData;
 }
+
+/**
+ * Parse recipe from uploaded image file
+ * 
+ * This function sends an image to the backend AI vision service
+ * to extract recipe information (title, ingredients, instructions)
+ * 
+ * @param imageFile - File object containing the recipe image
+ * @returns Promise with parsed recipe data or error
+ */
+export async function parseRecipeFromImage(imageFile: File) {
+  try {
+    console.log('[Client] Sending image to backend for parsing:', imageFile.name);
+
+    // Create FormData to send the image file
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    // Send to the image parsing API endpoint
+    const res = await fetch('/api/parseRecipeFromImage', {
+      method: 'POST',
+      body: formData, // FormData automatically sets Content-Type with boundary
+    });
+
+    // Read response as text first (can only read body once)
+    const textResponse = await res.text();
+    let responseData;
+
+    // Check if response looks like HTML (starts with <) or is empty
+    if (textResponse.trim().startsWith('<') || textResponse.trim().length === 0) {
+      console.error('parseRecipeFromImage: Received HTML or empty response:', {
+        status: res.status,
+        statusText: res.statusText,
+        contentType: res.headers.get('content-type'),
+        responsePreview: textResponse.slice(0, 200),
+      });
+      return {
+        success: false,
+        error: {
+          code: 'ERR_AI_PARSE_FAILED',
+          message: `API returned HTML error page (status: ${res.status})`,
+        },
+      };
+    }
+
+    // Try to parse as JSON
+    try {
+      responseData = JSON.parse(textResponse);
+    } catch (jsonError) {
+      console.error('parseRecipeFromImage: Failed to parse JSON response:', {
+        error: jsonError,
+        status: res.status,
+        responsePreview: textResponse.slice(0, 200),
+      });
+      return {
+        success: false,
+        error: {
+          code: 'ERR_AI_PARSE_FAILED',
+          message: 'Failed to parse API response as JSON',
+        },
+      };
+    }
+
+    // Check if request failed
+    if (!res.ok || !responseData.success) {
+      console.error('parseRecipeFromImage API error:', responseData);
+      return responseData; // Return the error response
+    }
+
+    // Return successful response
+    console.log('[Client] Successfully received parsed recipe from image:', responseData.title);
+    return responseData;
+  } catch (error) {
+    console.error('[Client] Error in parseRecipeFromImage:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return {
+      success: false,
+      error: {
+        code: 'ERR_UNKNOWN',
+        message: `Failed to parse image: ${errorMessage}`,
+      },
+    };
+  }
+}

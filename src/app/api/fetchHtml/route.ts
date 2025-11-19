@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { formatError, ERROR_CODES } from '@/utils/formatError';
 
+// Timeout constant (10 seconds, matching urlValidator)
+const FETCH_TIMEOUT_MS = 10000;
+
+/**
+ * Fetch with timeout using AbortController
+ * This ensures requests don't hang indefinitely
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw error;
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const url = req.nextUrl.searchParams.get('url');
@@ -21,15 +52,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const htmlRes = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    // Fetch with timeout and proper headers
+    const htmlRes = await fetchWithTimeout(
+      url,
+      {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        },
       },
-    });
+      FETCH_TIMEOUT_MS,
+    );
 
     if (!htmlRes.ok) {
       if (htmlRes.status === 404) {
@@ -78,12 +114,39 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Error fetching HTML:', error);
 
-    if (error instanceof TypeError && error.message.includes('fetch')) {
+    // Handle timeout errors specifically
+    if (error instanceof Error) {
+      if (
+        error.message.includes('timeout') ||
+        error.message.includes('timed out') ||
+        error.name === 'AbortError'
+      ) {
+        return NextResponse.json(
+          formatError(ERROR_CODES.ERR_TIMEOUT, 'Request timed out'),
+        );
+      }
+
+      // Handle network errors
+      if (
+        error.message.includes('fetch') ||
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('ENOTFOUND') ||
+        error.message.includes('network')
+      ) {
+        return NextResponse.json(
+          formatError(ERROR_CODES.ERR_FETCH_FAILED, 'Network error occurred'),
+        );
+      }
+    }
+
+    // Handle TypeError (usually network-related)
+    if (error instanceof TypeError) {
       return NextResponse.json(
-        formatError(ERROR_CODES.ERR_FETCH_FAILED, 'Network error occurred'),
+        formatError(ERROR_CODES.ERR_FETCH_FAILED, 'Failed to fetch the page'),
       );
     }
 
+    // Generic error fallback
     return NextResponse.json(
       formatError(ERROR_CODES.ERR_UNKNOWN, 'An unexpected error occurred'),
     );

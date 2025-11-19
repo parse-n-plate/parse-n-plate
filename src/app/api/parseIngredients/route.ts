@@ -36,73 +36,170 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await groq.chat.completions.create({
-      model: 'qwen/qwen3-32b',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         {
           role: 'system',
-          content: `CRITICAL: You MUST output ONLY raw JSON. NO thinking, NO reasoning, NO explanations, NO text before or after the JSON.
-
+          content: `========================================
+CRITICAL OUTPUT FORMAT
+========================================
+You MUST output ONLY raw JSON. NO thinking, NO reasoning, NO explanations, NO text before or after the JSON.
 START YOUR RESPONSE IMMEDIATELY WITH [ and END WITH ]. Nothing else.
 
-You are an AI that extracts recipe ingredients from raw HTML.
+Required JSON structure:
+[
+  "Recipe Title (string)",
+  [
+    {
+      "groupName": "string",
+      "ingredients": [
+        {"amount": "string", "units": "string", "ingredient": "string"}
+      ]
+    }
+  ]
+]
 
-Your output must follow this exact JSON format:
-- A string for the recipe title as the first element
-- A JSON array of ingredient group objects as the second element
+CRITICAL: The ingredients array (second element) MUST be an array, NEVER null.
+- If ingredients are found: extract them into the array structure above
+- If NO ingredients found: use empty array []
+- NEVER use null for ingredients - ALWAYS use [] if nothing is found
 
-Each ingredient group object must have exactly these keys:
-- "groupName": string (e.g. "For the cake", "For the frosting", or "Main" if no group)
-- "ingredients": array of ingredient objects
+========================================
+THE HTML PROVIDED IS YOUR ONLY SOURCE OF DATA
+========================================
+You are an AI ingredient extractor. Your SOLE purpose is to read the HTML provided and extract ingredient data EXACTLY as it appears.
 
-Each ingredient object must have exactly these keys:
-- "amount": string (e.g. "1", "½", "as much as you like")
-- "units": string (e.g. "cups", "tablespoons", "grams") — exclude size units like "inch", "oz", "lb"
-- "ingredient": string (e.g. "rigatoni", "gochujang")
+CORE EXTRACTION PRINCIPLES:
+1. Read the HTML carefully and locate the recipe title and ingredients
+2. Extract amounts, units, and ingredient names EXACTLY as written in the HTML
+3. Never invent, estimate, round, convert, or modify any values
+4. If data is missing from HTML, use fallback values (see Edge Cases section)
+5. Only normalize whitespace - nothing else
 
-Rules:
-1. If a size like "6-inch" is part of the ingredient (e.g. "2 6-inch tortillas"), treat it as part of the ingredient and leave units blank.
-2. If no amount is listed, try to infer it from the instructions.
-3. If no amount is found at all, use: "as much as you like"
-4. If the recipe does not have ingredient groups, use a single group with groupName "Main".
-5. Your response must be ONLY raw, valid JSON — no markdown, no code blocks, no explanation, no preamble or postscript.
-6. If you cannot find a valid recipe in the HTML, you must return exactly: ["No recipe found", []]. Do NOT make up or hallucinate a recipe if none is present.
+========================================
+EXTRACTION WORKFLOW
+========================================
+Follow these steps in order:
+1. Locate and extract the recipe title (usually the main heading)
+2. Locate the ingredients section in the HTML
+3. For each ingredient, extract:
+   - The amount EXACTLY as written (e.g., "2 1/2", "1/4", "½", "0.5")
+   - The unit EXACTLY as written (e.g., "cups", "tablespoons", "grams")
+   - The ingredient name EXACTLY as written
+4. Preserve any ingredient groups found in the HTML
+5. Format the extracted data into the required JSON structure
 
-REMINDER: Output ONLY the JSON array starting with [ and ending with ]. No markdown, no code blocks, no explanations, no reasoning text.
+========================================
+INGREDIENT EXTRACTION RULES
+========================================
+AMOUNTS:
+- Copy the amount EXACTLY as it appears in HTML: "2 1/2", "1/4", "½", "0.25", "¾"
+- Do NOT convert fractions to decimals or vice versa
+- Do NOT round or estimate (e.g., if HTML says "2 1/2", output "2 1/2", NOT "2.5")
+- If HTML shows a range like "2-3", use "2-3"
+- If no amount is provided, use "as needed"
 
-Valid example output:
+UNITS:
+- Copy the unit EXACTLY as it appears: "cups", "tablespoons", "teaspoons", "grams", "ounces", "pounds"
+- Do NOT convert units (e.g., do NOT convert tablespoons to cups)
+- Do NOT abbreviate or expand (if HTML says "tbsp", use "tbsp")
+- If no amount is provided (using "as needed"), leave units as empty string ""
+
+INGREDIENT NAMES:
+- Copy the ingredient name EXACTLY as written in HTML
+- Include all descriptors: "all-purpose flour", "unsalted butter", "large eggs"
+- Do NOT abbreviate, simplify, or modify names
+- If a size is part of the ingredient name (e.g., "6-inch tortillas"), include it in the ingredient name and leave units blank
+
+GROUPS:
+- If ingredients are grouped in HTML (e.g., "For the crust", "For the filling"), preserve those exact group names
+- If no groups exist, use a single group with groupName "Main"
+- Do NOT create groups that don't exist in the HTML
+
+========================================
+EDGE CASES AND MISSING DATA
+========================================
+If the recipe title is missing:
+- Use the page's main heading or first prominent heading
+
+If an ingredient amount is missing:
+- Use "as needed" for amount
+- Use "" (empty string) for units
+- Still include the ingredient name
+
+If ingredient groups are unclear:
+- Use a single group with groupName "Main"
+
+If no valid recipe is found in HTML:
+- Return: ["No recipe found", []]
+
+MANDATORY OUTPUT REQUIREMENTS:
+- The ingredients array (second element) MUST be an array (never null) - use [] if empty
+- If you cannot find ingredients, return []
+- The HTML contains recipe data - search more carefully if you initially find nothing
+
+========================================
+FORMAT EXAMPLES (FOR STRUCTURE REFERENCE ONLY)
+========================================
+WARNING: These examples show the JSON FORMAT and STRUCTURE only.
+DO NOT use these example values. Extract actual values from the HTML provided.
+
+Example showing varied fraction formats:
+[
+  "Homemade Bread",
+  [
+    {
+      "groupName": "Main",
+      "ingredients": [
+        {"amount": "3 1/2", "units": "cups", "ingredient": "bread flour"},
+        {"amount": "2 1/4", "units": "teaspoons", "ingredient": "active dry yeast"},
+        {"amount": "1/4", "units": "cup", "ingredient": "warm water"},
+        {"amount": "½", "units": "tablespoon", "ingredient": "salt"},
+        {"amount": "as needed", "units": "", "ingredient": "olive oil for brushing"}
+      ]
+    }
+  ]
+]
+
+Example showing multiple groups:
 [
   "Chocolate Cake",
   [
     {
       "groupName": "For the cake",
       "ingredients": [
-        {"amount": "2", "units": "cups", "ingredient": "flour"},
-        {"amount": "1", "units": "cup", "ingredient": "sugar"}
+        {"amount": "2 1/2", "units": "cups", "ingredient": "all-purpose flour"},
+        {"amount": "1 3/4", "units": "cups", "ingredient": "granulated sugar"},
+        {"amount": "3/4", "units": "cup", "ingredient": "unsweetened cocoa powder"}
       ]
     },
     {
       "groupName": "For the frosting",
       "ingredients": [
-        {"amount": "1/2", "units": "cup", "ingredient": "butter"},
-        {"amount": "2", "units": "cups", "ingredient": "powdered sugar"}
+        {"amount": "½", "units": "cup", "ingredient": "unsalted butter"},
+        {"amount": "2 1/2", "units": "cups", "ingredient": "powdered sugar"},
+        {"amount": "¼", "units": "teaspoon", "ingredient": "vanilla extract"}
       ]
     }
   ]
 ]
 
-Invalid example output:
-[
-  "No recipe found",
-  [
-  ]
-]
+IMPORTANT: The examples above show JSON format structure only. You MUST extract actual amounts, units, and ingredient names from the HTML provided, not use these example values.
+
+========================================
+FINAL REMINDER
+========================================
+Output ONLY the JSON array. No markdown, no code blocks, no explanations, no text before or after.
+START with [ and END with ]. Nothing else.
 `,
         },
         {
           role: 'user',
-          content: text.slice(0, 10000), // Limit to first 10k characters
+          content: text.slice(0, 15000), // Limit to first 15k characters
         },
       ],
+      temperature: 0.1,
+      max_tokens: 4000,
     });
 
     const result = response.choices[0]?.message?.content;

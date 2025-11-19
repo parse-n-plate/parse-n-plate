@@ -1,18 +1,16 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  parseIngredients,
-  parseInstructions,
   recipeScrape,
   validateRecipeUrl,
-  fetchHtml,
+  parseRecipeFromImage,
 } from '@/utils/recipe-parse';
 import { useRouter } from 'next/navigation';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRecipeErrorHandler } from '@/hooks/useRecipeErrorHandler';
 import { errorLogger } from '@/utils/errorLogger';
-import { Search, X } from 'lucide-react';
+import { Search, X, Upload, Image as ImageIcon } from 'lucide-react';
 import LoadingAnimation from './loading-animation';
 import { ParsedRecipe } from '@/lib/storage';
 
@@ -32,11 +30,17 @@ export default function SearchForm({
   const [isFocused, setIsFocused] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState<ParsedRecipe[]>([]);
+  // Image upload states
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [inputMode, setInputMode] = useState<'url' | 'image'>('url'); // Toggle between URL and image mode
+  
   const { setParsedRecipe } = useRecipe();
   const { addRecipe, recentRecipes } = useParsedRecipes();
   const { handle: handleError } = useRecipeErrorHandler();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Check if query looks like a URL
@@ -96,6 +100,122 @@ export default function SearchForm({
     router.push('/parsed-recipe-page');
   };
 
+  // Handle image file selection
+  // This function runs when the user selects an image file from their computer
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type - only allow images
+    if (!file.type.startsWith('image/')) {
+      setErrorAction(true);
+      if (setErrorMessage) setErrorMessage('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size - max 10MB
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      setErrorAction(true);
+      if (setErrorMessage) setErrorMessage('Image size must be less than 10MB');
+      return;
+    }
+
+    // Set the selected file
+    setSelectedImage(file);
+
+    // Create a preview URL for the image
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Toggle between URL and image input modes
+  // This switches the UI between showing URL input and image upload
+  const toggleInputMode = () => {
+    const newMode = inputMode === 'url' ? 'image' : 'url';
+    setInputMode(newMode);
+    // Clear both inputs when switching modes
+    setQuery('');
+    setSelectedImage(null);
+    setImagePreview(null);
+    setShowDropdown(false);
+  };
+
+  // Parse recipe from uploaded image
+  // This function sends the image to the backend for AI processing
+  const handleImageParse = useCallback(async () => {
+    if (!selectedImage) return;
+
+    try {
+      setLoading(true);
+      setErrorAction(false);
+      if (setErrorMessage) setErrorMessage('');
+
+      console.log('[Client] Parsing recipe from image:', selectedImage.name);
+      
+      // Call the new image parsing function
+      const response = await parseRecipeFromImage(selectedImage);
+
+      // Check if parsing failed
+      if (!response.success || response.error) {
+        const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
+        const errorMessage = handleError(errorCode);
+        errorLogger.log(errorCode, response.error?.message || 'Image parsing failed', selectedImage.name);
+        setErrorAction(true);
+        if (setErrorMessage) setErrorMessage(errorMessage);
+        return;
+      }
+
+      console.log('[Client] Successfully parsed recipe from image:', response.title);
+
+      // Store parsed recipe in context
+      setParsedRecipe({
+        title: response.title,
+        ingredients: response.ingredients,
+        instructions: response.instructions,
+      });
+
+      // Add to recent recipes
+      const recipeSummary = Array.isArray(response.instructions)
+        ? response.instructions.join(' ').slice(0, 140)
+        : response.instructions.slice(0, 140);
+
+      addRecipe({
+        title: response.title,
+        summary: recipeSummary,
+        url: `image:${selectedImage.name}`, // Store as image reference
+        ingredients: response.ingredients,
+        instructions: response.instructions,
+      });
+
+      // Navigate to parsed recipe page
+      router.push('/parsed-recipe-page');
+    } catch (err) {
+      console.error('[Client] Image parse error:', err);
+      errorLogger.log(
+        'ERR_UNKNOWN',
+        'An unexpected error occurred during image parsing',
+        selectedImage.name,
+      );
+      setErrorAction(true);
+      if (setErrorMessage)
+        setErrorMessage('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    selectedImage,
+    setErrorAction,
+    setErrorMessage,
+    setParsedRecipe,
+    addRecipe,
+    handleError,
+    router,
+  ]);
+
   const handleParse = useCallback(async () => {
     if (!query.trim()) return;
 
@@ -104,7 +224,8 @@ export default function SearchForm({
       setErrorAction(false);
       if (setErrorMessage) setErrorMessage('');
 
-      // Step 1: Validate if URL contains a recipe or not
+      // Step 1: Quick validation to ensure URL contains recipe-related keywords
+      // This provides fast feedback before making the full parsing request
       const validUrlResponse = await validateRecipeUrl(query);
 
       if (!validUrlResponse.success) {
@@ -131,142 +252,52 @@ export default function SearchForm({
         return;
       }
 
-      // Step 2: Scrape with HTML scraper (Node.js)
-      const scrapedData = await recipeScrape(query);
+      // Step 2: Parse recipe using unified AI-based parser
+      // This handles all the complexity internally:
+      // - Fetches and cleans HTML
+      // - Tries JSON-LD extraction first (fast, no AI tokens)
+      // - Falls back to AI parsing if needed
+      // - Returns consistently structured data
+      console.log('[Client] Calling unified recipe parser...');
+      const response = await recipeScrape(query);
 
-      // Debug: Log what the scraper returned
-      console.log('HTML scraper response:', scrapedData);
-
-      // Check if scraping failed completely
-      if (!scrapedData.success || scrapedData.error) {
-        console.log('HTML scraper failed, trying AI parsing from raw HTML...');
-
-        // Fallback to raw HTML parsing if scraper failed
-        const htmlRes = await fetchHtml(query);
-
-        if (!htmlRes.success) {
-          const errorMessage = handleError(htmlRes.error.code);
-          errorLogger.log(htmlRes.error.code, htmlRes.error.message, query);
-          setErrorAction(true);
-          if (setErrorMessage) setErrorMessage(errorMessage);
-          return;
-        }
-
-        // Parse both ingredients and instructions with AI from raw HTML
-        const aiParsedIngredients = await parseIngredients(htmlRes.html);
-        const aiParsedInstructions = await parseInstructions(htmlRes.html);
-
-        if (!aiParsedIngredients.success || !aiParsedInstructions.success) {
-          const errorCode = !aiParsedIngredients.success
-            ? aiParsedIngredients.error.code
-            : aiParsedInstructions.error.code;
-          const errorMessage = handleError(errorCode);
-          errorLogger.log(errorCode, 'AI parsing failed', query);
-          setErrorAction(true);
-          if (setErrorMessage) setErrorMessage(errorMessage);
-          return;
-        }
-
-        // Use AI-parsed data
-        scrapedData.title = aiParsedIngredients.data[0];
-        scrapedData.ingredients = aiParsedIngredients.data[1];
-        scrapedData.instructions = Array.isArray(aiParsedInstructions.data)
-          ? aiParsedInstructions.data
-          : [aiParsedInstructions.data];
-      } else {
-        // Step 3: HTML scraper succeeded, now clean up with AI
-        console.log(
-          'HTML scraper succeeded, sending to AI for cleanup and formatting...',
-        );
-
-        // Convert scraped ingredients array to text for AI
-        const ingredientsText = Array.isArray(scrapedData.ingredients)
-          ? scrapedData.ingredients.join('\n')
-          : scrapedData.ingredients;
-
-        // Convert scraped instructions array to text for AI
-        const instructionsText = Array.isArray(scrapedData.instructions)
-          ? scrapedData.instructions.join('\n')
-          : scrapedData.instructions;
-
-        // Step 3.1: AI cleanup and formatting for ingredients
-        const aiParsedIngredients = await parseIngredients(ingredientsText);
-
-        if (!aiParsedIngredients.success) {
-          console.warn(
-            'AI cleanup failed for ingredients, using raw scraped data',
-          );
-          // Keep the scraped data as-is if AI fails
-        } else {
-          // Use AI-cleaned and formatted data
-          scrapedData.title = aiParsedIngredients.data[0];
-          scrapedData.ingredients = aiParsedIngredients.data[1];
-        }
-
-        // Step 3.2: AI cleanup and formatting for instructions
-        const aiParsedInstructions = await parseInstructions(instructionsText);
-
-        if (!aiParsedInstructions.success) {
-          console.warn(
-            'AI cleanup failed for instructions, using raw scraped data',
-          );
-          // Keep the scraped data as-is if AI fails
-        } else {
-          // Use AI-cleaned instructions
-          scrapedData.instructions = Array.isArray(aiParsedInstructions.data)
-            ? aiParsedInstructions.data
-            : [aiParsedInstructions.data];
-        }
+      // Check if parsing failed
+      if (!response.success || response.error) {
+        const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
+        const errorMessage = handleError(errorCode);
+        errorLogger.log(errorCode, response.error?.message || 'Parsing failed', query);
+        setErrorAction(true);
+        if (setErrorMessage) setErrorMessage(errorMessage);
+        return;
       }
 
-      // Step 3: Store in context and redirect
-      // Convert flat ingredient array to grouped format (if needed)
-      // Check if ingredients are already in grouped format
-      const isAlreadyGrouped =
-        Array.isArray(scrapedData.ingredients) &&
-        scrapedData.ingredients.length > 0 &&
-        scrapedData.ingredients.every(
-          (item: unknown) =>
-            typeof item === 'object' &&
-            item !== null &&
-            'groupName' in item &&
-            'ingredients' in item,
-        );
+      console.log('[Client] Successfully parsed recipe:', response.title);
 
-      const formattedIngredients = isAlreadyGrouped
-        ? scrapedData.ingredients // Already in grouped format, use as-is
-        : Array.isArray(scrapedData.ingredients)
-          ? [
-              {
-                groupName: 'Main',
-                ingredients: scrapedData.ingredients,
-              },
-            ]
-          : scrapedData.ingredients; // Fallback if it's already an object
-
+      // Step 3: Store parsed recipe in context
+      // The new parser already returns data in the correct grouped format
       setParsedRecipe({
-        title: scrapedData.title,
-        ingredients: formattedIngredients,
-        instructions: scrapedData.instructions,
+        title: response.title,
+        ingredients: response.ingredients,
+        instructions: response.instructions,
       });
 
-      // Step 4: Add to recent recipes
-      const recipeSummary = Array.isArray(scrapedData.instructions)
-        ? scrapedData.instructions.join(' ').slice(0, 140)
-        : scrapedData.instructions.slice(0, 140);
+      // Step 4: Add to recent recipes for quick access
+      const recipeSummary = Array.isArray(response.instructions)
+        ? response.instructions.join(' ').slice(0, 140)
+        : response.instructions.slice(0, 140);
 
       addRecipe({
-        title: scrapedData.title,
+        title: response.title,
         summary: recipeSummary,
         url: query,
-        ingredients: formattedIngredients,
-        instructions: scrapedData.instructions,
+        ingredients: response.ingredients,
+        instructions: response.instructions,
       });
 
-      // Step 5: Redirect to the parsed recipe page
+      // Step 5: Navigate to the parsed recipe page
       router.push('/parsed-recipe-page');
     } catch (err) {
-      console.error('Parse error:', err);
+      console.error('[Client] Parse error:', err);
       errorLogger.log(
         'ERR_UNKNOWN',
         'An unexpected error occurred during parsing',
@@ -334,23 +365,46 @@ export default function SearchForm({
     <>
       <LoadingAnimation isVisible={loading} />
       <div className="relative w-full">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (isUrl(query)) handleParse();
-          }}
-        >
-          <div
-            className={`
-              bg-stone-100 rounded-[9999px] border border-[#d9d9d9] 
-              transition-all duration-300 ease-in-out
-              hover:border-[#4F46E5] hover:border-opacity-80
-              ${isFocused ? 'shadow-sm border-[#4F46E5] border-opacity-60' : ''}
-            `}
+        {/* Mode Toggle Button - Switches between URL and Image input */}
+        <div className="flex justify-center mb-3">
+          <button
+            type="button"
+            onClick={toggleInputMode}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#d9d9d9] rounded-full hover:border-[#4F46E5] transition-all duration-200 text-sm font-albert text-stone-600"
           >
-            <div className="flex items-center px-4 py-4 relative">
-              {/* Search Icon */}
-              <Search className="w-4 h-4 text-stone-600 flex-shrink-0" />
+            {inputMode === 'url' ? (
+              <>
+                <ImageIcon className="w-4 h-4" />
+                <span>Switch to Image Upload</span>
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4" />
+                <span>Switch to URL Input</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* URL Input Mode */}
+        {inputMode === 'url' && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (isUrl(query)) handleParse();
+            }}
+          >
+            <div
+              className={`
+                bg-stone-100 rounded-[9999px] border border-[#d9d9d9] 
+                transition-all duration-300 ease-in-out
+                hover:border-[#4F46E5] hover:border-opacity-80
+                ${isFocused ? 'shadow-sm border-[#4F46E5] border-opacity-60' : ''}
+              `}
+            >
+              <div className="flex items-center px-4 py-4 relative">
+                {/* Search Icon */}
+                <Search className="w-4 h-4 text-stone-600 flex-shrink-0" />
 
               {/* Input */}
               <div className="flex-1 ml-2 relative">
@@ -403,10 +457,81 @@ export default function SearchForm({
               )}
             </div>
           </div>
-        </form>
+          </form>
+        )}
 
-        {/* Search Results Dropdown */}
-        {showDropdown && searchResults.length > 0 && (
+        {/* Image Upload Mode */}
+        {inputMode === 'image' && (
+          <div className="space-y-4">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+
+            {/* Image Upload Button or Preview */}
+            {!imagePreview ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                className="w-full bg-stone-100 rounded-2xl border-2 border-dashed border-[#d9d9d9] hover:border-[#4F46E5] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-3"
+              >
+                <Upload className="w-12 h-12 text-stone-400" />
+                <div className="text-center">
+                  <p className="font-albert text-stone-600 font-medium">
+                    Click to upload recipe image
+                  </p>
+                  <p className="font-albert text-sm text-stone-500 mt-1">
+                    PNG, JPG, or WEBP (max 10MB)
+                  </p>
+                </div>
+              </button>
+            ) : (
+              <div className="space-y-3">
+                {/* Image Preview */}
+                <div className="relative rounded-2xl overflow-hidden border-2 border-[#d9d9d9]">
+                  <img
+                    src={imagePreview}
+                    alt="Recipe preview"
+                    className="w-full h-auto max-h-96 object-contain bg-stone-50"
+                  />
+                  {/* Remove Image Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setImagePreview(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
+                    className="absolute top-3 right-3 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all duration-200"
+                    disabled={loading}
+                  >
+                    <X className="w-5 h-5 text-stone-600" />
+                  </button>
+                </div>
+
+                {/* Parse Button */}
+                <button
+                  type="button"
+                  onClick={handleImageParse}
+                  disabled={loading}
+                  className="w-full bg-[#FFA423] hover:bg-[#FF9500] text-white font-albert font-medium text-base px-6 py-4 rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Parse Recipe from Image
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Search Results Dropdown - Only show in URL mode */}
+        {inputMode === 'url' && showDropdown && searchResults.length > 0 && (
           <div
             ref={dropdownRef}
             className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#d9d9d9] rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"

@@ -77,38 +77,9 @@ export default function ParsedRecipePage() {
                 </h1>
                 <div className="flex items-center">
                   <span className="font-albert text-[14px] text-stone-50 leading-[1.4]">
-                    Gage Minamoto
+                    {parsedRecipe.author || 'Unknown Author'}
                   </span>
                 </div>
-              </div>
-
-              {/* Tags */}
-              <div className="flex gap-1 items-start">
-                <div className="bg-stone-100 border border-stone-200 rounded-full px-2 py-1 flex items-center gap-1">
-                  <span className="text-stone-600 text-xs">⏱️</span>
-                  <span className="font-albert-medium text-[12px] text-stone-600">
-                    10min
-                  </span>
-                </div>
-                <div className="bg-stone-100 border border-stone-200 rounded-full px-2 py-1 flex items-center gap-1">
-                  <span className="text-stone-600 text-xs">🥢</span>
-                  <span className="font-albert-medium text-[12px] text-stone-600">
-                    Japanese
-                  </span>
-                </div>
-                <div className="bg-stone-100 border border-stone-200 rounded-full px-2 py-1 flex items-center gap-1">
-                  <span className="text-stone-600 text-xs">🥢</span>
-                  <span className="font-albert-medium text-[12px] text-stone-600">
-                    Japanese
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side - Bookmark Button */}
-            <div className="bg-[#FFBA25] rounded-full p-2">
-              <div className="w-6 h-6 flex items-center justify-center">
-                <span className="text-white text-lg">🔖</span>
               </div>
             </div>
           </div>
@@ -157,108 +128,6 @@ export default function ParsedRecipePage() {
 
             {/* Prep Tab Content */}
             <Tabs.Content value="prep" className="space-y-6">
-              {/* Recipe Description Card */}
-              <div className="bg-stone-100 rounded-lg p-4 space-y-4">
-                <p className="font-albert text-[14px] text-stone-600 leading-[1.4]">
-                  A steaming bowl of fragrant broth surrounds chewy noodles,
-                  creating a satisfying texture. Tender slices of beef add a
-                  sweet-savory flavor, enhancing the dish and offering a
-                  comforting balance of taste.
-                </p>
-
-                {/* Timing and Rating Info */}
-                <div className="flex gap-1.5 items-start">
-                  <div className="flex-1 flex flex-col items-start">
-                    <span className="font-albert text-[10px] text-stone-400 uppercase leading-[1.4]">
-                      Cook
-                    </span>
-                    <span className="font-albert-semibold text-[16px] text-stone-950 leading-[1.2]">
-                      35min
-                    </span>
-                  </div>
-                  <div className="flex-1 flex flex-col items-start">
-                    <span className="font-albert text-[10px] text-stone-400 uppercase leading-[1.4]">
-                      Overall
-                    </span>
-                    <span className="font-albert-semibold text-[16px] text-stone-950 leading-[1.2]">
-                      50min
-                    </span>
-                  </div>
-                  <div className="flex-1 flex flex-col items-start">
-                    <span className="font-albert text-[10px] text-stone-400 uppercase leading-[1.4]">
-                      Ready
-                    </span>
-                    <span className="font-albert-semibold text-[16px] text-stone-950 leading-[1.2]">
-                      6:27pm
-                    </span>
-                  </div>
-                  <div className="flex-1 flex flex-col items-start justify-between">
-                    <span className="font-albert text-[10px] text-stone-400 uppercase leading-[1.4]">
-                      Rating
-                    </span>
-                    <div className="flex items-center gap-0.5">
-                      <span className="text-stone-600 text-sm">⭐</span>
-                      <span className="text-stone-600 text-sm">⭐</span>
-                      <span className="text-stone-600 text-sm">⭐</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recipe Skills Section */}
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <h2 className="font-domine text-[20px] text-stone-950 leading-[1.1]">
-                    Recipe Skills
-                  </h2>
-                  <p className="font-albert text-[14px] text-stone-600 leading-[1.4]">
-                    Skills you need to know to cook this recipe
-                  </p>
-                </div>
-
-                {/* Cooking Techniques */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-albert-medium text-[10px] text-stone-950 opacity-40 uppercase leading-[1.8]">
-                        Cooking Techniques
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <div className="w-6 h-5 bg-stone-200 rounded"></div>
-                        <span className="font-albert text-[14px] text-stone-600">
-                          Simmering
-                        </span>
-                      </div>
-                    </div>
-                    <button className="bg-stone-100 rounded-full px-5 py-2">
-                      <span className="font-albert text-[14px] text-stone-600">
-                        Learn More
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Knife Skills */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-albert-medium text-[10px] text-stone-950 opacity-40 uppercase leading-[1.8]">
-                        Knife Skills
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <div className="w-6 h-5 bg-stone-200 rounded"></div>
-                        <span className="font-albert text-[14px] text-stone-600">
-                          Chopping
-                        </span>
-                      </div>
-                    </div>
-                    <button className="bg-stone-100 rounded-full px-5 py-2">
-                      <span className="font-albert text-[14px] text-stone-600">
-                        Learn More
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               {/* Ingredients */}
               <div className="bg-stone-100 rounded-lg p-6">
                 <h2 className="font-domine text-[20px] text-stone-950 mb-6 leading-[1.1]">
@@ -357,29 +226,6 @@ export default function ParsedRecipePage() {
               </div>
             </Tabs.Content>
           </Tabs.Root>
-        </div>
-
-        {/* Bottom Toolbar */}
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[345px] h-[88px] flex items-center justify-center">
-          <div className="bg-stone-100 rounded-full w-full h-[88px] border border-[#ebebeb] border-[1.5px] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.15)]">
-            <div className="flex items-center justify-between px-6 py-4 h-full">
-              <div className="w-6 h-6 flex items-center justify-center">
-                <span className="text-stone-600 text-lg">⏱️</span>
-              </div>
-              <div className="w-6 h-6 flex items-center justify-center">
-                <span className="text-stone-600 text-lg">✅</span>
-              </div>
-              <div className="w-6 h-6 flex items-center justify-center">
-                <span className="text-stone-600 text-lg">✨</span>
-              </div>
-              <div className="w-6 h-6 flex items-center justify-center">
-                <span className="text-stone-600 text-lg">|</span>
-              </div>
-              <span className="font-albert-semibold text-[16px] text-stone-950">
-                Serves 2x
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
