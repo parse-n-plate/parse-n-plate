@@ -43,7 +43,7 @@ export default function FooterBanner() {
           {/* In production, you'd use the actual chef hat fish illustration */}
           <div className="w-48 h-48 md:w-64 md:h-64 relative">
             <Image
-              src="/assets/icons/fish logo.svg"
+              src="/assets/icons/Fish Logo.svg"
               alt="Parse and Plate Logo"
               width={256}
               height={256}

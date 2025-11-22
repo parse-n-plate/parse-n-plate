@@ -147,6 +147,15 @@ export default function NavbarSearch() {
               />
             </div>
 
+            {/* Keyboard Shortcut Indicator - Show when not focused or no query */}
+            {!isFocused && !query && (
+              <div className="ml-2 flex items-center gap-1 px-2 py-1 bg-stone-200 rounded text-stone-600 font-albert text-[12px]">
+                <kbd className="px-1">⌘</kbd>
+                <span>+</span>
+                <kbd className="px-1">K</kbd>
+              </div>
+            )}
+
             {/* Clear Button */}
             {query && (
               <button
