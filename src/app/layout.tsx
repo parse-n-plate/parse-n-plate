@@ -1,9 +1,12 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Domine, Albert_Sans } from 'next/font/google';
 import { Separator } from '@/components/ui/separator';
 import Navbar from '@/components/ui/Navbar';
 import { RecipeProvider } from '@/contexts/RecipeContext';
+import { ParsedRecipesProvider } from '@/contexts/ParsedRecipesContext';
+import { TimerProvider } from '@/contexts/TimerContext';
 import './globals.css';
 
 const geistSans = Geist({
@@ -32,9 +35,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <RecipeProvider>
-          <Navbar />
-          <Separator />
-          {children}
+          <ParsedRecipesProvider>
+            <TimerProvider>
+              <Navbar />
+              <Separator />
+              {children}
+            </TimerProvider>
+          </ParsedRecipesProvider>
         </RecipeProvider>
       </body>
     </html>

@@ -1,0 +1,1124 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Upload, Image as ImageIcon, X, Loader2 } from 'lucide-react';
+import RecipeParsingLoader from '@/components/ui/recipe-parsing-loader';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+
+interface DebugStep {
+  step: string;
+  title: string;
+  data: any;
+  success: boolean;
+  timestamp: number;
+}
+
+// Default AI prompt - same as used in the API route
+const DEFAULT_PROMPT = `========================================
+CRITICAL OUTPUT FORMAT
+========================================
+You MUST output ONLY raw JSON. NO thinking, NO reasoning, NO explanations, NO text before or after the JSON.
+START YOUR RESPONSE IMMEDIATELY WITH { and END WITH }. Nothing else.
+
+Required JSON structure:
+{
+  "title": "string",
+  "ingredients": [
+    {
+      "groupName": "string",
+      "ingredients": [
+        {"amount": "string", "units": "string", "ingredient": "string"}
+      ]
+    }
+  ],
+  "instructions": ["string", "string", ...]
+}
+
+========================================
+THE HTML PROVIDED IS YOUR ONLY SOURCE OF DATA
+========================================
+You are an AI recipe extractor. Your SOLE purpose is to read the HTML provided and extract recipe data EXACTLY as it appears.
+
+CORE EXTRACTION PRINCIPLES:
+1. Read the HTML carefully and locate the recipe content
+2. Extract amounts, units, and ingredient names EXACTLY as written in the HTML
+3. Extract instruction steps EXACTLY as written in the HTML
+4. Never invent, estimate, round, convert, or modify any values
+5. If data is missing from HTML, use fallback values (see Edge Cases section)
+6. Only normalize whitespace and line breaks - nothing else
+
+========================================
+EXTRACTION WORKFLOW
+========================================
+Follow these steps in order:
+1. Locate and extract the recipe title (usually the main heading)
+2. Locate the ingredients section in the HTML
+3. For each ingredient, extract:
+   - The amount EXACTLY as written (e.g., "2 1/2", "1/4", "½", "0.5")
+   - The unit EXACTLY as written (e.g., "cups", "tablespoons", "grams")
+   - The ingredient name EXACTLY as written
+4. Preserve any ingredient groups found in the HTML
+5. Locate the instructions section in the HTML
+6. Extract each instruction step EXACTLY as written, preserving all details
+7. Format the extracted data into the required JSON structure
+
+========================================
+INGREDIENT EXTRACTION RULES
+========================================
+AMOUNTS:
+- Copy the amount EXACTLY as it appears in HTML: "2 1/2", "1/4", "½", "0.25", "¾"
+- Do NOT convert fractions to decimals or vice versa
+- Do NOT round or estimate (e.g., if HTML says "2 1/2", output "2 1/2", NOT "2.5" or "2")
+- If HTML shows a range like "2-3", use "2-3"
+- If no amount is provided, use "as needed"
+
+UNITS:
+- Copy the unit EXACTLY as it appears: "cups", "tablespoons", "teaspoons", "grams", "ounces", "pounds"
+- Do NOT convert units (e.g., do NOT convert tablespoons to cups)
+- Do NOT abbreviate or expand (if HTML says "tbsp", use "tbsp")
+- If no amount is provided (using "as needed"), leave units as empty string ""
+
+INGREDIENT NAMES:
+- Copy the ingredient name EXACTLY as written in HTML
+- Include all descriptors: "all-purpose flour", "unsalted butter", "large eggs"
+- Do NOT abbreviate, simplify, or modify names
+
+GROUPS:
+- If ingredients are grouped in HTML (e.g., "For the crust", "For the filling"), preserve those exact group names
+- If no groups exist, use a single group with groupName "Main"
+- Do NOT create groups that don't exist in the HTML
+
+========================================
+INSTRUCTION EXTRACTION RULES
+========================================
+COMPLETENESS:
+- Extract ALL instruction steps from the HTML
+- Do NOT combine multiple steps into one
+- Do NOT skip any steps, even if they seem minor
+- Include every detail: temperatures, times, measurements, techniques
+
+ACCURACY:
+- Copy instruction text as closely as possible to the HTML
+- Preserve all cooking temperatures (e.g., "350°F", "175°C")
+- Preserve all cooking times (e.g., "30 minutes", "until golden brown")
+- Preserve all measurements mentioned in instructions
+- Keep the exact order of steps as they appear in HTML
+
+DETAIL PRESERVATION:
+- Do NOT shorten, summarize, or condense instructions
+- Do NOT simplify complex steps
+- Keep all helpful details about techniques, visual cues, and tips
+- Maintain the original level of detail from the HTML
+
+CLEANING (remove these only):
+- Author names and bylines (e.g., "By Chef John:")
+- Attribution text (e.g., "Recipe courtesy of...")
+- Nutritional information
+- Prep time, cook time, total time labels
+- Serving size information
+- Image descriptions or video references
+- Advertisement content
+
+========================================
+EDGE CASES AND MISSING DATA
+========================================
+If the recipe title is missing:
+- Use the page's main heading or first prominent heading
+
+If an ingredient amount is missing:
+- Use "as needed" for amount
+- Use "" (empty string) for units
+- Still include the ingredient name
+
+If ingredient groups are unclear:
+- Use a single group with groupName "Main"
+
+If instructions are incomplete or unclear:
+- Extract what is available, exactly as written
+- Do NOT make up or fill in missing steps
+
+If no valid recipe is found in HTML:
+- Return: {"title": "No recipe found", "ingredients": [], "instructions": []}
+
+========================================
+FORMAT EXAMPLES (FOR STRUCTURE REFERENCE ONLY)
+========================================
+WARNING: These examples show the JSON FORMAT and STRUCTURE only.
+DO NOT use these example values. Extract actual values from the HTML provided.
+
+Example showing varied fraction formats:
+{
+  "title": "Homemade Bread",
+  "ingredients": [
+    {
+      "groupName": "Main",
+      "ingredients": [
+        {"amount": "3 1/2", "units": "cups", "ingredient": "bread flour"},
+        {"amount": "2 1/4", "units": "teaspoons", "ingredient": "active dry yeast"},
+        {"amount": "1/4", "units": "cup", "ingredient": "warm water"},
+        {"amount": "½", "units": "tablespoon", "ingredient": "salt"},
+        {"amount": "as needed", "units": "", "ingredient": "olive oil for brushing"}
+      ]
+    }
+  ],
+  "instructions": [
+    "In a large bowl, dissolve 2 1/4 teaspoons yeast in 1/4 cup warm water. Let stand until creamy, about 10 minutes.",
+    "Add 3 1/2 cups flour, 1/2 tablespoon salt, and remaining water to the yeast mixture. Mix until dough comes together.",
+    "Turn dough out onto a lightly floured surface and knead for 8 to 10 minutes, until smooth and elastic."
+  ]
+}
+
+IMPORTANT: The example above shows JSON format structure only. You MUST extract actual amounts, units, and text from the HTML provided, not use these example values.
+
+========================================
+FINAL REMINDER
+========================================
+Output ONLY the JSON object. No markdown, no code blocks, no explanations, no text before or after.
+START with { and END with }. Nothing else.`;
+
+export default function DebugParserPage() {
+  // Tab state - which tab is currently active
+  const [activeTab, setActiveTab] = useState<'parser' | 'loading'>('parser');
+  
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [debugSteps, setDebugSteps] = useState<DebugStep[]>([]);
+  const [error, setError] = useState('');
+  // State for custom prompt testing
+  const [customPrompt, setCustomPrompt] = useState(DEFAULT_PROMPT);
+  const [showPromptEditor, setShowPromptEditor] = useState(false);
+  const [useCustomPrompt, setUseCustomPrompt] = useState(false);
+  
+  // Image mode state
+  const [inputMode, setInputMode] = useState<'url' | 'image'>('url');
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Loading test state
+  const [showLoader, setShowLoader] = useState(false);
+  const [loaderDuration, setLoaderDuration] = useState(20); // seconds - default test duration
+
+  const handleDebugParse = async () => {
+    if (!url.trim()) return;
+
+    setLoading(true);
+    setError('');
+    setDebugSteps([]);
+
+    try {
+      // Use POST request if custom prompt is enabled, otherwise use GET
+      let rawHtmlResponse;
+      if (useCustomPrompt && customPrompt.trim()) {
+        // POST request with custom prompt in body (better for large prompts)
+        rawHtmlResponse = await fetch('/api/admin/debug-parse', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: url.trim(),
+            customPrompt: customPrompt.trim(),
+          }),
+        });
+      } else {
+        // GET request with default prompt
+        rawHtmlResponse = await fetch(`/api/admin/debug-parse?url=${encodeURIComponent(url)}`);
+      }
+
+      const debugData = await rawHtmlResponse.json();
+
+      if (!debugData.success) {
+        setError(debugData.error || 'Failed to parse recipe');
+        return;
+      }
+
+      // Display all debug steps
+      setDebugSteps(debugData.steps);
+      
+      // Store checkpoint summary if available
+      if (debugData.checkpoints) {
+        console.log('Checkpoint Summary:', debugData.checkpoints);
+      }
+    } catch (err) {
+      console.error('Debug parse error:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset prompt to default
+  const handleResetPrompt = () => {
+    setCustomPrompt(DEFAULT_PROMPT);
+    setUseCustomPrompt(false);
+  };
+
+  // Handle image file selection
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type - only allow images
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size - max 10MB
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      setError('Image size must be less than 10MB');
+      return;
+    }
+
+    // Set the selected file
+    setSelectedImage(file);
+
+    // Create a preview URL for the image
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    setError('');
+  };
+
+  // Handle debug image parsing
+  const handleDebugImageParse = async () => {
+    if (!selectedImage) return;
+
+    setLoading(true);
+    setError('');
+    setDebugSteps([]);
+
+    try {
+      // Step 1: Image upload
+      const imageUploadStep: DebugStep = {
+        step: 'image_upload',
+        title: 'Image Upload',
+        data: {
+          name: selectedImage.name,
+          type: selectedImage.type,
+          size: selectedImage.size,
+          sizeFormatted: `${(selectedImage.size / 1024 / 1024).toFixed(2)} MB`,
+        },
+        success: true,
+        timestamp: Date.now(),
+      };
+      setDebugSteps([imageUploadStep]);
+
+      // Step 2: AI Vision processing
+      // Note: We estimate the base64 size for display (actual conversion happens server-side)
+      const estimatedBase64Size = Math.ceil(selectedImage.size * 1.33); // Base64 is ~33% larger
+      const aiVisionStep: DebugStep = {
+        step: 'ai_vision',
+        title: 'AI Vision Processing',
+        data: {
+          model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+          imageSize: estimatedBase64Size,
+          prompt: 'Extracting recipe data from image using vision model...',
+        },
+        success: true,
+        timestamp: Date.now(),
+      };
+      setDebugSteps([imageUploadStep, aiVisionStep]);
+
+      // Call the image parsing API
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+
+      const response = await fetch('/api/parseRecipeFromImage', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setError(result.error?.message || 'Failed to parse image');
+        setDebugSteps([
+          imageUploadStep,
+          {
+            ...aiVisionStep,
+            success: false,
+            data: { ...aiVisionStep.data, error: result.error?.message || 'Parsing failed' },
+          },
+        ]);
+        return;
+      }
+
+      // Step 3: Final result
+      const finalResultStep: DebugStep = {
+        step: 'final_result',
+        title: 'Final Parsed Recipe',
+        data: {
+          title: result.title,
+          ingredients: result.ingredients,
+          instructions: result.instructions,
+          method: 'ai_vision',
+          ingredientCount: result.ingredients?.reduce(
+            (sum: number, g: any) => sum + (g.ingredients?.length || 0),
+            0
+          ) || 0,
+          instructionCount: result.instructions?.length || 0,
+        },
+        success: true,
+        timestamp: Date.now(),
+      };
+
+      setDebugSteps([imageUploadStep, aiVisionStep, finalResultStep]);
+    } catch (err) {
+      console.error('Debug image parse error:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatData = (data: any) => {
+    if (typeof data === 'string') {
+      return data;
+    }
+    return JSON.stringify(data, null, 2);
+  };
+
+  const getStepColor = (success: boolean) => {
+    return success ? 'border-green-500 bg-green-50' : 'border-yellow-500 bg-yellow-50';
+  };
+
+  // Handler for testing the loader
+  const handleTestLoader = () => {
+    setShowLoader(true);
+    // Auto-hide after specified duration
+    setTimeout(() => {
+      setShowLoader(false);
+    }, loaderDuration * 1000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8 font-albert">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard" className="font-albert">Design Lab</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-albert">Prompt Debugger</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+        <h1 className="text-3xl font-bold mb-2 font-domine">Debug Console</h1>
+        <p className="text-gray-600 mb-8 font-albert">
+          Test and debug various components and features
+        </p>
+
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-6 border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('parser')}
+            className={`px-6 py-3 font-medium transition-colors border-b-2 ${
+              activeTab === 'parser'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            🔍 Parser Debug
+          </button>
+          <button
+            onClick={() => setActiveTab('loading')}
+            className={`px-6 py-3 font-medium transition-colors border-b-2 ${
+              activeTab === 'loading'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            ⏳ Loading Test
+          </button>
+        </div>
+
+        {/* Loading Test Tab */}
+        {activeTab === 'loading' && (
+          <div className="space-y-6">
+            {/* Controls Card */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold mb-4 font-domine">Test Loading Animation</h2>
+              <p className="text-gray-600 mb-6">
+                Test the recipe parsing loader component. The loader tracks <strong>real elapsed time</strong> and uses an <strong>adaptive progress curve</strong> that works for any duration.
+              </p>
+              
+              <div className="space-y-4">
+                {/* Duration Control */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Test Duration (seconds)
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      type="number"
+                      min="1"
+                      max="120"
+                      value={loaderDuration}
+                      onChange={(e) => setLoaderDuration(Number(e.target.value))}
+                      className="w-32"
+                    />
+                    <span className="text-sm text-gray-500">
+                      How long to display the loader for testing
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    The loader adapts to any duration - progress is calculated dynamically based on elapsed time
+                  </p>
+                </div>
+
+                {/* Control Buttons */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleTestLoader}
+                    disabled={showLoader}
+                    className="px-6"
+                  >
+                    <Loader2 className="w-4 h-4 mr-2" />
+                    Start Loader Test
+                  </Button>
+                  <Button
+                    onClick={() => setShowLoader(false)}
+                    disabled={!showLoader}
+                    variant="outline"
+                    className="px-6"
+                  >
+                    Stop Loader
+                  </Button>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm font-medium text-gray-700 mb-2">
+                    Quick Test Presets:
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      onClick={() => {
+                        setLoaderDuration(5);
+                        setShowLoader(true);
+                        setTimeout(() => setShowLoader(false), 5000);
+                      }}
+                      disabled={showLoader}
+                      variant="outline"
+                      size="sm"
+                    >
+                      5 seconds
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setLoaderDuration(10);
+                        setShowLoader(true);
+                        setTimeout(() => setShowLoader(false), 10000);
+                      }}
+                      disabled={showLoader}
+                      variant="outline"
+                      size="sm"
+                    >
+                      10 seconds
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setLoaderDuration(20);
+                        setShowLoader(true);
+                        setTimeout(() => setShowLoader(false), 20000);
+                      }}
+                      disabled={showLoader}
+                      variant="outline"
+                      size="sm"
+                    >
+                      20 seconds
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setLoaderDuration(30);
+                        setShowLoader(true);
+                        setTimeout(() => setShowLoader(false), 30000);
+                      }}
+                      disabled={showLoader}
+                      variant="outline"
+                      size="sm"
+                    >
+                      30 seconds
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setLoaderDuration(60);
+                        setShowLoader(true);
+                        setTimeout(() => setShowLoader(false), 60000);
+                      }}
+                      disabled={showLoader}
+                      variant="outline"
+                      size="sm"
+                    >
+                      60 seconds
+                    </Button>
+                  </div>
+                </div>
+
+                {/* How It Works */}
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm font-medium text-gray-700 mb-2">
+                    How It Works:
+                  </p>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm text-gray-700">
+                    <div className="flex items-start gap-2">
+                      <span className="font-semibold">⏱️ Real-Time Tracking:</span>
+                      <span>Elapsed time updates every 100ms based on actual loading duration</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="font-semibold">📈 Adaptive Progress:</span>
+                      <span>Uses a logarithmic curve that slows down over time - works for any duration (5s to 5min+)</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="font-semibold">🔄 Dynamic Steps:</span>
+                      <span>Steps transition based on elapsed time: Validating (0-3s) → Fetching (3-8s) → Parsing (8-30s) → Finalizing (30s+)</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="font-semibold">🎯 No Presets:</span>
+                      <span>Progress adapts to the actual parsing time, whether it takes 5 seconds or 2 minutes</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Info Card */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="font-semibold text-blue-900 mb-2">
+                💡 Testing Tips
+              </h3>
+              <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                <li><strong>Watch the progress bar:</strong> Notice how it fills quickly at first, then slows down (adaptive curve)</li>
+                <li><strong>Observe step transitions:</strong> Steps change based on elapsed time thresholds, not preset durations</li>
+                <li><strong>Check elapsed time:</strong> The timer updates in real-time every 100ms</li>
+                <li><strong>Test different durations:</strong> Try 5s, 30s, and 60s to see how the progress adapts to any length</li>
+                <li><strong>Notice the curve:</strong> Progress slows down over time - this is intentional and realistic for unknown durations</li>
+                <li><strong>Compare with real parsing:</strong> The loader behaves the same way during actual recipe parsing</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Parser Debug Tab */}
+        {activeTab === 'parser' && (
+          <>
+            {/* Input Section */}
+            <div className="bg-white rounded-lg shadow p-6 mb-8">
+          {/* Mode Toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => {
+                setInputMode('url');
+                setSelectedImage(null);
+                setImagePreview(null);
+                setDebugSteps([]);
+                setError('');
+              }}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                inputMode === 'url'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              🔗 URL Mode
+            </button>
+            <button
+              onClick={() => {
+                setInputMode('image');
+                setUrl('');
+                setDebugSteps([]);
+                setError('');
+              }}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                inputMode === 'image'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              🖼️ Image Mode
+            </button>
+          </div>
+
+          {/* URL Input Mode */}
+          {inputMode === 'url' && (
+            <div className="flex gap-4 mb-4">
+              <Input
+                type="url"
+                placeholder="Enter recipe URL to debug..."
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleDebugParse()}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleDebugParse}
+                disabled={loading || !url.trim()}
+                className="px-8"
+              >
+                {loading ? 'Debugging...' : 'Debug Parse'}
+              </Button>
+            </div>
+          )}
+
+          {/* Image Input Mode */}
+          {inputMode === 'image' && (
+            <div className="space-y-4 mb-4">
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+
+              {/* Image Upload Button or Preview */}
+              {!imagePreview ? (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  className="w-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 transition-all duration-300 p-12 flex flex-col items-center justify-center gap-3"
+                >
+                  <Upload className="w-12 h-12 text-gray-400" />
+                  <div className="text-center">
+                    <p className="font-medium text-gray-700">
+                      Click to upload recipe image
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      PNG, JPG, or WEBP (max 10MB)
+                    </p>
+                  </div>
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  {/* Image Preview */}
+                  <div className="relative rounded-lg overflow-hidden border-2 border-gray-300">
+                    <img
+                      src={imagePreview}
+                      alt="Recipe preview"
+                      className="w-full h-auto max-h-96 object-contain bg-gray-50"
+                    />
+                    {/* Remove Image Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
+                      className="absolute top-3 right-3 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all duration-200"
+                      disabled={loading}
+                    >
+                      <X className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </div>
+
+                  {/* Debug Parse Button */}
+                  <Button
+                    onClick={handleDebugImageParse}
+                    disabled={loading}
+                    className="w-full px-8"
+                  >
+                    {loading ? 'Debugging...' : 'Debug Image Parse'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Prompt Editor Section */}
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowPromptEditor(!showPromptEditor)}
+                  className="text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center gap-2"
+                >
+                  <span>{showPromptEditor ? '▼' : '▶'}</span>
+                  <span>Test Custom AI Prompt</span>
+                </button>
+                <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={useCustomPrompt}
+                    onChange={(e) => setUseCustomPrompt(e.target.checked)}
+                    disabled={!showPromptEditor}
+                    className="rounded"
+                  />
+                  <span>Use custom prompt</span>
+                </label>
+              </div>
+              {showPromptEditor && (
+                <Button
+                  onClick={handleResetPrompt}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                >
+                  Reset to Default
+                </Button>
+              )}
+            </div>
+
+            {showPromptEditor && (
+              <div className="mt-3">
+                <p className="text-xs text-gray-500 mb-2">
+                  Edit the AI prompt below to test different extraction strategies. 
+                  When "Use custom prompt" is checked, your custom prompt will be used instead of the default.
+                </p>
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  className="w-full h-64 p-3 border border-gray-300 rounded-md font-mono text-xs resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your custom AI prompt here..."
+                  spellCheck={false}
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  Prompt length: {customPrompt.length} characters
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-500 rounded-lg p-4 mb-8">
+            <h3 className="text-red-700 font-semibold mb-2">Error</h3>
+            <pre className="text-red-600 text-sm whitespace-pre-wrap">{error}</pre>
+          </div>
+        )}
+
+        {/* Checkpoint Summary */}
+        {debugSteps.length > 0 && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-6 mb-8">
+            <h2 className="text-2xl font-bold mb-4 text-blue-900 font-domine">Checkpoint Summary</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {debugSteps.find((s) => s.step === 'checkpoint_1') && (() => {
+                const cp1 = debugSteps.find((s) => s.step === 'checkpoint_1')!;
+                return (
+                  <div className={`p-4 rounded-lg border-2 ${cp1.success ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
+                    <h3 className="font-bold mb-2 flex items-center gap-2 font-albert">
+                      {cp1.success ? '✅' : '❌'} Checkpoint 1: URL Validator
+                    </h3>
+                    <p className="text-sm">{cp1.success ? 'Page contains recipe indicators' : 'Page missing recipe keywords/schema'}</p>
+                  </div>
+                );
+              })()}
+              {debugSteps.find((s) => s.step === 'checkpoint_2_jsonld' || s.step === 'json_ld') && (() => {
+                const cp2 = debugSteps.find((s) => s.step === 'checkpoint_2_jsonld' || s.step === 'json_ld')!;
+                return (
+                  <div className={`p-4 rounded-lg border-2 ${cp2.success ? 'bg-green-50 border-green-400' : 'bg-yellow-50 border-yellow-400'}`}>
+                    <h3 className="font-bold mb-2 flex items-center gap-2 font-albert">
+                      {cp2.success ? '✅' : '⚠️'} Checkpoint 2: Recipe Parsing
+                    </h3>
+                    <p className="text-sm">{cp2.success ? 'JSON-LD found (fast path)' : 'Using AI parsing fallback'}</p>
+                  </div>
+                );
+              })()}
+              {debugSteps.find((s) => s.step === 'checkpoint_3') && (() => {
+                const cp3 = debugSteps.find((s) => s.step === 'checkpoint_3')!;
+                return (
+                  <div className={`p-4 rounded-lg border-2 ${cp3.success ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
+                    <h3 className="font-bold mb-2 flex items-center gap-2 font-albert">
+                      {cp3.success ? '✅' : '❌'} Checkpoint 3: Data Validation
+                    </h3>
+                    <p className="text-sm">{cp3.success ? 'All data validated successfully' : 'Missing required recipe data'}</p>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Debug Steps Display */}
+        {debugSteps.length > 0 && (
+          <div className="space-y-6">
+            {debugSteps.map((step, index) => (
+              <div
+                key={index}
+                className={`border-2 rounded-lg p-6 ${getStepColor(step.success)}`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold mb-1 font-domine">
+                      Step {index + 1}: {step.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {new Date(step.timestamp).toLocaleTimeString()} •{' '}
+                      {step.success ? '✅ Success' : '⚠️ Fallback Needed'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Data Display */}
+                <div className="bg-white rounded border border-gray-300 p-4 overflow-auto">
+                  {step.step === 'raw_html' && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Raw HTML length: {step.data.length.toLocaleString()} characters
+                      </p>
+                      <pre className="text-xs max-h-96 overflow-y-auto whitespace-pre-wrap break-words">
+                        {step.data}
+                      </pre>
+                    </div>
+                  )}
+
+                  {step.step === 'cleaned_html' && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Cleaned HTML length: {step.data.length.toLocaleString()} characters
+                        <br />
+                        <span className="text-green-600">
+                          Reduced by {((1 - step.data.length / debugSteps[0].data.length) * 100).toFixed(1)}%
+                        </span>
+                      </p>
+                      <pre className="text-xs max-h-[600px] overflow-y-auto whitespace-pre-wrap break-words">
+                        {step.data}
+                      </pre>
+                    </div>
+                  )}
+
+                  {step.step === 'checkpoint_1' && (
+                    <div>
+                      <div className={`mb-3 p-3 rounded ${step.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                        <p className={`text-sm font-semibold mb-2 ${step.success ? 'text-green-700' : 'text-red-700'}`}>
+                          {step.success ? '✅ PASSED' : '❌ FAILED'}
+                        </p>
+                        <div className="space-y-1 text-xs">
+                          <p><strong>Has Ingredients Keyword:</strong> {step.data.hasIngredients ? '✅ Yes' : '❌ No'}</p>
+                          <p><strong>Has Instructions Keyword:</strong> {step.data.hasInstructions ? '✅ Yes' : '❌ No'}</p>
+                          <p><strong>Has JSON-LD Schema:</strong> {step.data.hasSchema ? '✅ Yes' : '❌ No'}</p>
+                          <p><strong>Is Recipe Page:</strong> {step.data.isRecipe ? '✅ Yes' : '❌ No'}</p>
+                        </div>
+                        {step.data.details && (
+                          <div className="mt-3 pt-3 border-t border-gray-300">
+                            <p className="text-xs font-semibold mb-1">Details:</p>
+                            <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-48">
+                              {formatData(step.data.details)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {(step.step === 'checkpoint_2_jsonld' || step.step === 'json_ld') && (
+                    <div>
+                      {step.success ? (
+                        <>
+                          <p className="text-sm text-green-600 mb-2 font-semibold">
+                            ✅ Found JSON-LD structured data (no AI needed!)
+                          </p>
+                          <pre className="text-xs max-h-96 overflow-y-auto whitespace-pre-wrap break-words">
+                            {formatData(step.data)}
+                          </pre>
+                        </>
+                      ) : (
+                        <p className="text-sm text-yellow-600">
+                          No JSON-LD found, will use AI parsing...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {step.step === 'checkpoint_3' && (
+                    <div>
+                      <div className={`mb-3 p-3 rounded ${step.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                        <p className={`text-sm font-semibold mb-2 ${step.success ? 'text-green-700' : 'text-red-700'}`}>
+                          {step.success ? '✅ PASSED' : '❌ FAILED'}
+                        </p>
+                        <div className="space-y-1 text-xs">
+                          <p><strong>Has Valid Title:</strong> {step.data.hasTitle ? '✅ Yes' : '❌ No'} {step.data.details?.title && `(${step.data.details.title})`}</p>
+                          <p><strong>Has Ingredients:</strong> {step.data.hasIngredients ? '✅ Yes' : '❌ No'} {step.data.details?.totalIngredients !== undefined && `(${step.data.details.totalIngredients} total)`}</p>
+                          <p><strong>Has Instructions:</strong> {step.data.hasInstructions ? '✅ Yes' : '❌ No'} {step.data.details?.instructionCount !== undefined && `(${step.data.details.instructionCount} steps)`}</p>
+                        </div>
+                        {step.data.details && (
+                          <div className="mt-3 pt-3 border-t border-gray-300">
+                            <p className="text-xs font-semibold mb-1">Validation Details:</p>
+                            <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-48">
+                              {formatData(step.data.details)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {step.step === 'ai_prompt' && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        AI Prompt sent to Groq (llama-3.3-70b-versatile)
+                      </p>
+                      <pre className="text-xs max-h-96 overflow-y-auto whitespace-pre-wrap break-words">
+                        {step.data}
+                      </pre>
+                    </div>
+                  )}
+
+                  {step.step === 'ai_response' && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Raw AI Response
+                      </p>
+                      <pre className="text-xs max-h-96 overflow-y-auto whitespace-pre-wrap break-words">
+                        {formatData(step.data)}
+                      </pre>
+                    </div>
+                  )}
+
+                  {step.step === 'warning' && (
+                    <div>
+                      <p className="text-sm text-yellow-600 mb-2 font-semibold">
+                        ⚠️ {step.title}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {step.data}
+                      </p>
+                    </div>
+                  )}
+
+                  {step.step === 'image_upload' && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Image file information
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        <p><strong>File Name:</strong> {step.data.name}</p>
+                        <p><strong>File Type:</strong> {step.data.type}</p>
+                        <p><strong>File Size:</strong> {step.data.sizeFormatted}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {step.step === 'ai_vision' && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        AI Vision Model Processing
+                      </p>
+                      <div className="space-y-1 text-xs">
+                        <p><strong>Model:</strong> {step.data.model}</p>
+                        <p><strong>Image Size (base64):</strong> {step.data.imageSize.toLocaleString()} characters</p>
+                        <p><strong>Status:</strong> {step.success ? '✅ Processing complete' : '❌ Processing failed'}</p>
+                        {step.data.error && (
+                          <p className="text-red-600"><strong>Error:</strong> {step.data.error}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {step.step === 'final_result' && (
+                    <div>
+                      <p className="text-sm text-green-600 mb-2 font-semibold">
+                        ✅ Final Parsed Recipe
+                      </p>
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">Title:</h4>
+                          <p className="text-sm">{step.data.title}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">
+                            Ingredients ({step.data.ingredientCount || step.data.ingredients?.reduce((sum: number, g: any) => sum + (g.ingredients?.length || 0), 0) || 0} total):
+                          </h4>
+                          {step.data.ingredients && step.data.ingredients.length > 0 ? (
+                            step.data.ingredients.map((group: any, gIdx: number) => (
+                              <div key={gIdx} className="ml-4 mb-2">
+                                <p className="font-medium text-sm">{group.groupName}</p>
+                                <ul className="list-disc ml-6 text-xs">
+                                  {group.ingredients?.map((ing: any, iIdx: number) => (
+                                    <li key={iIdx}>
+                                      {ing.amount} {ing.units} {ing.ingredient}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-500">No ingredients found</p>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">
+                            Instructions ({step.data.instructionCount || step.data.instructions?.length || 0} steps):
+                          </h4>
+                          {step.data.instructions && step.data.instructions.length > 0 ? (
+                            <ol className="list-decimal ml-6 text-xs">
+                              {step.data.instructions.map((inst: string, idx: number) => (
+                                <li key={idx} className="mb-1">{inst}</li>
+                              ))}
+                            </ol>
+                          ) : (
+                            <p className="text-sm text-gray-500">No instructions found</p>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">Method Used:</h4>
+                          <p className="text-sm">
+                            {step.data.method === 'json-ld' ? (
+                              <span className="text-green-600">JSON-LD (Fast, no AI tokens used)</span>
+                            ) : step.data.method === 'ai_vision' ? (
+                              <span className="text-purple-600">AI Vision (meta-llama/llama-4-scout-17b-16e-instruct)</span>
+                            ) : (
+                              <span className="text-blue-600">AI Parsing (Groq llama-3.3-70b-versatile)</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Instructions */}
+        {debugSteps.length === 0 && !loading && (
+          <div className="bg-blue-50 border border-blue-500 rounded-lg p-6">
+            <h3 className="text-blue-700 font-semibold mb-2 font-domine">How to use:</h3>
+            {inputMode === 'url' ? (
+              <ol className="list-decimal ml-6 text-blue-600 space-y-1">
+                <li>Enter any recipe URL above</li>
+                <li>Click "Debug Parse" to see the full parsing flow</li>
+                <li>Review each step to understand what happened</li>
+                <li>Check if JSON-LD was found (fast) or AI was used (fallback)</li>
+                <li>See the cleaned HTML that was sent to the AI</li>
+                <li>View the AI's raw response and final parsed result</li>
+              </ol>
+            ) : (
+              <ol className="list-decimal ml-6 text-blue-600 space-y-1">
+                <li>Click the upload area to select a recipe image</li>
+                <li>Supported formats: JPG, PNG, WEBP, GIF (max 10MB)</li>
+                <li>Click "Debug Image Parse" to see the parsing flow</li>
+                <li>Review the image upload, AI vision processing, and final result steps</li>
+                <li>See how the vision model extracts recipe data from the image</li>
+              </ol>
+            )}
+          </div>
+        )}
+          </>
+        )}
+      </div>
+
+      {/* Loading Animation Component - Rendered when showLoader is true */}
+      <RecipeParsingLoader isVisible={showLoader} />
+    </div>
+  );
+}
+

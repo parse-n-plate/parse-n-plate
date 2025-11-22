@@ -34,6 +34,21 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Image configuration for external recipe images
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+    ],
+    unoptimized: true, // Allow external images without optimization
+  },
+  // Security headers for the application
   async headers() {
     return [
       {

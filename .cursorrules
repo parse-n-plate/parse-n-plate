@@ -1,0 +1,173 @@
+# Cursor AI Rules for Parse N' Plate
+
+## 📋 Changelog Maintenance
+
+### When to Update CHANGELOG.md
+Automatically remind the user to update the CHANGELOG.md when making:
+
+1. **Major Changes** (use 🛑 HIGH RISK MODIFICATION signal):
+   - Breaking changes to APIs or components
+   - Removing or deprecating features
+   - Major refactoring that affects multiple files
+   - Changes to core functionality
+
+2. **Significant Features** (use ⚠️ LARGE CHANGE ALERT signal):
+   - New pages or routes
+   - New API endpoints
+   - New components with significant functionality
+   - Integration of new third-party services
+   - Database schema changes
+   - Major UI/UX improvements
+
+3. **Important Updates**:
+   - Bug fixes that affect user experience
+   - Security updates
+   - Performance improvements
+   - Dependency updates (major versions only)
+   - Configuration changes
+
+### Reminder Format
+When making changes that should be logged, include a reminder like:
+
+```
+📋 CHANGELOG REMINDER:
+Please update CHANGELOG.md under the [Unreleased] section with:
+- Category: [Added/Changed/Fixed/etc.]
+- Description: [Brief description of what changed]
+```
+
+### Don't Update for:
+- Minor code formatting or style changes
+- Comment updates
+- README updates (unless they reflect feature changes)
+- Test file additions
+- Minor dependency patch updates
+- Internal refactoring that doesn't change functionality
+
+---
+
+## 👤 User Context
+
+### User Profile
+- Product designer with limited coding experience
+- Prefers detailed explanations over brief technical answers
+- Learning-focused approach to development
+
+### Communication Preferences
+- Use smaller, incremental changes
+- Provide educational context and explanations
+- Break down complex concepts into simple steps
+- Explain reasoning behind decisions
+- Use clear visual signals: ⚠️ 🛑 ⏸️ 📋 ✅
+
+### Code Changes
+- Make incremental changes, not large modifications
+- Add detailed comments explaining what and why
+- For large/risky changes:
+  - Use "⚠️ LARGE CHANGE ALERT" or "🛑 HIGH RISK MODIFICATION"
+  - Provide specific warnings
+  - Wait for user confirmation before implementing
+- Always explain each step of code changes
+
+---
+
+## 🏗️ Project Architecture
+
+### Tech Stack
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS 4, shadcn/ui components
+- **Backend**: Next.js API routes, Python (recipe-scrapers)
+- **AI**: Groq API (Llama models), OpenAI SDK
+- **Storage**: localStorage (client-side)
+
+### Key Patterns
+- Context API for state management (RecipeContext, ParsedRecipesContext)
+- API routes in `/app/api/` for backend logic
+- Custom hooks in `/hooks/` for reusable logic
+- UI components in `/components/ui/` (shadcn/ui)
+- Utility functions in `/utils/` and `/lib/`
+
+---
+
+## 🎯 Code Quality Standards
+
+### TypeScript
+- Always use explicit types
+- Avoid `any` type when possible
+- Define interfaces for complex objects
+
+### React Best Practices
+- Use functional components with hooks
+- Implement proper error boundaries
+- Use loading states for async operations
+- Keep components focused and single-purpose
+
+### Component Creation
+- **Always default to shadcn/ui components** when creating new UI components
+- Check `/components/ui/` first for existing shadcn/ui components before creating custom ones
+- Only create custom components when shadcn/ui doesn't provide the needed functionality
+- When using shadcn/ui components, import from `@/components/ui/[component-name]`
+- Extend shadcn/ui components with custom styling/props rather than building from scratch
+
+### Comments
+- Add explanatory comments for complex logic
+- Document function purposes and parameters
+- Include TODO comments for future improvements
+
+### Error Handling
+- Provide user-friendly error messages
+- Log errors appropriately
+- Use try-catch blocks for async operations
+
+---
+
+## 📝 Documentation
+
+### When to Update Docs
+- New features require README updates
+- API changes need documentation
+- Complex features need explanation
+- Setup steps change
+
+### Documentation Files
+- `README.md` - Main project documentation
+- `CHANGELOG.md` - Version history
+- `TECHNICAL_SUMMARY.md` - Technical overview
+- `MIGRATION_QUICK_REFERENCE.md` - Migration guides
+- `ENVIRONMENT_SETUP.md` - Setup instructions
+- `FONT_SETUP.md` - Typography guide
+
+---
+
+## 🔄 Workflow Reminders
+
+1. **Before Large Changes**:
+   - Show warning signal (⚠️ or 🛑)
+   - Explain what will change and why
+   - Wait for user confirmation
+
+2. **After Implementing Changes**:
+   - Remind about changelog if applicable
+   - Suggest testing steps
+   - Explain what was changed in detail
+
+3. **For New Features**:
+   - Add TypeScript types
+   - Add error handling
+   - Include loading states
+   - Update relevant documentation
+   - Add to changelog
+
+---
+
+## 🚀 Development Commands
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run lint         # Run ESLint
+npm run lint:fix     # Fix ESLint issues
+npm run docker:build # Build Docker image
+npm run docker:run   # Run Docker container
+```
+

@@ -7,10 +7,39 @@ import React, {
   useEffect,
 } from 'react';
 
-interface ParsedRecipe {
+export interface RecipeStep {
+  stepNumber: number;
+  instruction: string;
+  ingredientsNeeded?: string[];
+  toolsNeeded?: string[];
+  timerMinutes?: number;
+  timerLabel?: string;
+  tips?: string;
+}
+
+export interface ParsedRecipe {
   title?: string;
-  ingredients: string[];
-  instructions: string[];
+  description?: string;          // NEW: Recipe description
+  imageUrl?: string;              // NEW: Recipe image URL
+  imageUrls?: string[];           // NEW: Array of recipe images for carousel
+  author?: string;                // NEW: Recipe author/source
+  sourceUrl?: string;             // NEW: Original source URL (for linking back)
+  datePublished?: string;          // NEW: Publication date from recipe page (ISO date string)
+  cookTimeMinutes?: number;       // NEW: Cook time in minutes
+  prepTimeMinutes?: number;       // NEW: Prep time in minutes
+  totalTimeMinutes?: number;      // NEW: Total time in minutes
+  servings?: number;             // NEW: Number of servings
+  cuisine?: string[];            // NEW: Cuisine types/tags
+  rating?: number;               // NEW: Recipe rating (1-5)
+  skills?: {                    // NEW: Required cooking skills
+    techniques?: string[];      // Cooking techniques needed
+    knifework?: string[];       // Knife skills needed
+  };
+  ingredients: {
+    groupName: string;
+    ingredients: { amount: string; units: string; ingredient: string }[];
+  }[];
+  instructions: string[] | RecipeStep[];
 }
 
 interface RecipeContextType {

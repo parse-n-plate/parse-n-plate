@@ -1,0 +1,219 @@
+'use client';
+
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Search, X } from 'lucide-react';
+import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
+import { useRouter } from 'next/navigation';
+import { useRecipe } from '@/contexts/RecipeContext';
+import { ParsedRecipe } from '@/lib/storage';
+
+export default function NavbarSearch() {
+  const [query, setQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState<ParsedRecipe[]>([]);
+  const { recentRecipes } = useParsedRecipes();
+  const { setParsedRecipe } = useRecipe();
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check if query looks like a URL
+  const isUrl = (text: string) => {
+    return (
+      text.includes('http') ||
+      text.includes('www.') ||
+      text.includes('.com') ||
+      text.includes('.org')
+    );
+  };
+
+  // Search through cached recipes
+  const searchRecipes = useCallback(
+    (searchQuery: string) => {
+      if (!searchQuery.trim() || isUrl(searchQuery)) {
+        setSearchResults([]);
+        return;
+      }
+
+      const filtered = recentRecipes.filter(
+        (recipe) =>
+          recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          recipe.summary.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+
+      setSearchResults(filtered.slice(0, 5)); // Show max 5 results
+    },
+    [recentRecipes],
+  );
+
+  // Handle input changes
+  useEffect(() => {
+    searchRecipes(query);
+    setShowDropdown(isFocused && query.trim() !== '' && !isUrl(query));
+  }, [query, isFocused, recentRecipes, searchRecipes]);
+
+  // Handle focus
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  // Handle blur with delay to allow clicking on dropdown items
+  const handleBlur = () => {
+    setTimeout(() => {
+      setIsFocused(false);
+      setShowDropdown(false);
+    }, 200);
+  };
+
+  // Handle recipe selection from dropdown
+  const handleRecipeSelect = (recipe: ParsedRecipe) => {
+    // Only include sourceUrl if it exists and doesn't start with "image:" (image-based recipes)
+    const sourceUrl = recipe.url && !recipe.url.startsWith('image:') ? recipe.url : undefined;
+    
+    setParsedRecipe({
+      title: recipe.title,
+      ingredients: recipe.ingredients || [],
+      instructions: recipe.instructions || [],
+      sourceUrl: sourceUrl,
+    });
+    setQuery('');
+    setShowDropdown(false);
+    setIsFocused(false);
+    router.push('/parsed-recipe-page');
+  };
+
+  // Handle form submission (for URLs)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isUrl(query)) {
+      // Redirect to homepage with the URL to trigger parsing
+      router.push(`/?url=${encodeURIComponent(query)}`);
+    }
+
+    setQuery('');
+    setIsFocused(false);
+    setShowDropdown(false);
+  };
+
+  // Handle Enter key
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e as React.FormEvent);
+    }
+  };
+
+  // Clear input
+  const clearInput = () => {
+    setQuery('');
+    setIsFocused(false);
+    setShowDropdown(false);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
+
+  return (
+    <div className="relative w-full">
+      <form onSubmit={handleSubmit}>
+        <div
+          className={`
+            bg-stone-100 rounded-[9999px] border border-stone-200
+            transition-all duration-300 ease-in-out
+            hover:shadow-md
+            ${isFocused ? 'shadow-sm border-stone-300' : ''}
+          `}
+        >
+          <div className="flex items-center gap-2 px-4 pr-1.5 py-1.5 relative rounded-[inherit]">
+            {/* Search Icon */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Search className="w-4 h-4 text-stone-600 flex-shrink-0" />
+
+              {/* Input */}
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Try entering recipe URL"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                className="w-full bg-transparent font-albert text-[14px] text-stone-600 placeholder:text-stone-500 focus:outline-none border-none"
+              />
+            </div>
+
+            {/* Right side: ⌘+K and Parse Button */}
+            <div className="flex items-center gap-2.5 flex-shrink-0">
+              {/* Keyboard shortcut indicator - only show when not focused or no query */}
+              {(!isFocused || !query) && (
+                <p className="font-albert text-[14px] text-stone-600 whitespace-nowrap">
+                  ⌘+K
+                </p>
+              )}
+
+              {/* Clear Button */}
+              {query && (
+                <button
+                  type="button"
+                  onClick={clearInput}
+                  className="p-1 hover:bg-stone-200 rounded-full transition-all duration-200 flex-shrink-0"
+                >
+                  <X className="w-4 h-4 text-stone-600" />
+                </button>
+              )}
+
+              {/* Parse Button (for URLs) */}
+              {query && isUrl(query) && (
+                <button
+                  type="submit"
+                  className="bg-stone-900 hover:bg-stone-800 text-stone-50 font-albert text-[14px] font-medium px-5 py-2 rounded-full transition-all duration-200 active:scale-95"
+                >
+                  Parse Recipe
+                </button>
+              )}
+            </div>
+          </div>
+          {/* Border overlay */}
+          <div
+            aria-hidden="true"
+            className="absolute border border-stone-200 inset-[-0.5px] pointer-events-none rounded-[9999.5px]"
+          />
+        </div>
+      </form>
+
+      {/* Search Results Dropdown */}
+      {showDropdown && searchResults.length > 0 && (
+        <div
+          ref={dropdownRef}
+          className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#d9d9d9] rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+        >
+          <div className="p-2">
+            <div className="text-xs font-albert font-medium text-stone-500 px-3 py-2 border-b border-stone-200">
+              Recent Recipes ({searchResults.length})
+            </div>
+            {searchResults.map((recipe) => (
+              <button
+                key={recipe.id}
+                onClick={() => handleRecipeSelect(recipe)}
+                className="w-full text-left p-3 hover:bg-stone-50 transition-colors duration-200 border-b border-stone-100 last:border-b-0"
+              >
+                <div className="font-albert font-medium text-[14px] text-stone-800 truncate">
+                  {recipe.title}
+                </div>
+                <div className="font-albert text-[12px] text-stone-500 mt-1 line-clamp-2">
+                  {recipe.summary}
+                </div>
+                <div className="font-albert text-[10px] text-stone-400 mt-1">
+                  {new Date(recipe.parsedAt).toLocaleDateString()}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
