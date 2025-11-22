@@ -9,6 +9,8 @@ import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useRouter } from 'next/navigation';
 import type { CuisineType } from '@/components/ui/cuisine-pills';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 
 // Placeholder recipe data matching the prototype
 const PLACEHOLDER_RECIPES: RecipeCardData[] = [
@@ -69,7 +71,7 @@ const PLACEHOLDER_RECIPES: RecipeCardData[] = [
 ];
 
 function HomeContent() {
-  const { isLoaded, recentRecipes, getRecipeById } = useParsedRecipes();
+  const { isLoaded, recentRecipes, getRecipeById, clearRecipes } = useParsedRecipes();
   const { setParsedRecipe } = useRecipe();
   const router = useRouter();
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('Asian');
@@ -96,6 +98,19 @@ function HomeContent() {
 
   const handleCuisineChange = (cuisine: CuisineType) => {
     setSelectedCuisine(cuisine);
+  };
+
+  // Handler for clearing all recipes with confirmation
+  const handleClearRecipes = () => {
+    // Show confirmation dialog before clearing
+    const confirmed = window.confirm(
+      'Are you sure you want to clear all recent recipes? This action cannot be undone.',
+    );
+
+    if (confirmed) {
+      // Call the clearRecipes function from context
+      clearRecipes();
+    }
   };
 
   // Handle recent recipe click - navigate to parsed recipe page
@@ -179,9 +194,23 @@ function HomeContent() {
           {displayRecentRecipes.length > 0 && (
             <div className="mb-8 md:mb-12">
               <div className="mb-4 md:mb-6">
-                <h2 className="font-domine text-[24px] font-normal text-black leading-[1.1] mb-3">
-                  Recent Recipes
-                </h2>
+                {/* Header with title and Clear All button */}
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-domine text-[24px] font-normal text-black leading-[1.1]">
+                    Recent Recipes
+                  </h2>
+                  {/* Clear All button - positioned to the right */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearRecipes}
+                    className="flex items-center gap-2 font-albert text-[12px] text-[#757575] hover:text-[#1e1e1e]"
+                    aria-label="Clear all recent recipes"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Clear All</span>
+                  </Button>
+                </div>
                 <p className="font-albert text-[14px] text-stone-600 leading-[1.4]">
                   Your recently parsed recipes
                 </p>

@@ -226,11 +226,12 @@ export default function ParsedRecipePage() {
                           instructionText = '';
                         } else if (typeof instruction === 'object' && instruction !== null) {
                           // Handle object with text property (common in JSON-LD format)
-                          if ('text' in instruction && typeof (instruction as any).text === 'string') {
-                            instructionText = (instruction as any).text;
-                          } else if ('name' in instruction && typeof (instruction as any).name === 'string') {
+                          const instructionObj = instruction as Record<string, unknown>;
+                          if ('text' in instructionObj && typeof instructionObj.text === 'string') {
+                            instructionText = instructionObj.text;
+                          } else if ('name' in instructionObj && typeof instructionObj.name === 'string') {
                             // Some formats use 'name' instead of 'text'
-                            instructionText = (instruction as any).name;
+                            instructionText = instructionObj.name;
                           } else {
                             // If it's an object we can't parse, skip it (don't show [object Object])
                             instructionText = '';

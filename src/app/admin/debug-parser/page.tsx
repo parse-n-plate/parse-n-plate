@@ -3,12 +3,23 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Upload, Image as ImageIcon, X } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
+
+interface Ingredient {
+  amount: string;
+  units: string;
+  ingredient: string;
+}
+
+interface IngredientGroup {
+  groupName: string;
+  ingredients: Ingredient[];
+}
 
 interface DebugStep {
   step: string;
   title: string;
-  data: any;
+  data: unknown;
   success: boolean;
   timestamp: number;
 }
@@ -352,7 +363,7 @@ export default function DebugParserPage() {
           instructions: result.instructions,
           method: 'ai_vision',
           ingredientCount: result.ingredients?.reduce(
-            (sum: number, g: any) => sum + (g.ingredients?.length || 0),
+            (sum: number, g: IngredientGroup) => sum + (g.ingredients?.length || 0),
             0
           ) || 0,
           instructionCount: result.instructions?.length || 0,
@@ -370,7 +381,7 @@ export default function DebugParserPage() {
     }
   };
 
-  const formatData = (data: any) => {
+  const formatData = (data: unknown) => {
     if (typeof data === 'string') {
       return data;
     }
@@ -554,7 +565,7 @@ export default function DebugParserPage() {
               <div className="mt-3">
                 <p className="text-xs text-gray-500 mb-2">
                   Edit the AI prompt below to test different extraction strategies. 
-                  When "Use custom prompt" is checked, your custom prompt will be used instead of the default.
+                  When &quot;Use custom prompt&quot; is checked, your custom prompt will be used instead of the default.
                 </p>
                 <textarea
                   value={customPrompt}
@@ -797,26 +808,28 @@ export default function DebugParserPage() {
                     </div>
                   )}
 
-                  {step.step === 'final_result' && (
-                    <div>
-                      <p className="text-sm text-green-600 mb-2 font-semibold">
-                        ✅ Final Parsed Recipe
-                      </p>
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1">Title:</h4>
-                          <p className="text-sm">{step.data.title}</p>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1">
-                            Ingredients ({step.data.ingredientCount || step.data.ingredients?.reduce((sum: number, g: any) => sum + (g.ingredients?.length || 0), 0) || 0} total):
-                          </h4>
-                          {step.data.ingredients && step.data.ingredients.length > 0 ? (
-                            step.data.ingredients.map((group: any, gIdx: number) => (
+                  {step.step === 'final_result' && (() => {
+                    const data = step.data as Record<string, unknown>;
+                    return (
+                      <div>
+                        <p className="text-sm text-green-600 mb-2 font-semibold">
+                          ✅ Final Parsed Recipe
+                        </p>
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">Title:</h4>
+                            <p className="text-sm">{typeof data.title === 'string' ? data.title : ''}</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">
+                              Ingredients ({typeof data.ingredientCount === 'number' ? data.ingredientCount : (Array.isArray(data.ingredients) ? (data.ingredients as IngredientGroup[]).reduce((sum: number, g: IngredientGroup) => sum + (g.ingredients?.length || 0), 0) : 0)} total):
+                            </h4>
+                            {Array.isArray(data.ingredients) && data.ingredients.length > 0 ? (
+                              (data.ingredients as IngredientGroup[]).map((group: IngredientGroup, gIdx: number) => (
                               <div key={gIdx} className="ml-4 mb-2">
                                 <p className="font-medium text-sm">{group.groupName}</p>
                                 <ul className="list-disc ml-6 text-xs">
-                                  {group.ingredients?.map((ing: any, iIdx: number) => (
+                                  {group.ingredients?.map((ing: Ingredient, iIdx: number) => (
                                     <li key={iIdx}>
                                       {ing.amount} {ing.units} {ing.ingredient}
                                     </li>
@@ -827,49 +840,50 @@ export default function DebugParserPage() {
                           ) : (
                             <p className="text-sm text-gray-500">No ingredients found</p>
                           )}
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1">
-                            Instructions ({step.data.instructionCount || step.data.instructions?.length || 0} steps):
-                          </h4>
-                          {step.data.instructions && step.data.instructions.length > 0 ? (
-                            <ol className="list-decimal ml-6 text-xs">
-                              {step.data.instructions.map((inst: string, idx: number) => (
-                                <li key={idx} className="mb-1">{inst}</li>
-                              ))}
-                            </ol>
-                          ) : (
-                            <p className="text-sm text-gray-500">No instructions found</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">
+                              Instructions ({typeof data.instructionCount === 'number' ? data.instructionCount : (Array.isArray(data.instructions) ? data.instructions.length : 0)} steps):
+                            </h4>
+                            {Array.isArray(data.instructions) && data.instructions.length > 0 ? (
+                              <ol className="list-decimal ml-6 text-xs">
+                                {(data.instructions as string[]).map((inst: string, idx: number) => (
+                                  <li key={idx} className="mb-1">{inst}</li>
+                                ))}
+                              </ol>
+                            ) : (
+                              <p className="text-sm text-gray-500">No instructions found</p>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">Method Used:</h4>
+                            <p className="text-sm">
+                              {data.method === 'json-ld' ? (
+                                <span className="text-green-600">JSON-LD (Fast, no AI tokens used)</span>
+                              ) : data.method === 'ai_vision' ? (
+                                <span className="text-purple-600">AI Vision (meta-llama/llama-4-scout-17b-16e-instruct)</span>
+                              ) : (
+                                <span className="text-blue-600">AI Parsing (Groq llama-3.3-70b-versatile)</span>
+                              )}
+                            </p>
+                          </div>
+                          {/* Display any additional debugging data that might be present */}
+                          {Object.keys(data).some(key => !['title', 'ingredients', 'instructions', 'method', 'ingredientCount', 'instructionCount', 'validationPassed'].includes(key)) && (
+                            <div className="mt-4 pt-4 border-t border-gray-300">
+                              <h4 className="font-semibold text-sm mb-2">Additional Debug Data:</h4>
+                              <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-48 border border-gray-200">
+                                {formatData(Object.fromEntries(
+                                  Object.entries(data).filter(([key]) => 
+                                    !['title', 'ingredients', 'instructions', 'method', 'ingredientCount', 'instructionCount', 'validationPassed'].includes(key)
+                                  )
+                                ))}
+                              </pre>
+                            </div>
                           )}
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1">Method Used:</h4>
-                          <p className="text-sm">
-                            {step.data.method === 'json-ld' ? (
-                              <span className="text-green-600">JSON-LD (Fast, no AI tokens used)</span>
-                            ) : step.data.method === 'ai_vision' ? (
-                              <span className="text-purple-600">AI Vision (meta-llama/llama-4-scout-17b-16e-instruct)</span>
-                            ) : (
-                              <span className="text-blue-600">AI Parsing (Groq llama-3.3-70b-versatile)</span>
-                            )}
-                          </p>
-                        </div>
-                        {/* Display any additional debugging data that might be present */}
-                        {Object.keys(step.data).some(key => !['title', 'ingredients', 'instructions', 'method', 'ingredientCount', 'instructionCount', 'validationPassed'].includes(key)) && (
-                          <div className="mt-4 pt-4 border-t border-gray-300">
-                            <h4 className="font-semibold text-sm mb-2">Additional Debug Data:</h4>
-                            <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-48 border border-gray-200">
-                              {formatData(Object.fromEntries(
-                                Object.entries(step.data).filter(([key]) => 
-                                  !['title', 'ingredients', 'instructions', 'method', 'ingredientCount', 'instructionCount', 'validationPassed'].includes(key)
-                                )
-                              ))}
-                            </pre>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             ))}
@@ -883,17 +897,17 @@ export default function DebugParserPage() {
             {inputMode === 'url' ? (
               <ol className="list-decimal ml-6 text-blue-600 space-y-1">
                 <li>Enter any recipe URL above</li>
-                <li>Click "Debug Parse" to see the full parsing flow</li>
+                <li>Click &quot;Debug Parse&quot; to see the full parsing flow</li>
                 <li>Review each step to understand what happened</li>
                 <li>Check if JSON-LD was found (fast) or AI was used (fallback)</li>
                 <li>See the cleaned HTML that was sent to the AI</li>
-                <li>View the AI's raw response and final parsed result</li>
+                <li>View the AI&apos;s raw response and final parsed result</li>
               </ol>
             ) : (
               <ol className="list-decimal ml-6 text-blue-600 space-y-1">
                 <li>Click the upload area to select a recipe image</li>
                 <li>Supported formats: JPG, PNG, WEBP, GIF (max 10MB)</li>
-                <li>Click "Debug Image Parse" to see the parsing flow</li>
+                <li>Click &quot;Debug Image Parse&quot; to see the parsing flow</li>
                 <li>Review the image upload, AI vision processing, and final result steps</li>
                 <li>See how the vision model extracts recipe data from the image</li>
               </ol>
