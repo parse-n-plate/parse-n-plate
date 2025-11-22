@@ -7,29 +7,59 @@ import * as Tabs from '@radix-ui/react-tabs';
 
 // Helper function to format ingredient
 const formatIngredient = (
-  ingredient: string | { amount?: string; units?: string; ingredient: string },
+  ingredient: string | { amount?: string; units?: string; ingredient: string } | null | undefined,
 ): string => {
+  // Handle null or undefined
+  if (ingredient === null || ingredient === undefined) {
+    return '';
+  }
+
+  // Handle string ingredients
   if (typeof ingredient === 'string') {
     return ingredient;
   }
 
-  if (
-    typeof ingredient === 'object' &&
-    ingredient.amount &&
-    ingredient.ingredient
-  ) {
-    const parts = [];
-    if (ingredient.amount && ingredient.amount !== 'as much as you like') {
-      parts.push(ingredient.amount);
+  // Handle object ingredients
+  if (typeof ingredient === 'object') {
+    // Check if it's an array (shouldn't happen, but handle it)
+    if (Array.isArray(ingredient)) {
+      return ingredient.join(', ');
     }
-    if (ingredient.units) {
-      parts.push(ingredient.units);
+
+    // Handle ingredient objects with proper structure
+    // Even if amount is missing, we should still try to format it
+    if ('ingredient' in ingredient && ingredient.ingredient) {
+      const parts = [];
+      
+      // Add amount if it exists and is valid
+      if (ingredient.amount && ingredient.amount.trim() && ingredient.amount !== 'as much as you like') {
+        parts.push(ingredient.amount.trim());
+      }
+      
+      // Add units if they exist
+      if (ingredient.units && ingredient.units.trim()) {
+        parts.push(ingredient.units.trim());
+      }
+      
+      // Always add the ingredient name
+      parts.push(ingredient.ingredient.trim());
+      
+      return parts.join(' ');
     }
-    parts.push(ingredient.ingredient);
-    return parts.join(' ');
+
+    // If it's an object but doesn't match expected structure, try to extract what we can
+    // This handles edge cases where the structure might be different
+    if ('ingredient' in ingredient) {
+      return String(ingredient.ingredient || '');
+    }
   }
 
-  return String(ingredient);
+  // Fallback: try to convert to string safely
+  try {
+    return String(ingredient);
+  } catch {
+    return '';
+  }
 };
 
 export default function ParsedRecipePage() {
@@ -185,16 +215,43 @@ export default function ParsedRecipePage() {
                 </h2>
                 <ol className="space-y-4">
                   {Array.isArray(parsedRecipe.instructions) &&
-                    parsedRecipe.instructions.map((instruction, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <span className="bg-[#FFBA25] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0 font-albert">
-                          {index + 1}
-                        </span>
-                        <span className="font-albert text-[16px] text-stone-950 leading-[1.4]">
-                          {instruction}
-                        </span>
-                      </li>
-                    ))}
+                    parsedRecipe.instructions
+                      .map((instruction, index) => {
+                        // Safely convert instruction to string (handle objects, null, undefined)
+                        let instructionText = '';
+                        
+                        if (typeof instruction === 'string') {
+                          instructionText = instruction;
+                        } else if (instruction === null || instruction === undefined) {
+                          instructionText = '';
+                        } else if (typeof instruction === 'object' && instruction !== null) {
+                          // Handle object with text property (common in JSON-LD format)
+                          if ('text' in instruction && typeof (instruction as any).text === 'string') {
+                            instructionText = (instruction as any).text;
+                          } else if ('name' in instruction && typeof (instruction as any).name === 'string') {
+                            // Some formats use 'name' instead of 'text'
+                            instructionText = (instruction as any).name;
+                          } else {
+                            // If it's an object we can't parse, skip it (don't show [object Object])
+                            instructionText = '';
+                          }
+                        } else {
+                          instructionText = String(instruction || '');
+                        }
+                        
+                        return { index, text: instructionText };
+                      })
+                      .filter((item) => item.text.trim()) // Filter out empty instructions
+                      .map((item, displayIndex) => (
+                        <li key={item.index} className="flex items-start gap-3">
+                          <span className="bg-[#FFBA25] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium flex-shrink-0 font-albert">
+                            {displayIndex + 1}
+                          </span>
+                          <span className="font-albert text-[16px] text-stone-950 leading-[1.4]">
+                            {item.text}
+                          </span>
+                        </li>
+                      ))}
                 </ol>
               </div>
             </Tabs.Content>

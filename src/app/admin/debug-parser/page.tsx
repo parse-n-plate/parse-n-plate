@@ -763,7 +763,7 @@ export default function DebugParserPage() {
                         ⚠️ {step.title}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {step.data}
+                        {formatData(step.data)}
                       </p>
                     </div>
                   )}
@@ -854,6 +854,19 @@ export default function DebugParserPage() {
                             )}
                           </p>
                         </div>
+                        {/* Display any additional debugging data that might be present */}
+                        {Object.keys(step.data).some(key => !['title', 'ingredients', 'instructions', 'method', 'ingredientCount', 'instructionCount', 'validationPassed'].includes(key)) && (
+                          <div className="mt-4 pt-4 border-t border-gray-300">
+                            <h4 className="font-semibold text-sm mb-2">Additional Debug Data:</h4>
+                            <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-48 border border-gray-200">
+                              {formatData(Object.fromEntries(
+                                Object.entries(step.data).filter(([key]) => 
+                                  !['title', 'ingredients', 'instructions', 'method', 'ingredientCount', 'instructionCount', 'validationPassed'].includes(key)
+                                )
+                              ))}
+                            </pre>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
