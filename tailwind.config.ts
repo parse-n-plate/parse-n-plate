@@ -26,8 +26,12 @@ const config: Config = {
         },
       },
       fontFamily: {
-        serif: ['var(--font-domine)', 'serif'],
+        // Default fonts: Domine for serif/headings, Albert Sans for sans-serif/body
+        serif: ['var(--font-domine)', 'Georgia', 'Times New Roman', 'serif'],
         sans: ['var(--font-albert)', 'Helvetica', 'system-ui', 'sans-serif'],
+        // Utility classes for explicit font usage
+        domine: ['var(--font-domine)', 'Georgia', 'Times New Roman', 'serif'],
+        albert: ['var(--font-albert)', 'Helvetica', 'system-ui', 'sans-serif'],
       },
       lineHeight: {
         heading: '1.3',

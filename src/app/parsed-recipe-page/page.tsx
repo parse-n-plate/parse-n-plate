@@ -60,26 +60,17 @@ export default function ParsedRecipePage() {
   return (
     <div className="bg-stone-50 min-h-screen relative max-w-full overflow-x-hidden">
       <div className="transition-opacity duration-300 ease-in-out opacity-100">
-        {/* Hero Section with Full-Width Image */}
-        <div className="relative h-[360px] w-full">
-          {/* Recipe Image with Gradient Overlay */}
-          <div
-            className="w-full h-full bg-cover bg-center rounded-b-[24px] flex items-end justify-between p-4 md:p-6"
-            style={{
-              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0) 57.5%, rgba(0, 0, 0, 0.6) 74.5%), linear-gradient(90deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%), url('https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&h=600&fit=crop')`,
-            }}
-          >
-            {/* Left Side - Title and Author */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex flex-col">
-                <h1 className="font-domine text-[40px] text-stone-50 leading-[1.1] mb-1">
-                  {parsedRecipe.title || 'Beef Udon'}
-                </h1>
-                <div className="flex items-center">
-                  <span className="font-albert text-[14px] text-stone-50 leading-[1.4]">
-                    {parsedRecipe.author || 'Unknown Author'}
-                  </span>
-                </div>
+        {/* Hero Section - Title and Author */}
+        <div className="w-full px-4 md:px-8 pt-6 pb-4">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col">
+              <h1 className="font-domine text-[40px] text-black leading-[1.1] mb-1">
+                {parsedRecipe.title || 'Beef Udon'}
+              </h1>
+              <div className="flex items-center">
+                <span className="font-albert text-[14px] text-black leading-[1.4]">
+                  {parsedRecipe.author || 'Unknown Author'}
+                </span>
               </div>
             </div>
           </div>

@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 import { Domine, Albert_Sans } from 'next/font/google';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -9,24 +8,17 @@ import { RecipeProvider } from '@/contexts/RecipeContext';
 import { ParsedRecipesProvider } from '@/contexts/ParsedRecipesContext';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
+// Default fonts: Domine for headings (serif), Albert Sans for body (sans-serif)
 const domine = Domine({
   variable: '--font-domine',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 });
 
 const albertSans = Albert_Sans({
   variable: '--font-albert',
   subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -42,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${domine.variable} ${albertSans.variable} antialiased`}
+        className={`${domine.variable} ${albertSans.variable} antialiased`}
         suppressHydrationWarning={true}
       >
         <RecipeProvider>
