@@ -153,6 +153,58 @@ Please update CHANGELOG.md under the [Unreleased] section with:
 
 ---
 
+## 🔀 Git Workflow Reminders
+
+### When to Remind About Git Push
+After completing significant work sessions or implementing features, remind the user to push their changes to the remote repository.
+
+### Reminder Triggers
+Remind the user to push when:
+1. **After Completing Features**:
+   - New functionality has been implemented and tested
+   - Multiple files have been modified
+   - A logical unit of work is complete
+
+2. **After Fixing Issues**:
+   - Bug fixes are complete
+   - Error handling improvements
+   - Performance optimizations
+
+3. **End of Work Session**:
+   - When wrapping up a coding session
+   - Before switching to a different task
+   - When there are uncommitted changes that should be saved
+
+4. **Before Making Large Changes**:
+   - If there are uncommitted changes before starting major refactoring
+   - Before switching branches (if applicable)
+
+### Reminder Format
+When appropriate, include a reminder like:
+
+```
+🔀 GIT PUSH REMINDER:
+You have uncommitted changes. Consider pushing to remote:
+1. Review your changes: git status
+2. Stage changes: git add .
+3. Commit: git commit -m "Description of changes"
+4. Push: git push origin [branch-name]
+```
+
+### Don't Remind For:
+- Very minor changes (single character fixes, typos)
+- Work in progress that's clearly not ready
+- When user explicitly says they're not ready to commit
+- During active debugging sessions
+
+### Git Best Practices to Encourage
+- Commit frequently with clear, descriptive messages
+- Push regularly to avoid losing work
+- Keep commits focused on a single feature or fix
+- Use meaningful commit messages that explain what and why
+
+---
+
 ## 🚀 Development Commands
 
 ```bash
