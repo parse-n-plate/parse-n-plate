@@ -33,3 +33,4 @@ export const ERROR_MESSAGES = {
   [ERROR_CODES.ERR_TIMEOUT]: 'The page took too long to respond.',
   [ERROR_CODES.ERR_UNKNOWN]: 'An unexpected error occurred.',
 } as const;
+
