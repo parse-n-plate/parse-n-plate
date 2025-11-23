@@ -34,6 +34,9 @@ export interface IngredientGroup {
  */
 export interface ParsedRecipe {
   title: string;
+  author?: string;
+  publishedDate?: string;
+  sourceUrl?: string;
   ingredients: IngredientGroup[];
   instructions: string[];
 }
@@ -83,6 +86,22 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
             if (!recipe) continue;
 
             const title = recipe.name || '';
+
+            // Extract author
+            let author = '';
+            if (recipe.author) {
+              if (typeof recipe.author === 'string') {
+                author = recipe.author;
+              } else if (Array.isArray(recipe.author)) {
+                const authorObj = recipe.author.find((a: any) => a.name);
+                author = authorObj ? authorObj.name : recipe.author[0]?.name || '';
+              } else if (recipe.author.name) {
+                author = recipe.author.name;
+              }
+            }
+
+            // Extract datePublished
+            const publishedDate = recipe.datePublished || '';
 
             // Extract ingredients as simple strings first
             const ingredientStrings: string[] = Array.isArray(
@@ -196,7 +215,7 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
               console.log(
                 `[JSON-LD] Found recipe: "${title}" with ${ingredients[0].ingredients.length} ingredients and ${instructions.length} instructions`
               );
-              return { title, ingredients, instructions };
+              return { title, author, publishedDate, ingredients, instructions };
             }
           }
         }
@@ -247,6 +266,8 @@ START YOUR RESPONSE IMMEDIATELY WITH { and END WITH }. Nothing else.
 Required JSON structure:
 {
   "title": "string",
+  "author": "string",
+  "publishedDate": "string",
   "ingredients": [
     {
       "groupName": "string",
@@ -284,8 +305,9 @@ EXTRACTION WORKFLOW
 ========================================
 Follow these steps in order:
 1. Locate and extract the recipe title (usually the main heading)
-2. Locate the ingredients section in the HTML
-3. For each ingredient, extract:
+2. Locate and extract the author name (look for "By [Name]", author bylines) and publication date
+3. Locate the ingredients section in the HTML
+4. For each ingredient, extract:
    - The amount EXACTLY as written (e.g., "2 1/2", "1/4", "½", "0.5")
    - The unit EXACTLY as written (e.g., "cups", "tablespoons", "grams")
    - The ingredient name EXACTLY as written
@@ -343,7 +365,7 @@ DETAIL PRESERVATION:
 - Maintain the original level of detail from the HTML
 
 CLEANING (remove these only):
-- Author names and bylines (e.g., "By Chef John:")
+- Author names and bylines (e.g., "By Chef John:") - extract these to the "author" field, don't leave them in text
 - Attribution text (e.g., "Recipe courtesy of...")
 - Nutritional information
 - Prep time, cook time, total time labels
@@ -389,6 +411,8 @@ DO NOT use these example values. Extract actual values from the HTML provided.
 Example showing varied fraction formats:
 {
   "title": "Homemade Bread",
+  "author": "Jane Doe",
+  "publishedDate": "2023-01-15",
   "ingredients": [
     {
       "groupName": "Main",
@@ -598,7 +622,14 @@ export async function parseRecipeFromUrl(url: string): Promise<ParserResult> {
     }
 
     // Parse the fetched HTML
-    return await parseRecipe(html);
+    const result = await parseRecipe(html);
+
+    // Add sourceUrl to the result data if successful
+    if (result.success && result.data) {
+      result.data.sourceUrl = url;
+    }
+
+    return result;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error fetching URL';
@@ -666,6 +697,8 @@ export async function parseRecipeFromImage(imageBase64: string): Promise<ParserR
 
 {
   "title": "Recipe Name Here",
+  "author": "Author Name",
+  "publishedDate": "2023-01-01",
   "ingredients": [
     {
       "groupName": "Main",
@@ -684,7 +717,8 @@ Rules:
 4. If ingredients have groups (like "For the sauce"), preserve the group names
 5. If no groups, use "Main" as the groupName
 6. Extract every instruction step you can see
-7. If no recipe is visible, return: {"title": "No recipe found", "ingredients": [], "instructions": []}
+7. Extract author and publication date if visible
+8. If no recipe is visible, return: {"title": "No recipe found", "ingredients": [], "instructions": []}
 
 Start your response with { and end with }`,
             },

@@ -12,6 +12,8 @@ interface ParsedRecipe {
   description?: string;          // NEW: Recipe description
   imageUrl?: string;              // NEW: Recipe image URL
   author?: string;                // NEW: Recipe author/source
+  publishedDate?: string;         // NEW: Publication date
+  sourceUrl?: string;             // NEW: Source URL
   cookTimeMinutes?: number;       // NEW: Cook time in minutes
   prepTimeMinutes?: number;       // NEW: Prep time in minutes
   totalTimeMinutes?: number;      // NEW: Total time in minutes

@@ -97,10 +97,33 @@ export default function ParsedRecipePage() {
               <h1 className="font-domine text-[40px] text-black leading-[1.1] mb-1">
                 {parsedRecipe.title || 'Beef Udon'}
               </h1>
-              <div className="flex items-center">
-                <span className="font-albert text-[14px] text-black leading-[1.4]">
-                  {parsedRecipe.author || 'Unknown Author'}
-                </span>
+              <div className="flex flex-col gap-1 mt-2">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-albert text-[14px] text-stone-600">
+                  <span className="text-black font-medium">
+                    {parsedRecipe.author ? `By ${parsedRecipe.author}` : 'Unknown Author'}
+                  </span>
+                  
+                  {parsedRecipe.publishedDate && (
+                    <>
+                      <span className="hidden sm:inline text-stone-300">•</span>
+                      <span>{parsedRecipe.publishedDate}</span>
+                    </>
+                  )}
+                  
+                  {parsedRecipe.sourceUrl && (
+                    <>
+                      <span className="hidden sm:inline text-stone-300">•</span>
+                      <a 
+                        href={parsedRecipe.sourceUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[#4F46E5] hover:underline hover:text-[#4338ca] transition-colors"
+                      >
+                        View Source
+                      </a>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
