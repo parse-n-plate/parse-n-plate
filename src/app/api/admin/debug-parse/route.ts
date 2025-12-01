@@ -164,23 +164,6 @@ export async function GET(req: NextRequest): Promise<Response> {
 
       // Parse JSON-LD into our format
       const title = jsonLdResult.name || '';
-      
-      // Extract author
-      let author = '';
-      if (jsonLdResult.author) {
-        if (typeof jsonLdResult.author === 'string') {
-          author = jsonLdResult.author;
-        } else if (Array.isArray(jsonLdResult.author)) {
-          const authorObj = jsonLdResult.author.find((a: any) => a.name);
-          author = authorObj ? authorObj.name : jsonLdResult.author[0]?.name || '';
-        } else if (jsonLdResult.author.name) {
-          author = jsonLdResult.author.name;
-        }
-      }
-      
-      // Extract datePublished
-      const publishedDate = jsonLdResult.datePublished || '';
-      
       const ingredientStrings = Array.isArray(jsonLdResult.recipeIngredient)
         ? jsonLdResult.recipeIngredient
         : [];
@@ -274,7 +257,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       steps.push({
         step: 'final_result',
         title: 'Final Parsed Recipe (via JSON-LD)',
-        data: { title, author, publishedDate, ingredients, instructions, method: 'json-ld', validationPassed },
+        data: { title, ingredients, instructions, method: 'json-ld', validationPassed },
         success: validationPassed,
         timestamp: Date.now(),
       });
@@ -325,8 +308,6 @@ START YOUR RESPONSE IMMEDIATELY WITH { and END WITH }. Nothing else.
 Required JSON structure:
 {
   "title": "string",
-  "author": "string",
-  "publishedDate": "string",
   "ingredients": [
     {
       "groupName": "string",
@@ -364,9 +345,8 @@ EXTRACTION WORKFLOW
 ========================================
 Follow these steps in order:
 1. Locate and extract the recipe title (usually the main heading)
-2. Locate and extract the author name (look for "By [Name]", author bylines) and publication date
-3. Locate the ingredients section in the HTML
-4. For each ingredient, extract:
+2. Locate the ingredients section in the HTML
+3. For each ingredient, extract:
    - The amount EXACTLY as written (e.g., "2 1/2", "1/4", "½", "0.5")
    - The unit EXACTLY as written (e.g., "cups", "tablespoons", "grams")
    - The ingredient name EXACTLY as written
@@ -424,7 +404,7 @@ DETAIL PRESERVATION:
 - Maintain the original level of detail from the HTML
 
 CLEANING (remove these only):
-- Author names and bylines (e.g., "By Chef John:") - extract these to the "author" field, don't leave them in text
+- Author names and bylines (e.g., "By Chef John:")
 - Attribution text (e.g., "Recipe courtesy of...")
 - Nutritional information
 - Prep time, cook time, total time labels
@@ -470,8 +450,6 @@ DO NOT use these example values. Extract actual values from the HTML provided.
 Example showing varied fraction formats:
 {
   "title": "Homemade Bread",
-  "author": "Jane Doe",
-  "publishedDate": "2023-01-15",
   "ingredients": [
     {
       "groupName": "Main",
@@ -581,8 +559,6 @@ ABSOLUTE REQUIREMENTS:
     // Convert null values to empty arrays to prevent UI errors
     const normalizedData = {
       title: parsedData.title || 'No title found',
-      author: parsedData.author || '',
-      publishedDate: parsedData.publishedDate || '',
       ingredients: Array.isArray(parsedData.ingredients) ? parsedData.ingredients : [],
       instructions: Array.isArray(parsedData.instructions) ? parsedData.instructions : [],
       method: 'ai',
@@ -828,23 +804,6 @@ export async function POST(req: NextRequest): Promise<Response> {
 
       // Parse JSON-LD into our format
       const title = jsonLdResult.name || '';
-      
-      // Extract author
-      let author = '';
-      if (jsonLdResult.author) {
-        if (typeof jsonLdResult.author === 'string') {
-          author = jsonLdResult.author;
-        } else if (Array.isArray(jsonLdResult.author)) {
-          const authorObj = jsonLdResult.author.find((a: any) => a.name);
-          author = authorObj ? authorObj.name : jsonLdResult.author[0]?.name || '';
-        } else if (jsonLdResult.author.name) {
-          author = jsonLdResult.author.name;
-        }
-      }
-      
-      // Extract datePublished
-      const publishedDate = jsonLdResult.datePublished || '';
-      
       const ingredientStrings = Array.isArray(jsonLdResult.recipeIngredient)
         ? jsonLdResult.recipeIngredient
         : [];
@@ -876,7 +835,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       steps.push({
         step: 'final_result',
         title: 'Final Parsed Recipe (via JSON-LD)',
-        data: { title, author, publishedDate, ingredients, instructions, method: 'json-ld' },
+        data: { title, ingredients, instructions, method: 'json-ld' },
         success: true,
         timestamp: Date.now(),
       });
@@ -922,8 +881,6 @@ START YOUR RESPONSE IMMEDIATELY WITH { and END WITH }. Nothing else.
 Required JSON structure:
 {
   "title": "string",
-  "author": "string",
-  "publishedDate": "string",
   "ingredients": [
     {
       "groupName": "string",
@@ -961,9 +918,8 @@ EXTRACTION WORKFLOW
 ========================================
 Follow these steps in order:
 1. Locate and extract the recipe title (usually the main heading)
-2. Locate and extract the author name (look for "By [Name]", author bylines) and publication date
-3. Locate the ingredients section in the HTML
-4. For each ingredient, extract:
+2. Locate the ingredients section in the HTML
+3. For each ingredient, extract:
    - The amount EXACTLY as written (e.g., "2 1/2", "1/4", "½", "0.5")
    - The unit EXACTLY as written (e.g., "cups", "tablespoons", "grams")
    - The ingredient name EXACTLY as written
@@ -1021,7 +977,7 @@ DETAIL PRESERVATION:
 - Maintain the original level of detail from the HTML
 
 CLEANING (remove these only):
-- Author names and bylines (e.g., "By Chef John:") - extract these to the "author" field, don't leave them in text
+- Author names and bylines (e.g., "By Chef John:")
 - Attribution text (e.g., "Recipe courtesy of...")
 - Nutritional information
 - Prep time, cook time, total time labels
@@ -1067,8 +1023,6 @@ DO NOT use these example values. Extract actual values from the HTML provided.
 Example showing varied fraction formats:
 {
   "title": "Homemade Bread",
-  "author": "Jane Doe",
-  "publishedDate": "2023-01-15",
   "ingredients": [
     {
       "groupName": "Main",
@@ -1178,8 +1132,6 @@ ABSOLUTE REQUIREMENTS:
     // Convert null values to empty arrays to prevent UI errors
     const normalizedData = {
       title: parsedData.title || 'No title found',
-      author: parsedData.author || '',
-      publishedDate: parsedData.publishedDate || '',
       ingredients: Array.isArray(parsedData.ingredients) ? parsedData.ingredients : [],
       instructions: Array.isArray(parsedData.instructions) ? parsedData.instructions : [],
       method: 'ai',

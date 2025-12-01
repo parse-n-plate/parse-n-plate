@@ -120,9 +120,6 @@ function HomeContent() {
       if (fullRecipe && fullRecipe.ingredients && fullRecipe.instructions) {
         setParsedRecipe({
           title: fullRecipe.title,
-          author: fullRecipe.author,
-          publishedDate: fullRecipe.publishedDate,
-          sourceUrl: fullRecipe.url,
           ingredients: fullRecipe.ingredients,
           instructions: fullRecipe.instructions,
         });

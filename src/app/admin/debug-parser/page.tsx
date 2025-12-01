@@ -34,8 +34,6 @@ START YOUR RESPONSE IMMEDIATELY WITH { and END WITH }. Nothing else.
 Required JSON structure:
 {
   "title": "string",
-  "author": "string",
-  "publishedDate": "string",
   "ingredients": [
     {
       "groupName": "string",
@@ -65,9 +63,8 @@ EXTRACTION WORKFLOW
 ========================================
 Follow these steps in order:
 1. Locate and extract the recipe title (usually the main heading)
-2. Locate and extract the author name (look for "By [Name]", author bylines) and publication date
-3. Locate the ingredients section in the HTML
-4. For each ingredient, extract:
+2. Locate the ingredients section in the HTML
+3. For each ingredient, extract:
    - The amount EXACTLY as written (e.g., "2 1/2", "1/4", "½", "0.5")
    - The unit EXACTLY as written (e.g., "cups", "tablespoons", "grams")
    - The ingredient name EXACTLY as written
@@ -125,7 +122,7 @@ DETAIL PRESERVATION:
 - Maintain the original level of detail from the HTML
 
 CLEANING (remove these only):
-- Author names and bylines (e.g., "By Chef John:") - extract these to the "author" field, don't leave them in text
+- Author names and bylines (e.g., "By Chef John:")
 - Attribution text (e.g., "Recipe courtesy of...")
 - Nutritional information
 - Prep time, cook time, total time labels
@@ -163,8 +160,6 @@ DO NOT use these example values. Extract actual values from the HTML provided.
 Example showing varied fraction formats:
 {
   "title": "Homemade Bread",
-  "author": "Jane Doe",
-  "publishedDate": "2023-01-15",
   "ingredients": [
     {
       "groupName": "Main",
@@ -825,31 +820,6 @@ export default function DebugParserPage() {
                             <h4 className="font-semibold text-sm mb-1">Title:</h4>
                             <p className="text-sm">{typeof data.title === 'string' ? data.title : ''}</p>
                           </div>
-                          {data.author && (
-                            <div>
-                              <h4 className="font-semibold text-sm mb-1">Author:</h4>
-                              <p className="text-sm">{typeof data.author === 'string' ? data.author : ''}</p>
-                            </div>
-                          )}
-                          {data.publishedDate && (
-                            <div>
-                              <h4 className="font-semibold text-sm mb-1">Published Date:</h4>
-                              <p className="text-sm">{typeof data.publishedDate === 'string' ? data.publishedDate : ''}</p>
-                            </div>
-                          )}
-                          {data.sourceUrl && (
-                            <div>
-                              <h4 className="font-semibold text-sm mb-1">Source URL:</h4>
-                              <a 
-                                href={typeof data.sourceUrl === 'string' ? data.sourceUrl : '#'}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-blue-600 hover:underline break-all"
-                              >
-                                {typeof data.sourceUrl === 'string' ? data.sourceUrl : ''}
-                              </a>
-                            </div>
-                          )}
                           <div>
                             <h4 className="font-semibold text-sm mb-1">
                               Ingredients ({typeof data.ingredientCount === 'number' ? data.ingredientCount : (Array.isArray(data.ingredients) ? (data.ingredients as IngredientGroup[]).reduce((sum: number, g: IngredientGroup) => sum + (g.ingredients?.length || 0), 0) : 0)} total):

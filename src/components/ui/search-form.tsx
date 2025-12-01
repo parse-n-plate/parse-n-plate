@@ -91,9 +91,6 @@ export default function SearchForm({
   const handleRecipeSelect = (recipe: ParsedRecipe) => {
     setParsedRecipe({
       title: recipe.title,
-      author: recipe.author,
-      publishedDate: recipe.publishedDate,
-      sourceUrl: recipe.url,
       ingredients: recipe.ingredients || [],
       instructions: recipe.instructions || [],
     });
@@ -177,9 +174,6 @@ export default function SearchForm({
       // Store parsed recipe in context
       setParsedRecipe({
         title: response.title,
-        author: response.author,
-        publishedDate: response.publishedDate,
-        sourceUrl: response.sourceUrl || `image:${selectedImage.name}`,
         ingredients: response.ingredients,
         instructions: response.instructions,
       });
@@ -193,8 +187,6 @@ export default function SearchForm({
         title: response.title,
         summary: recipeSummary,
         url: `image:${selectedImage.name}`, // Store as image reference
-        author: response.author,
-        publishedDate: response.publishedDate,
         ingredients: response.ingredients,
         instructions: response.instructions,
       });
@@ -285,9 +277,6 @@ export default function SearchForm({
       // The new parser already returns data in the correct grouped format
       setParsedRecipe({
         title: response.title,
-        author: response.author,
-        publishedDate: response.publishedDate,
-        sourceUrl: response.sourceUrl || query,
         ingredients: response.ingredients,
         instructions: response.instructions,
       });
@@ -301,8 +290,6 @@ export default function SearchForm({
         title: response.title,
         summary: recipeSummary,
         url: query,
-        author: response.author,
-        publishedDate: response.publishedDate,
         ingredients: response.ingredients,
         instructions: response.instructions,
       });

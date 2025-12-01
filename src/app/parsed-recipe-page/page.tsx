@@ -1,9 +1,12 @@
 'use client';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import RecipeSkeleton from '@/components/ui/recipe-skeleton';
 import * as Tabs from '@radix-ui/react-tabs';
+import { scaleIngredient } from '@/utils/ingredientScaler';
+import { Minus, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Helper function to format ingredient
 const formatIngredient = (
@@ -66,12 +69,51 @@ export default function ParsedRecipePage() {
   const { parsedRecipe, isLoaded } = useRecipe();
   const router = useRouter();
 
+  // Initialize servings state
+  // Use a safe default if parsedRecipe is not yet loaded
+  const [servings, setServings] = useState<number>(1);
+  
+  // Update servings when recipe loads
+  useEffect(() => {
+    if (parsedRecipe?.servings) {
+      setServings(parsedRecipe.servings);
+    } else {
+      // Default to 4 if no servings specified, or keep current if set
+      setServings((prev) => (prev === 1 && parsedRecipe ? 4 : prev));
+    }
+  }, [parsedRecipe]);
+
   // Redirect if loaded and no recipe
   useEffect(() => {
     if (isLoaded && !parsedRecipe) {
       router.push('/');
     }
   }, [isLoaded, parsedRecipe, router]);
+
+  // Calculate scaled ingredients
+  const scaledIngredients = useMemo(() => {
+    if (!parsedRecipe || !parsedRecipe.ingredients) return [];
+
+    const originalServings = parsedRecipe.servings || 4; // Default base to 4 if missing
+    const ratio = servings / originalServings;
+
+    return parsedRecipe.ingredients.map((group) => ({
+      ...group,
+      ingredients: group.ingredients.map((ing) => scaleIngredient(ing, ratio)),
+    }));
+  }, [parsedRecipe, servings]);
+
+  const handleIncrementServings = () => {
+    if (servings < 10) {
+      setServings(servings + 1);
+    }
+  };
+
+  const handleDecrementServings = () => {
+    if (servings > 1) {
+      setServings(servings - 1);
+    }
+  };
 
   if (!isLoaded) {
     return <RecipeSkeleton />;
@@ -97,33 +139,10 @@ export default function ParsedRecipePage() {
               <h1 className="font-domine text-[40px] text-black leading-[1.1] mb-1">
                 {parsedRecipe.title || 'Beef Udon'}
               </h1>
-              <div className="flex flex-col gap-1 mt-2">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-albert text-[14px] text-stone-600">
-                  <span className="text-black font-medium">
-                    {parsedRecipe.author ? `By ${parsedRecipe.author}` : 'Unknown Author'}
-                  </span>
-                  
-                  {parsedRecipe.publishedDate && (
-                    <>
-                      <span className="hidden sm:inline text-stone-300">•</span>
-                      <span>{parsedRecipe.publishedDate}</span>
-                    </>
-                  )}
-                  
-                  {parsedRecipe.sourceUrl && (
-                    <>
-                      <span className="hidden sm:inline text-stone-300">•</span>
-                      <a 
-                        href={parsedRecipe.sourceUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-[#4F46E5] hover:underline hover:text-[#4338ca] transition-colors"
-                      >
-                        View Source
-                      </a>
-                    </>
-                  )}
-                </div>
+              <div className="flex items-center">
+                <span className="font-albert text-[14px] text-black leading-[1.4]">
+                  {parsedRecipe.author || 'Unknown Author'}
+                </span>
               </div>
             </div>
           </div>
@@ -172,13 +191,43 @@ export default function ParsedRecipePage() {
 
             {/* Prep Tab Content */}
             <Tabs.Content value="prep" className="space-y-6">
+              {/* Servings Adjuster */}
+              <div className="bg-white rounded-lg p-4 border border-stone-200 flex items-center justify-between">
+                <span className="font-albert text-[16px] text-[#1e1e1e] font-medium">
+                  Serves {servings} {servings === 1 ? 'person' : 'people'}
+                </span>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleDecrementServings}
+                    disabled={servings <= 1}
+                    className="h-8 w-8 rounded-full border-stone-300"
+                  >
+                    <Minus className="h-4 w-4" />
+                    <span className="sr-only">Decrease servings</span>
+                  </Button>
+                  <span className="font-albert font-medium w-4 text-center">{servings}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleIncrementServings}
+                    disabled={servings >= 10}
+                    className="h-8 w-8 rounded-full border-stone-300"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="sr-only">Increase servings</span>
+                  </Button>
+                </div>
+              </div>
+
               {/* Ingredients */}
               <div className="bg-stone-100 rounded-lg p-6">
                 <h2 className="font-domine text-[20px] text-stone-950 mb-6 leading-[1.1]">
                   Ingredients
                 </h2>
-                {Array.isArray(parsedRecipe.ingredients) &&
-                  parsedRecipe.ingredients.map(
+                {Array.isArray(scaledIngredients) &&
+                  scaledIngredients.map(
                     (
                       group: {
                         groupName: string;

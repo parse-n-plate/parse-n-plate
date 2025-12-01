@@ -140,9 +140,6 @@ export async function POST(req: NextRequest): Promise<Response> {
     return NextResponse.json({
       success: true,
       title: result.data.title,
-      author: result.data.author,
-      publishedDate: result.data.publishedDate,
-      sourceUrl: result.data.sourceUrl,
       ingredients: result.data.ingredients,
       instructions: result.data.instructions,
       method: result.method, // Include which method was used (json-ld or ai)

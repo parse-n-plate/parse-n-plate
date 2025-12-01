@@ -4,8 +4,6 @@ export type ParsedRecipe = {
   summary: string;
   url: string;
   parsedAt: string;
-  author?: string;
-  publishedDate?: string;
   // Full recipe data for viewing
   ingredients?: {
     groupName: string;
