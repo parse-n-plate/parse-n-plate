@@ -1,14 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
+import { formatError, ERROR_CODES } from '@/utils/formatError';
+import { parseRecipeFromUrl } from '@/utils/aiRecipeParser';
 
+/**
+ * API endpoint for recipe scraping - now uses unified AI-based parser
+ * 
+ * This endpoint maintains backward compatibility with the old API contract
+ * but now uses the new scalable AI-based parsing system that works with any recipe website.
+ * 
+ * The new system uses:
+ * 1. JSON-LD structured data extraction (fast, reliable when available)
+ * 2. AI-based parsing of cleaned HTML (fallback for any website)
+ * 
+ * No more site-specific HTML selectors needed!
+ */
 export async function POST(req: NextRequest): Promise<Response> {
-  const { url } = await req.json();
+  try {
+    // Check if request is FormData (with image) or JSON (without image)
+    const contentType = req.headers.get('content-type') || '';
+    let url: string | undefined;
+    let imageFile: File | null = null;
 
-  return new Promise((resolve) => {
-    const process = spawn('python3', ['src/utils/scrape_recipe.py', url]);
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData request (with image, URL optional)
+      const formData = await req.formData();
+      const urlValue = formData.get('url');
+      url = urlValue && typeof urlValue === 'string' ? urlValue : undefined;
+      const image = formData.get('image') as File | null;
+      
+      if (image && image.size > 0) {
+        imageFile = image;
+        console.log(`[API /recipeScraperPython] Received image upload: ${image.name} (${image.size} bytes)`);
+      }
+    } else {
+      // Handle JSON request (without image, URL required)
+      const body = await req.json();
+      url = body.url;
+    }
 
-    const data = '';
-    let error = '';
+    // Validate: must have either URL or image (or both)
+    if (!url && !imageFile) {
+      return NextResponse.json(
+        formatError(
+          ERROR_CODES.ERR_INVALID_URL,
+          'Either URL or image must be provided',
+        ),
+      );
+    }
 
     // If URL is provided, validate it
     if (url) {
@@ -122,32 +160,32 @@ export async function POST(req: NextRequest): Promise<Response> {
       title: result.data.title,
       ingredients: result.data.ingredients,
       instructions: result.data.instructions,
-      datePublished: result.data.datePublished, // Include publication date if available
-      method: result.method, // Include which method was used (json-ld or ai)
     });
+  } catch (error) {
+    console.error('[API /recipeScraperPython] Unexpected error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Check for timeout errors
+    if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
+      return NextResponse.json(
+        formatError(ERROR_CODES.ERR_TIMEOUT, 'Request timed out'),
+      );
+    }
 
-    process.stderr.on('data', (chunk) => {
-      error += chunk.toString();
-    });
+    // Check for network errors
+    if (
+      errorMessage.includes('ENOTFOUND') ||
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('fetch')
+    ) {
+      return NextResponse.json(
+        formatError(ERROR_CODES.ERR_FETCH_FAILED, 'Could not connect to recipe site'),
+      );
+    }
 
-    process.on('close', (code) => {
-      if (code === 0) {
-        try {
-          const json = JSON.parse(data);
-          resolve(NextResponse.json(json));
-        } catch (err) {
-          console.error('Error parsing Python output:', err);
-          resolve(
-            NextResponse.json({ error: 'Failed to parse Python output' }),
-          );
-        }
-      } else {
-        resolve(
-          NextResponse.json({
-            error: error || 'Unknown error running Python script',
-          }),
-        );
-      }
-    });
-  });
+    // Generic error fallback
+    return NextResponse.json(
+      formatError(ERROR_CODES.ERR_UNKNOWN, 'An unexpected error occurred'),
+    );
+  }
 }

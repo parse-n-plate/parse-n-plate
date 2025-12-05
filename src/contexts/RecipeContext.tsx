@@ -21,10 +21,9 @@ export interface ParsedRecipe {
   title?: string;
   description?: string;          // NEW: Recipe description
   imageUrl?: string;              // NEW: Recipe image URL
-  imageUrls?: string[];           // NEW: Array of recipe images for carousel
   author?: string;                // NEW: Recipe author/source
-  sourceUrl?: string;             // NEW: Original source URL (for linking back)
-  datePublished?: string;          // NEW: Publication date from recipe page (ISO date string)
+  publishedDate?: string;         // NEW: Publication date
+  sourceUrl?: string;             // NEW: Source URL
   cookTimeMinutes?: number;       // NEW: Cook time in minutes
   prepTimeMinutes?: number;       // NEW: Prep time in minutes
   totalTimeMinutes?: number;      // NEW: Total time in minutes
@@ -39,20 +38,20 @@ export interface ParsedRecipe {
     groupName: string;
     ingredients: { amount: string; units: string; ingredient: string }[];
   }[];
-  instructions: string[] | RecipeStep[];
+  instructions: string[];
 }
 
 interface RecipeContextType {
   parsedRecipe: ParsedRecipe | null;
   setParsedRecipe: (recipe: ParsedRecipe | null) => void;
   clearRecipe: () => void;
+  isLoaded: boolean; // Add this line
 }
 
 const RecipeContext = createContext<RecipeContextType | undefined>(undefined);
 
 export function RecipeProvider({ children }: { children: ReactNode }) {
   const [parsedRecipe, setParsedRecipe] = useState<ParsedRecipe | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount
@@ -88,6 +87,7 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
         parsedRecipe,
         setParsedRecipe: setParsedRecipeWithStorage,
         clearRecipe,
+        isLoaded, // Add this line
       }}
     >
       {children}

@@ -1,48 +1,6 @@
 @import 'tailwindcss';
-@import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
-
+/* Custom CSS Variables for Parse & Plate Design System */
 :root {
   /* Colors */
   --color-primary-blue: #0072ff;
@@ -54,7 +12,7 @@
   --color-text-heading: #000000;
   --color-text-body: #333333;
 
-  /* Typography */
+  /* Typography - Using Next.js font variables */
   --font-family-serif: var(--font-domine), 'Georgia', 'Times New Roman', serif;
   --font-family-sans: var(--font-albert), 'Helvetica', 'system-ui', sans-serif;
 
@@ -67,7 +25,34 @@
   --spacing-lg: 1.5rem;
 }
 
+/* Base Typography Styles */
 @layer base {
+  html {
+    font-family: var(--font-family-sans);
+    line-height: var(--line-height-body);
+    color: var(--color-text-body);
+    background-color: var(--color-background-cream);
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family-serif);
+    line-height: var(--line-height-heading);
+    color: var(--color-text-heading);
+    font-weight: 600;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -75,20 +60,20 @@
 
 /* Utility Classes */
 @layer utilities {
-  .font-domine {
-    font-family: var(--font-domine), 'Georgia', 'Times New Roman', serif;
-  }
-
-  .font-albert {
-    font-family: var(--font-albert), 'Helvetica', 'system-ui', sans-serif;
-  }
-
   .font-serif {
     font-family: var(--font-family-serif);
   }
 
   .font-sans {
     font-family: var(--font-family-sans);
+  }
+
+  .font-domine {
+    font-family: var(--font-domine), 'Georgia', 'Times New Roman', serif;
+  }
+
+  .font-albert {
+    font-family: var(--font-albert), 'Helvetica', 'system-ui', sans-serif;
   }
 
   .leading-heading {
@@ -109,5 +94,143 @@
 
   .bg-cream {
     background-color: var(--color-background-cream);
+  }
+}
+
+/* Component Styles */
+@layer components {
+  /* Servings Adjuster and Multiplier Container */
+  .servings-controls-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  /* Control Card (shared by servings adjuster and multiplier) */
+  .control-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e7e5e4;
+  }
+
+  /* Control Button (for increment/decrement) */
+  .control-button {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+
+  .control-button:hover:not(:disabled) {
+    background-color: #f5f5f4;
+  }
+
+  .control-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .control-button-icon {
+    width: 1rem;
+    height: 1rem;
+    color: #78716c;
+  }
+
+  /* Servings Label */
+  .servings-label {
+    font-family: var(--font-albert);
+    color: #78716c;
+  }
+
+  /* Servings Value */
+  .servings-value {
+    font-family: var(--font-albert);
+    font-weight: 600;
+    color: #193d34;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  /* Multiplier Label */
+  .multiplier-label {
+    font-family: var(--font-albert);
+    color: #78716c;
+  }
+
+  /* Multiplier Container */
+  .multiplier-container {
+    display: inline-flex;
+    gap: 0.5rem;
+    background-color: white;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e7e5e4;
+  }
+
+  /* Multiplier Button */
+  .multiplier-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-family: var(--font-albert);
+    font-weight: 500;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #78716c;
+  }
+
+  .multiplier-button:hover {
+    background-color: #f5f5f4;
+  }
+
+  /* Multiplier Button Selected */
+  .multiplier-button-selected {
+    background-color: #193d34;
+    color: white;
+  }
+
+  .multiplier-button-selected:hover {
+    background-color: #193d34;
+  }
+
+  /* Classic Split View Components */
+  .split-view-card {
+    background-color: white;
+    border-radius: 0.75rem;
+    border: 1px solid #e7e5e4;
+    padding: 1rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .split-view-step-card {
+    background-color: #cff1e8;
+    border-radius: 1rem;
+    padding: 1.5rem;
+  }
+
+  .split-view-step-badge {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    background-color: #193d34;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-albert);
+    font-weight: 500;
+    font-size: 0.875rem;
   }
 }

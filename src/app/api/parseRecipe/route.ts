@@ -142,7 +142,6 @@ export async function POST(req: NextRequest): Promise<Response> {
       title: result.data.title,
       ingredients: result.data.ingredients,
       instructions: result.data.instructions,
-      datePublished: result.data.datePublished, // Include publication date if available
       method: result.method, // Include which method was used (json-ld or ai)
     });
   } catch (error) {
@@ -202,7 +201,6 @@ export async function GET() {
     ],
   });
 }
-
 
 
 

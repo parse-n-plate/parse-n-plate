@@ -1,130 +1,273 @@
 'use client';
 
-import SearchForm from '@/components/ui/search-form';
-import RecentRecipesList from '@/components/RecentRecipesList';
 import HomepageSkeleton from '@/components/ui/homepage-skeleton';
-import ErrorDisplay from '@/components/ui/error-display';
-import CuisineFilters from '@/components/ui/cuisine-filters';
-import FeaturedRecipesSection from '@/components/ui/featured-recipes-section';
-import FooterCTA from '@/components/ui/footer-cta';
-import PotIcon from '@/components/ui/pot-icon';
+import CuisinePills from '@/components/ui/cuisine-pills';
+import RecipeCard, { RecipeCardData } from '@/components/ui/recipe-card';
+import Footer from '@/components/ui/footer';
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
+import { useRecipe } from '@/contexts/RecipeContext';
+import { useRouter } from 'next/navigation';
+import type { CuisineType } from '@/components/ui/cuisine-pills';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 
-/**
- * Landing Page Component
- * 
- * Updated to match Figma design with:
- * - Hero section with logo, headline, subtitle, and CTA buttons
- * - Cuisine filter pills
- * - Featured recipes section (using mock data)
- * - Footer CTA section
- * - Recent Recipes section (existing functionality preserved)
- * 
- * Responsive design for both mobile and desktop.
- */
+// Placeholder recipe data matching the prototype
+const PLACEHOLDER_RECIPES: RecipeCardData[] = [
+  {
+    id: '1',
+    title: 'Beef Udon',
+    author: 'Namiko Hirasawa Chen',
+    cuisine: 'Asian',
+  },
+  {
+    id: '2',
+    title: 'Garlic Shrimp Ramen',
+    author: 'Cameron Tillman',
+    cuisine: 'Asian',
+  },
+  {
+    id: '3',
+    title: 'Mushroom Risotto',
+    author: 'Darrell Schroeder',
+    cuisine: 'Italian',
+  },
+  {
+    id: '4',
+    title: 'Chicken Tikka Masala',
+    author: 'Priya Sharma',
+    cuisine: 'Indian',
+  },
+  {
+    id: '5',
+    title: 'Coq au Vin',
+    author: 'Jean-Pierre Dubois',
+    cuisine: 'French',
+  },
+  {
+    id: '6',
+    title: 'Tacos al Pastor',
+    author: 'Maria Rodriguez',
+    cuisine: 'Mexican',
+  },
+  {
+    id: '7',
+    title: 'Pad Thai',
+    author: 'Somsak Wong',
+    cuisine: 'Asian',
+  },
+  {
+    id: '8',
+    title: 'Margherita Pizza',
+    author: 'Giuseppe Rossi',
+    cuisine: 'Italian',
+  },
+  {
+    id: '9',
+    title: 'Bibimbap',
+    author: 'Kim Soo-jin',
+    cuisine: 'Korean',
+  },
+];
+
 function HomeContent() {
-  const [error, setError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [selectedCuisine, setSelectedCuisine] = useState('');
-  const { isLoaded } = useParsedRecipes();
-  const searchParams = useSearchParams();
-  const [initialUrl, setInitialUrl] = useState('');
+  const { isLoaded, recentRecipes, getRecipeById, clearRecipes } = useParsedRecipes();
+  const { setParsedRecipe } = useRecipe();
+  const router = useRouter();
+  const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('Asian');
+  const [filteredRecipes, setFilteredRecipes] = useState<RecipeCardData[]>([]);
 
-  // Handle URL parameter from navbar
+  // Filter recipes based on selected cuisine
   useEffect(() => {
-    const urlParam = searchParams.get('url');
-    if (urlParam) {
-      setInitialUrl(urlParam);
+    if (selectedCuisine === 'All' || selectedCuisine === 'More 12+') {
+      setFilteredRecipes(PLACEHOLDER_RECIPES);
+    } else {
+      const filtered = PLACEHOLDER_RECIPES.filter(
+        (recipe) => recipe.cuisine === selectedCuisine,
+      );
+      setFilteredRecipes(filtered);
     }
-  }, [searchParams]);
+  }, [selectedCuisine]);
 
-  const handleRetry = () => {
-    setError(false);
-    setErrorMessage('');
+  // Initialize filtered recipes on mount
+  useEffect(() => {
+    setFilteredRecipes(
+      PLACEHOLDER_RECIPES.filter((recipe) => recipe.cuisine === 'Asian'),
+    );
+  }, []);
+
+  const handleCuisineChange = (cuisine: CuisineType) => {
+    setSelectedCuisine(cuisine);
   };
+
+  // Handler for clearing all recipes with confirmation
+  const handleClearRecipes = () => {
+    // Show confirmation dialog before clearing
+    const confirmed = window.confirm(
+      'Are you sure you want to clear all recent recipes? This action cannot be undone.',
+    );
+
+    if (confirmed) {
+      // Call the clearRecipes function from context
+      clearRecipes();
+    }
+  };
+
+  // Handle recent recipe click - navigate to parsed recipe page
+  const handleRecentRecipeClick = (recipeId: string) => {
+    try {
+      const fullRecipe = getRecipeById(recipeId);
+      if (fullRecipe && fullRecipe.ingredients && fullRecipe.instructions) {
+        setParsedRecipe({
+          title: fullRecipe.title,
+          ingredients: fullRecipe.ingredients,
+          instructions: fullRecipe.instructions,
+        });
+        router.push('/parsed-recipe-page');
+      }
+    } catch (error) {
+      console.error('Error loading recipe:', error);
+    }
+  };
+
+  // Convert ParsedRecipe to RecipeCardData format
+  const convertToRecipeCardData = (recipe: typeof recentRecipes[0]): RecipeCardData => {
+    // Extract domain name from URL as a simple "author" placeholder
+    let author = 'Recipe';
+    try {
+      if (recipe.url) {
+        const urlObj = new URL(recipe.url);
+        author = urlObj.hostname.replace('www.', '').split('.')[0];
+        // Capitalize first letter
+        author = author.charAt(0).toUpperCase() + author.slice(1);
+      }
+    } catch {
+      // If URL parsing fails, use default
+    }
+
+    return {
+      id: recipe.id,
+      title: recipe.title,
+      author: author,
+      imageUrl: undefined, // Recent recipes don't have images
+      cuisine: undefined,
+    };
+  };
+
+  // Get recent recipes for display (limit to 6 most recent)
+  const displayRecentRecipes = recentRecipes.slice(0, 6).map(convertToRecipeCardData);
 
   if (!isLoaded) {
     return <HomepageSkeleton />;
   }
 
   return (
-    <div className="bg-stone-50 min-h-screen w-full">
-      <div className="flex flex-col gap-6 items-start pb-14 pt-12 px-4 md:px-8 lg:px-0 w-full max-w-[1440px] mx-auto">
-        {/* Hero Section */}
-        <div className="flex flex-col gap-6 items-center justify-center w-full px-4">
-          {/* Logo and Brand Name */}
-          <div className="flex gap-3 items-center">
-            <PotIcon />
-            <p className="font-domine leading-[1.1] text-[20px] md:text-[24px] text-black whitespace-nowrap">
-              Parse & Plate
-            </p>
-          </div>
+    <div className="bg-stone-50 min-h-screen relative flex flex-col">
 
-          {/* Main Headline */}
-          <div className="font-domine leading-[1.1] text-[32px] md:text-[48px] lg:text-[64px] text-black text-center">
-            <p className="mb-0">Clean recipes,</p>
-            <p>fast cooking.</p>
-          </div>
-
-          {/* Subtitle */}
-          <p className="font-albert leading-[1.4] text-[14px] md:text-[16px] text-center text-stone-900 max-w-lg px-4">
-            Spend less time on ad-filled recipes and more time cooking.
-          </p>
-
-          {/* Hero CTA Buttons */}
-          {/* Buttons removed per user request */}
-        </div>
-
-        {/* Search Form Section - Keep existing functionality */}
-        <div className="w-full max-w-md mx-auto px-4">
-          <SearchForm
-            setErrorAction={setError}
-            setErrorMessage={setErrorMessage}
-            initialUrl={initialUrl}
-          />
-
-          {/* Error Display */}
-          {error && errorMessage && (
-            <div className="mt-5">
-              <ErrorDisplay message={errorMessage} onRetry={handleRetry} />
+      <div className="transition-opacity duration-300 ease-in-out opacity-100 relative z-10 flex-1">
+        {/* Main Content Container */}
+        <div className="max-w-6xl mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-8">
+          {/* Hero Section */}
+          <div className="mb-10 md:mb-12">
+            <div className="text-center mb-6">
+              {/* App Name */}
+              <p className="font-domine text-[24px] font-normal text-black leading-[1.1] mb-6">
+                Parse & Plate
+              </p>
+              <h1 className="font-domine text-[64px] font-normal text-black leading-[1.1] mb-3">
+                Clean recipes,
+                <br />
+                fast cooking.
+              </h1>
+              <p className="font-albert text-[14px] text-stone-900 leading-[1.4] max-w-2xl mx-auto">
+                Spend less time on ad-filled recipes and more time cooking.
+              </p>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Main Content Section */}
-        <div className="relative shrink-0 w-full">
-          <div className="size-full">
-            <div className="flex flex-col gap-6 items-start lg:px-[200px] py-0 w-full">
-              {/* Cuisine Filters */}
-              <CuisineFilters
-                selectedCuisine={selectedCuisine}
-                onCuisineChange={setSelectedCuisine}
-              />
+          {/* Cuisine Filter Pills */}
+          <div className="mb-6 md:mb-8">
+            <CuisinePills onCuisineChange={handleCuisineChange} />
+          </div>
 
-              {/* Featured Recipes Section */}
-              <FeaturedRecipesSection selectedCuisine={selectedCuisine} />
-
-              {/* Recent Recipes Section - Existing functionality */}
-              <div className="w-full space-y-4 pt-6 border-t border-stone-200">
-                <h2 className="font-domine text-[20px] md:text-[24px] text-black leading-none">
-                  Recipes you&apos;ve parsed
-                </h2>
-                <RecentRecipesList />
+          {/* Recent Recipes Section */}
+          {displayRecentRecipes.length > 0 && (
+            <div className="mb-8 md:mb-12">
+              <div className="mb-4 md:mb-6">
+                {/* Header with title and Clear All button */}
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-domine text-[24px] font-normal text-black leading-[1.1]">
+                    Recent Recipes
+                  </h2>
+                  {/* Clear All button - positioned to the right */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearRecipes}
+                    className="flex items-center gap-2 font-albert text-[12px] text-[#757575] hover:text-[#1e1e1e]"
+                    aria-label="Clear all recent recipes"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Clear All</span>
+                  </Button>
+                </div>
+                <p className="font-albert text-[14px] text-stone-600 leading-[1.4]">
+                  Your recently parsed recipes
+                </p>
               </div>
 
-              {/* Footer CTA */}
-              <FooterCTA />
+              {/* Recent Recipe Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayRecentRecipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    onClick={() => handleRecentRecipeClick(recipe.id)}
+                  />
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* Trending Recipes Section */}
+          <div className="mb-8 md:mb-12">
+            <div className="mb-4 md:mb-6">
+              <h2 className="font-domine text-[24px] font-normal text-black leading-[1.1] mb-3">
+                Trending Recipes
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xl md:text-2xl">🍅</span>
+                <h3 className="font-domine text-[32px] font-normal text-black leading-[1.1]">
+                  {selectedCuisine}
+                </h3>
+              </div>
+            </div>
+
+            {/* Recipe Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredRecipes.map((recipe) => (
+                <RecipeCard key={recipe.id} recipe={recipe} />
+              ))}
+            </div>
+
+            {/* Show message if no recipes match filter */}
+            {filteredRecipes.length === 0 && (
+              <div className="text-center py-12">
+                <p className="font-albert text-[16px] text-stone-600">
+                  No recipes found for {selectedCuisine}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
 
-// Export wrapped with Suspense for useSearchParams
 export default function Home() {
   return (
     <Suspense fallback={<HomepageSkeleton />}>

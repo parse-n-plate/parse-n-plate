@@ -6,14 +6,23 @@ import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRouter } from 'next/navigation';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { ParsedRecipe } from '@/lib/storage';
+import {
+  recipeScrape,
+  validateRecipeUrl,
+} from '@/utils/recipe-parse';
+import { useRecipeErrorHandler } from '@/hooks/useRecipeErrorHandler';
+import { errorLogger } from '@/utils/errorLogger';
+import LoadingAnimation from '@/components/ui/loading-animation';
 
 export default function NavbarSearch() {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState<ParsedRecipe[]>([]);
-  const { recentRecipes } = useParsedRecipes();
+  const [loading, setLoading] = useState(false);
+  const { recentRecipes, addRecipe } = useParsedRecipes();
   const { setParsedRecipe } = useRecipe();
+  const { handle: handleError } = useRecipeErrorHandler();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -68,14 +77,10 @@ export default function NavbarSearch() {
 
   // Handle recipe selection from dropdown
   const handleRecipeSelect = (recipe: ParsedRecipe) => {
-    // Only include sourceUrl if it exists and doesn't start with "image:" (image-based recipes)
-    const sourceUrl = recipe.url && !recipe.url.startsWith('image:') ? recipe.url : undefined;
-    
     setParsedRecipe({
       title: recipe.title,
       ingredients: recipe.ingredients || [],
       instructions: recipe.instructions || [],
-      sourceUrl: sourceUrl,
     });
     setQuery('');
     setShowDropdown(false);
@@ -83,13 +88,103 @@ export default function NavbarSearch() {
     router.push('/parsed-recipe-page');
   };
 
+  // Handle URL parsing (similar to SearchForm)
+  const handleParse = useCallback(async () => {
+    if (!query.trim()) return;
+
+    try {
+      setLoading(true);
+
+      // Step 1: Quick validation to ensure URL contains recipe-related keywords
+      const validUrlResponse = await validateRecipeUrl(query);
+
+      if (!validUrlResponse.success) {
+        const errorMessage = handleError(validUrlResponse.error.code);
+        errorLogger.log(
+          validUrlResponse.error.code,
+          validUrlResponse.error.message,
+          query,
+        );
+        // Show error - could add toast notification here
+        console.error('Parse error:', errorMessage);
+        return;
+      }
+
+      if (!validUrlResponse.isRecipe) {
+        const errorMessage = handleError('ERR_NO_RECIPE_FOUND');
+        errorLogger.log(
+          'ERR_NO_RECIPE_FOUND',
+          'No recipe found on this page',
+          query,
+        );
+        console.error('Parse error:', errorMessage);
+        return;
+      }
+
+      // Step 2: Parse recipe using unified AI-based parser
+      console.log('[Navbar] Calling unified recipe parser...');
+      const response = await recipeScrape(query);
+
+      // Check if parsing failed
+      if (!response.success || response.error) {
+        const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
+        const errorMessage = handleError(errorCode);
+        errorLogger.log(errorCode, response.error?.message || 'Parsing failed', query);
+        console.error('Parse error:', errorMessage);
+        return;
+      }
+
+      console.log('[Navbar] Successfully parsed recipe:', response.title);
+
+      // Step 3: Store parsed recipe in context
+      setParsedRecipe({
+        title: response.title,
+        ingredients: response.ingredients,
+        instructions: response.instructions,
+      });
+
+      // Step 4: Add to recent recipes
+      const recipeSummary = Array.isArray(response.instructions)
+        ? response.instructions.join(' ').slice(0, 140)
+        : response.instructions.slice(0, 140);
+
+      addRecipe({
+        title: response.title,
+        summary: recipeSummary,
+        url: query,
+        ingredients: response.ingredients,
+        instructions: response.instructions,
+      });
+
+      // Step 5: Navigate to the parsed recipe page
+      router.push('/parsed-recipe-page');
+      setQuery('');
+      setIsFocused(false);
+      setShowDropdown(false);
+    } catch (err) {
+      console.error('[Navbar] Parse error:', err);
+      errorLogger.log(
+        'ERR_UNKNOWN',
+        'An unexpected error occurred during parsing',
+        query,
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    query,
+    setParsedRecipe,
+    addRecipe,
+    handleError,
+    router,
+  ]);
+
   // Handle form submission (for URLs)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (isUrl(query)) {
-      // Redirect to homepage with the URL to trigger parsing
-      router.push(`/?url=${encodeURIComponent(query)}`);
+      handleParse();
     }
 
     setQuery('');
@@ -116,22 +211,24 @@ export default function NavbarSearch() {
   };
 
   return (
-    <div className="relative w-full">
-      <form onSubmit={handleSubmit}>
+    <>
+      <LoadingAnimation isVisible={loading} />
+      <div className="relative w-full">
+        <form onSubmit={handleSubmit}>
         <div
           className={`
-            bg-stone-100 rounded-[9999px] border border-stone-200
+            bg-stone-100 rounded-[9999px] border border-stone-200 
             transition-all duration-300 ease-in-out
-            hover:shadow-md
-            ${isFocused ? 'shadow-sm border-stone-300' : ''}
+            hover:border-[#4F46E5] hover:border-opacity-80
+            ${isFocused ? 'shadow-sm border-[#4F46E5] border-opacity-60' : ''}
           `}
         >
-          <div className="flex items-center gap-2 px-4 pr-1.5 py-1.5 relative rounded-[inherit]">
+          <div className="flex items-center pl-4 pr-1.5 py-1.5 relative">
             {/* Search Icon */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Search className="w-4 h-4 text-stone-600 flex-shrink-0" />
+            <Search className="w-4 h-4 text-stone-600 flex-shrink-0" />
 
-              {/* Input */}
+            {/* Input */}
+            <div className="flex-1 ml-2 relative">
               <input
                 ref={inputRef}
                 type="text"
@@ -145,42 +242,37 @@ export default function NavbarSearch() {
               />
             </div>
 
-            {/* Right side: ⌘+K and Parse Button */}
-            <div className="flex items-center gap-2.5 flex-shrink-0">
-              {/* Keyboard shortcut indicator - only show when not focused or no query */}
-              {(!isFocused || !query) && (
-                <p className="font-albert text-[14px] text-stone-600 whitespace-nowrap">
-                  ⌘+K
-                </p>
-              )}
+            {/* Keyboard Shortcut Indicator (⌘+K) - shown when not focused or no query */}
+            {!isFocused && !query && (
+              <div className="ml-2 flex items-center gap-1 flex-shrink-0">
+                <kbd className="hidden md:inline-flex items-center px-2 py-1 text-[10px] font-albert text-stone-500 bg-white border border-[#d9d9d9] rounded">
+                  ⌘K
+                </kbd>
+              </div>
+            )}
 
-              {/* Clear Button */}
-              {query && (
-                <button
-                  type="button"
-                  onClick={clearInput}
-                  className="p-1 hover:bg-stone-200 rounded-full transition-all duration-200 flex-shrink-0"
-                >
-                  <X className="w-4 h-4 text-stone-600" />
-                </button>
-              )}
+            {/* Clear Button */}
+            {query && (
+              <button
+                type="button"
+                onClick={clearInput}
+                className="ml-2 p-1 hover:bg-stone-200 rounded-full transition-all duration-200 flex-shrink-0"
+              >
+                <X className="w-4 h-4 text-stone-600" />
+              </button>
+            )}
 
-              {/* Parse Button (for URLs) */}
-              {query && isUrl(query) && (
-                <button
-                  type="submit"
-                  className="bg-stone-900 hover:bg-stone-800 text-stone-50 font-albert text-[14px] font-medium px-5 py-2 rounded-full transition-all duration-200 active:scale-95"
-                >
-                  Parse Recipe
-                </button>
-              )}
-            </div>
+            {/* Parse Button (for URLs) */}
+            {query && isUrl(query) && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="ml-2 bg-stone-900 hover:bg-stone-800 text-stone-50 font-albert font-medium text-[14px] leading-[1.4] px-5 py-2 rounded-full transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Parse Recipe
+              </button>
+            )}
           </div>
-          {/* Border overlay */}
-          <div
-            aria-hidden="true"
-            className="absolute border border-stone-200 inset-[-0.5px] pointer-events-none rounded-[9999.5px]"
-          />
         </div>
       </form>
 
@@ -214,6 +306,7 @@ export default function NavbarSearch() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

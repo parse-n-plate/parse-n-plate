@@ -30,26 +30,15 @@ export interface IngredientGroup {
 }
 
 /**
- * Interface for recipe step with rich metadata
- */
-export interface RecipeStep {
-  stepNumber: number;
-  instruction: string;
-  ingredientsNeeded?: string[];
-  toolsNeeded?: string[];
-  timerMinutes?: number;
-  timerLabel?: string;
-  tips?: string;
-}
-
-/**
  * Interface for parsed recipe data
  */
 export interface ParsedRecipe {
   title: string;
+  author?: string;
+  publishedDate?: string;
+  sourceUrl?: string;
   ingredients: IngredientGroup[];
-  instructions: string[] | RecipeStep[];
-  datePublished?: string; // ISO date string from the recipe page (publication date)
+  instructions: string[];
 }
 
 /**
@@ -60,138 +49,6 @@ export interface ParserResult {
   data?: ParsedRecipe;
   error?: string;
   method?: 'json-ld' | 'ai' | 'none';
-}
-
-/**
- * Extract publication date from HTML metadata
- * Tries multiple common meta tags and structured data formats
- * 
- * @param $ - Cheerio instance with loaded HTML
- * @param rawHtml - Raw HTML string (for fallback parsing)
- * @returns ISO date string if found, undefined otherwise
- */
-function extractDateFromHtml($: cheerio.CheerioAPI, rawHtml?: string): string | undefined {
-  try {
-    // Method 1: Try JSON-LD structured data (most reliable)
-    const scripts = $('script[type="application/ld+json"]');
-    for (let i = 0; i < scripts.length; i++) {
-      try {
-        const scriptContent = $(scripts[i]).html();
-        if (!scriptContent) continue;
-
-        const data = JSON.parse(scriptContent);
-        const items = Array.isArray(data) ? data : [data];
-
-        for (const item of items) {
-          // Check for Recipe schema datePublished
-          if (item['@type'] === 'Recipe' && item.datePublished) {
-            return item.datePublished;
-          }
-          
-          // Check for Article schema datePublished
-          if (item['@type'] === 'Article' && item.datePublished) {
-            return item.datePublished;
-          }
-          
-          // Check for BlogPosting schema datePublished
-          if (item['@type'] === 'BlogPosting' && item.datePublished) {
-            return item.datePublished;
-          }
-          
-          // Check in @graph array
-          if (item['@graph'] && Array.isArray(item['@graph'])) {
-            for (const graphItem of item['@graph']) {
-              if (
-                (graphItem['@type'] === 'Recipe' ||
-                 graphItem['@type'] === 'Article' ||
-                 graphItem['@type'] === 'BlogPosting') &&
-                graphItem.datePublished
-              ) {
-                return graphItem.datePublished;
-              }
-            }
-          }
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-
-    // Method 2: Try Open Graph meta tags
-    const ogDate = $('meta[property="article:published_time"]').attr('content') ||
-                   $('meta[property="og:published_time"]').attr('content');
-    if (ogDate) {
-      return ogDate;
-    }
-
-    // Method 3: Try standard meta tags
-    const metaDate = $('meta[name="date"]').attr('content') ||
-                     $('meta[name="pubdate"]').attr('content') ||
-                     $('meta[name="publication_date"]').attr('content') ||
-                     $('meta[name="publishdate"]').attr('content');
-    if (metaDate) {
-      return metaDate;
-    }
-
-    // Method 4: Try time element with datetime attribute
-    const timeDate = $('time[datetime]').first().attr('datetime') ||
-                     $('time[pubdate]').first().attr('datetime');
-    if (timeDate) {
-      return timeDate;
-    }
-
-    // Method 5: Try to find date in article metadata classes
-    const articleDate = $('[class*="date"]').first().attr('datetime') ||
-                        $('[class*="published"]').first().attr('datetime') ||
-                        $('[class*="pubdate"]').first().attr('datetime');
-    if (articleDate) {
-      return articleDate;
-    }
-
-    // Method 6: Try to parse date from text content (last resort)
-    // Look for common date patterns in article metadata areas
-    if (rawHtml) {
-      const datePatterns = [
-        /(\d{4}-\d{2}-\d{2})/, // ISO format: YYYY-MM-DD
-        /(\d{1,2}\/\d{1,2}\/\d{4})/, // US format: MM/DD/YYYY
-        /(\d{1,2}\.\d{1,2}\.\d{4})/, // European format: DD.MM.YYYY
-      ];
-
-      // Look in common metadata sections
-      const metadataSelectors = [
-        '[class*="meta"]',
-        '[class*="date"]',
-        '[class*="published"]',
-        '[class*="post-meta"]',
-        '[class*="entry-meta"]',
-      ];
-
-      for (const selector of metadataSelectors) {
-        const text = $(selector).first().text();
-        if (text) {
-          for (const pattern of datePatterns) {
-            const match = text.match(pattern);
-            if (match) {
-              // Try to convert to ISO format
-              try {
-                const date = new Date(match[1]);
-                if (!isNaN(date.getTime())) {
-                  return date.toISOString();
-                }
-              } catch (e) {
-                continue;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return undefined;
-  } catch (error) {
-    console.error('[Date Extraction] Error extracting date:', error);
-    return undefined;
-  }
 }
 
 /**
@@ -332,9 +189,6 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
                 .filter((s: string) => s.length > 10 && !isAuthorName(s));
             }
 
-            // Extract datePublished if available
-            const datePublished = recipe.datePublished || undefined;
-
             // Validate we have complete data
             if (
               title &&
@@ -345,12 +199,7 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
               console.log(
                 `[JSON-LD] Found recipe: "${title}" with ${ingredients[0].ingredients.length} ingredients and ${instructions.length} instructions`
               );
-              return { 
-                title, 
-                ingredients, 
-                instructions,
-                ...(datePublished && { datePublished })
-              };
+              return { title, ingredients, instructions };
             }
           }
         }
@@ -409,27 +258,13 @@ Required JSON structure:
       ]
     }
   ],
-  "instructions": [
-    {
-      "stepNumber": 1,
-      "instruction": "string",
-      "ingredientsNeeded": ["string", "string"],
-      "toolsNeeded": ["string", "string"],
-      "timerMinutes": number (optional),
-      "timerLabel": "string" (optional)
-    }
-  ]
+  "instructions": ["string", "string", ...]
 }
 
 CRITICAL: ingredients and instructions MUST be arrays, NEVER null.
-- ingredientsNeeded: Extract specific ingredient names used in this step from the main ingredients list
-- toolsNeeded: Extract kitchen tools used in this step (pan, pot, whisk, oven, etc.)
-- timerMinutes: Extract numeric duration in minutes IF a time is specified (e.g., "simmer 5 mins" -> 5). Convert hours to minutes.
-- timerLabel: What is happening during the timer (e.g., "Simmering", "Baking", "Resting")
-
 - If ingredients are found: extract them into the array structure above
 - If NO ingredients found: use empty array []
-- If instructions are found: extract them into an array of objects
+- If instructions are found: extract them into an array of strings
 - If NO instructions found: use empty array []
 - NEVER use null for ingredients or instructions - ALWAYS use [] if nothing is found
 
@@ -460,8 +295,7 @@ Follow these steps in order:
 4. Preserve any ingredient groups found in the HTML
 5. Locate the instructions section in the HTML
 6. Extract each instruction step EXACTLY as written, preserving all details
-7. Analyze each step for ingredients used, tools used, and timers
-8. Format the extracted data into the required JSON structure
+7. Format the extracted data into the required JSON structure
 
 ========================================
 INGREDIENT EXTRACTION RULES
@@ -504,11 +338,6 @@ ACCURACY:
 - Preserve all cooking times (e.g., "30 minutes", "until golden brown")
 - Preserve all measurements mentioned in instructions
 - Keep the exact order of steps as they appear in HTML
-
-ENRICHMENT (Contextual Analysis):
-- Ingredients Used: Identify which ingredients from the main list are used in this step
-- Tools Used: Identify kitchen equipment (pan, bowl, whisk, oven, etc.) mentioned or implied
-- Timers: If a duration is mentioned ("simmer for 10 minutes"), extract the minutes (10) and label ("Simmering")
 
 DETAIL PRESERVATION:
 - Do NOT shorten, summarize, or condense instructions
@@ -555,6 +384,36 @@ MANDATORY OUTPUT REQUIREMENTS:
 - The HTML contains recipe data - search more carefully if you initially find nothing
 
 ========================================
+FORMAT EXAMPLES (FOR STRUCTURE REFERENCE ONLY)
+========================================
+WARNING: These examples show the JSON FORMAT and STRUCTURE only.
+DO NOT use these example values. Extract actual values from the HTML provided.
+
+Example showing varied fraction formats:
+{
+  "title": "Homemade Bread",
+  "ingredients": [
+    {
+      "groupName": "Main",
+      "ingredients": [
+        {"amount": "3 1/2", "units": "cups", "ingredient": "bread flour"},
+        {"amount": "2 1/4", "units": "teaspoons", "ingredient": "active dry yeast"},
+        {"amount": "1/4", "units": "cup", "ingredient": "warm water"},
+        {"amount": "½", "units": "tablespoon", "ingredient": "salt"},
+        {"amount": "as needed", "units": "", "ingredient": "olive oil for brushing"}
+      ]
+    }
+  ],
+  "instructions": [
+    "In a large bowl, dissolve 2 1/4 teaspoons yeast in 1/4 cup warm water. Let stand until creamy, about 10 minutes.",
+    "Add 3 1/2 cups flour, 1/2 tablespoon salt, and remaining water to the yeast mixture. Mix until dough comes together.",
+    "Turn dough out onto a lightly floured surface and knead for 8 to 10 minutes, until smooth and elastic."
+  ]
+}
+
+IMPORTANT: The example above shows JSON format structure only. You MUST extract actual amounts, units, and text from the HTML provided, not use these example values.
+
+========================================
 FINAL REMINDER
 ========================================
 Output ONLY the JSON object. No markdown, no code blocks, no explanations, no text before or after.
@@ -597,53 +456,30 @@ ABSOLUTE REQUIREMENTS:
     // Parse the JSON response
     const parsedData = JSON.parse(jsonString);
 
-    // Normalize and validate the parsed data
-    // Convert null values to empty arrays to prevent UI errors (like [object Object])
-    const normalizedData = {
-      title: parsedData.title || 'No title found',
-      ingredients: Array.isArray(parsedData.ingredients) ? parsedData.ingredients : [],
-      instructions: Array.isArray(parsedData.instructions) ? parsedData.instructions : [],
-    };
-
-    // Log warning if null values were found and normalized
-    if (parsedData.ingredients === null || parsedData.instructions === null) {
-      console.warn('[AI Parser] AI returned null values. Normalized to empty arrays. Ingredients:', parsedData.ingredients, 'Instructions:', parsedData.instructions);
-    }
-
     // Validate structure
     if (
-      normalizedData.title &&
-      normalizedData.title !== 'No title found' &&
-      normalizedData.title !== 'No recipe found' &&
-      Array.isArray(normalizedData.ingredients) &&
-      Array.isArray(normalizedData.instructions)
+      parsedData.title &&
+      Array.isArray(parsedData.ingredients) &&
+      Array.isArray(parsedData.instructions)
     ) {
       // Ensure ingredients have the correct structure
-      const validIngredients = normalizedData.ingredients.every(
+      const validIngredients = parsedData.ingredients.every(
         (group: any) =>
-          group &&
-          typeof group === 'object' &&
           group.groupName &&
           Array.isArray(group.ingredients) &&
           group.ingredients.every(
             (ing: any) =>
-              ing &&
-              typeof ing === 'object' &&
               typeof ing.amount === 'string' &&
               typeof ing.units === 'string' &&
               typeof ing.ingredient === 'string'
           )
       );
 
-      if (validIngredients && normalizedData.instructions.length > 0) {
-        // Check if instructions are simple strings or complex objects
-        // If they are objects, validate they match RecipeStep-like structure
-        // If strings, that's fine too (legacy support)
-        
+      if (validIngredients && parsedData.instructions.length > 0) {
         console.log(
-          `[AI Parser] Successfully parsed recipe: "${normalizedData.title}" with ${normalizedData.ingredients.reduce((sum: number, g: any) => sum + (g.ingredients?.length || 0), 0)} ingredients and ${normalizedData.instructions.length} instructions`
+          `[AI Parser] Successfully parsed recipe: "${parsedData.title}" with ${parsedData.ingredients.reduce((sum: number, g: any) => sum + g.ingredients.length, 0)} ingredients and ${parsedData.instructions.length} instructions`
         );
-        return normalizedData as ParsedRecipe;
+        return parsedData as ParsedRecipe;
       }
     }
 
@@ -677,25 +513,14 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
 
     // Load cleaned HTML with Cheerio
     const $ = cheerio.load(cleaned.html);
-    
-    // Also load raw HTML for date extraction (needs full HTML with meta tags)
-    const $raw = cheerio.load(rawHtml);
-
-    // Extract date from HTML metadata (works for both JSON-LD and AI parsing)
-    const datePublished = extractDateFromHtml($raw, rawHtml);
 
     // Layer 1: Try JSON-LD extraction (fast, no API cost)
     console.log('[Recipe Parser] Attempting JSON-LD extraction...');
     const jsonLdResult = extractFromJsonLd($);
     if (jsonLdResult) {
-      // Add datePublished if we found it and it wasn't already in JSON-LD
-      const resultWithDate = {
-        ...jsonLdResult,
-        ...(datePublished && !jsonLdResult.datePublished && { datePublished })
-      };
       return {
         success: true,
-        data: resultWithDate,
+        data: jsonLdResult,
         method: 'json-ld',
       };
     }
@@ -705,14 +530,9 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
     // Layer 2: AI parsing fallback
     const aiResult = await parseWithAI(cleaned.html);
     if (aiResult) {
-      // Add datePublished if we found it
-      const resultWithDate = {
-        ...aiResult,
-        ...(datePublished && { datePublished })
-      };
       return {
         success: true,
-        data: resultWithDate,
+        data: aiResult,
         method: 'ai',
       };
     }
@@ -989,3 +809,4 @@ Start your response with { and end with }`,
     };
   }
 }
+

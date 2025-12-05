@@ -3,14 +3,23 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Upload, Image as ImageIcon, X, Loader2 } from 'lucide-react';
-import RecipeParsingLoader from '@/components/ui/recipe-parsing-loader';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Upload, X } from 'lucide-react';
+
+interface Ingredient {
+  amount: string;
+  units: string;
+  ingredient: string;
+}
+
+interface IngredientGroup {
+  groupName: string;
+  ingredients: Ingredient[];
+}
 
 interface DebugStep {
   step: string;
   title: string;
-  data: any;
+  data: unknown;
   success: boolean;
   timestamp: number;
 }
@@ -179,9 +188,6 @@ Output ONLY the JSON object. No markdown, no code blocks, no explanations, no te
 START with { and END with }. Nothing else.`;
 
 export default function DebugParserPage() {
-  // Tab state - which tab is currently active
-  const [activeTab, setActiveTab] = useState<'parser' | 'loading'>('parser');
-  
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [debugSteps, setDebugSteps] = useState<DebugStep[]>([]);
@@ -196,10 +202,6 @@ export default function DebugParserPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Loading test state
-  const [showLoader, setShowLoader] = useState(false);
-  const [loaderDuration, setLoaderDuration] = useState(20); // seconds - default test duration
 
   const handleDebugParse = async () => {
     if (!url.trim()) return;
@@ -361,7 +363,7 @@ export default function DebugParserPage() {
           instructions: result.instructions,
           method: 'ai_vision',
           ingredientCount: result.ingredients?.reduce(
-            (sum: number, g: any) => sum + (g.ingredients?.length || 0),
+            (sum: number, g: IngredientGroup) => sum + (g.ingredients?.length || 0),
             0
           ) || 0,
           instructionCount: result.instructions?.length || 0,
@@ -379,7 +381,7 @@ export default function DebugParserPage() {
     }
   };
 
-  const formatData = (data: any) => {
+  const formatData = (data: unknown) => {
     if (typeof data === 'string') {
       return data;
     }
@@ -390,232 +392,16 @@ export default function DebugParserPage() {
     return success ? 'border-green-500 bg-green-50' : 'border-yellow-500 bg-yellow-50';
   };
 
-  // Handler for testing the loader
-  const handleTestLoader = () => {
-    setShowLoader(true);
-    // Auto-hide after specified duration
-    setTimeout(() => {
-      setShowLoader(false);
-    }, loaderDuration * 1000);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 p-8 font-albert">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard" className="font-albert">Design Lab</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="font-albert">Prompt Debugger</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-        <h1 className="text-3xl font-bold mb-2 font-domine">Debug Console</h1>
-        <p className="text-gray-600 mb-8 font-albert">
-          Test and debug various components and features
+        <h1 className="text-3xl font-bold mb-2">Recipe Parser Debug Console</h1>
+        <p className="text-gray-600 mb-8">
+          See exactly what happens at each step of the parsing process
         </p>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab('parser')}
-            className={`px-6 py-3 font-medium transition-colors border-b-2 ${
-              activeTab === 'parser'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            🔍 Parser Debug
-          </button>
-          <button
-            onClick={() => setActiveTab('loading')}
-            className={`px-6 py-3 font-medium transition-colors border-b-2 ${
-              activeTab === 'loading'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            ⏳ Loading Test
-          </button>
-        </div>
-
-        {/* Loading Test Tab */}
-        {activeTab === 'loading' && (
-          <div className="space-y-6">
-            {/* Controls Card */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold mb-4 font-domine">Test Loading Animation</h2>
-              <p className="text-gray-600 mb-6">
-                Test the recipe parsing loader component. The loader tracks <strong>real elapsed time</strong> and uses an <strong>adaptive progress curve</strong> that works for any duration.
-              </p>
-              
-              <div className="space-y-4">
-                {/* Duration Control */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Test Duration (seconds)
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <Input
-                      type="number"
-                      min="1"
-                      max="120"
-                      value={loaderDuration}
-                      onChange={(e) => setLoaderDuration(Number(e.target.value))}
-                      className="w-32"
-                    />
-                    <span className="text-sm text-gray-500">
-                      How long to display the loader for testing
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    The loader adapts to any duration - progress is calculated dynamically based on elapsed time
-                  </p>
-                </div>
-
-                {/* Control Buttons */}
-                <div className="flex gap-3">
-                  <Button
-                    onClick={handleTestLoader}
-                    disabled={showLoader}
-                    className="px-6"
-                  >
-                    <Loader2 className="w-4 h-4 mr-2" />
-                    Start Loader Test
-                  </Button>
-                  <Button
-                    onClick={() => setShowLoader(false)}
-                    disabled={!showLoader}
-                    variant="outline"
-                    className="px-6"
-                  >
-                    Stop Loader
-                  </Button>
-                </div>
-
-                {/* Quick Presets */}
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
-                    Quick Test Presets:
-                  </p>
-                  <div className="flex gap-2 flex-wrap">
-                    <Button
-                      onClick={() => {
-                        setLoaderDuration(5);
-                        setShowLoader(true);
-                        setTimeout(() => setShowLoader(false), 5000);
-                      }}
-                      disabled={showLoader}
-                      variant="outline"
-                      size="sm"
-                    >
-                      5 seconds
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setLoaderDuration(10);
-                        setShowLoader(true);
-                        setTimeout(() => setShowLoader(false), 10000);
-                      }}
-                      disabled={showLoader}
-                      variant="outline"
-                      size="sm"
-                    >
-                      10 seconds
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setLoaderDuration(20);
-                        setShowLoader(true);
-                        setTimeout(() => setShowLoader(false), 20000);
-                      }}
-                      disabled={showLoader}
-                      variant="outline"
-                      size="sm"
-                    >
-                      20 seconds
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setLoaderDuration(30);
-                        setShowLoader(true);
-                        setTimeout(() => setShowLoader(false), 30000);
-                      }}
-                      disabled={showLoader}
-                      variant="outline"
-                      size="sm"
-                    >
-                      30 seconds
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setLoaderDuration(60);
-                        setShowLoader(true);
-                        setTimeout(() => setShowLoader(false), 60000);
-                      }}
-                      disabled={showLoader}
-                      variant="outline"
-                      size="sm"
-                    >
-                      60 seconds
-                    </Button>
-                  </div>
-                </div>
-
-                {/* How It Works */}
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
-                    How It Works:
-                  </p>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm text-gray-700">
-                    <div className="flex items-start gap-2">
-                      <span className="font-semibold">⏱️ Real-Time Tracking:</span>
-                      <span>Elapsed time updates every 100ms based on actual loading duration</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-semibold">📈 Adaptive Progress:</span>
-                      <span>Uses a logarithmic curve that slows down over time - works for any duration (5s to 5min+)</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-semibold">🔄 Dynamic Steps:</span>
-                      <span>Steps transition based on elapsed time: Validating (0-3s) → Fetching (3-8s) → Parsing (8-30s) → Finalizing (30s+)</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-semibold">🎯 No Presets:</span>
-                      <span>Progress adapts to the actual parsing time, whether it takes 5 seconds or 2 minutes</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Info Card */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h3 className="font-semibold text-blue-900 mb-2">
-                💡 Testing Tips
-              </h3>
-              <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                <li><strong>Watch the progress bar:</strong> Notice how it fills quickly at first, then slows down (adaptive curve)</li>
-                <li><strong>Observe step transitions:</strong> Steps change based on elapsed time thresholds, not preset durations</li>
-                <li><strong>Check elapsed time:</strong> The timer updates in real-time every 100ms</li>
-                <li><strong>Test different durations:</strong> Try 5s, 30s, and 60s to see how the progress adapts to any length</li>
-                <li><strong>Notice the curve:</strong> Progress slows down over time - this is intentional and realistic for unknown durations</li>
-                <li><strong>Compare with real parsing:</strong> The loader behaves the same way during actual recipe parsing</li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* Parser Debug Tab */}
-        {activeTab === 'parser' && (
-          <>
-            {/* Input Section */}
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
+        {/* Input Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
           {/* Mode Toggle */}
           <div className="flex gap-2 mb-4">
             <button
@@ -779,7 +565,7 @@ export default function DebugParserPage() {
               <div className="mt-3">
                 <p className="text-xs text-gray-500 mb-2">
                   Edit the AI prompt below to test different extraction strategies. 
-                  When "Use custom prompt" is checked, your custom prompt will be used instead of the default.
+                  When &quot;Use custom prompt&quot; is checked, your custom prompt will be used instead of the default.
                 </p>
                 <textarea
                   value={customPrompt}
@@ -807,13 +593,13 @@ export default function DebugParserPage() {
         {/* Checkpoint Summary */}
         {debugSteps.length > 0 && (
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-bold mb-4 text-blue-900 font-domine">Checkpoint Summary</h2>
+            <h2 className="text-2xl font-bold mb-4 text-blue-900">Checkpoint Summary</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {debugSteps.find((s) => s.step === 'checkpoint_1') && (() => {
                 const cp1 = debugSteps.find((s) => s.step === 'checkpoint_1')!;
                 return (
                   <div className={`p-4 rounded-lg border-2 ${cp1.success ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
-                    <h3 className="font-bold mb-2 flex items-center gap-2 font-albert">
+                    <h3 className="font-bold mb-2 flex items-center gap-2">
                       {cp1.success ? '✅' : '❌'} Checkpoint 1: URL Validator
                     </h3>
                     <p className="text-sm">{cp1.success ? 'Page contains recipe indicators' : 'Page missing recipe keywords/schema'}</p>
@@ -824,7 +610,7 @@ export default function DebugParserPage() {
                 const cp2 = debugSteps.find((s) => s.step === 'checkpoint_2_jsonld' || s.step === 'json_ld')!;
                 return (
                   <div className={`p-4 rounded-lg border-2 ${cp2.success ? 'bg-green-50 border-green-400' : 'bg-yellow-50 border-yellow-400'}`}>
-                    <h3 className="font-bold mb-2 flex items-center gap-2 font-albert">
+                    <h3 className="font-bold mb-2 flex items-center gap-2">
                       {cp2.success ? '✅' : '⚠️'} Checkpoint 2: Recipe Parsing
                     </h3>
                     <p className="text-sm">{cp2.success ? 'JSON-LD found (fast path)' : 'Using AI parsing fallback'}</p>
@@ -835,7 +621,7 @@ export default function DebugParserPage() {
                 const cp3 = debugSteps.find((s) => s.step === 'checkpoint_3')!;
                 return (
                   <div className={`p-4 rounded-lg border-2 ${cp3.success ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'}`}>
-                    <h3 className="font-bold mb-2 flex items-center gap-2 font-albert">
+                    <h3 className="font-bold mb-2 flex items-center gap-2">
                       {cp3.success ? '✅' : '❌'} Checkpoint 3: Data Validation
                     </h3>
                     <p className="text-sm">{cp3.success ? 'All data validated successfully' : 'Missing required recipe data'}</p>
@@ -856,7 +642,7 @@ export default function DebugParserPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-xl font-bold mb-1 font-domine">
+                    <h3 className="text-xl font-bold mb-1">
                       Step {index + 1}: {step.title}
                     </h3>
                     <p className="text-sm text-gray-600">
@@ -988,7 +774,7 @@ export default function DebugParserPage() {
                         ⚠️ {step.title}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {step.data}
+                        {formatData(step.data)}
                       </p>
                     </div>
                   )}
@@ -1022,26 +808,28 @@ export default function DebugParserPage() {
                     </div>
                   )}
 
-                  {step.step === 'final_result' && (
-                    <div>
-                      <p className="text-sm text-green-600 mb-2 font-semibold">
-                        ✅ Final Parsed Recipe
-                      </p>
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1">Title:</h4>
-                          <p className="text-sm">{step.data.title}</p>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1">
-                            Ingredients ({step.data.ingredientCount || step.data.ingredients?.reduce((sum: number, g: any) => sum + (g.ingredients?.length || 0), 0) || 0} total):
-                          </h4>
-                          {step.data.ingredients && step.data.ingredients.length > 0 ? (
-                            step.data.ingredients.map((group: any, gIdx: number) => (
+                  {step.step === 'final_result' && (() => {
+                    const data = step.data as Record<string, unknown>;
+                    return (
+                      <div>
+                        <p className="text-sm text-green-600 mb-2 font-semibold">
+                          ✅ Final Parsed Recipe
+                        </p>
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">Title:</h4>
+                            <p className="text-sm">{typeof data.title === 'string' ? data.title : ''}</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">
+                              Ingredients ({typeof data.ingredientCount === 'number' ? data.ingredientCount : (Array.isArray(data.ingredients) ? (data.ingredients as IngredientGroup[]).reduce((sum: number, g: IngredientGroup) => sum + (g.ingredients?.length || 0), 0) : 0)} total):
+                            </h4>
+                            {Array.isArray(data.ingredients) && data.ingredients.length > 0 ? (
+                              (data.ingredients as IngredientGroup[]).map((group: IngredientGroup, gIdx: number) => (
                               <div key={gIdx} className="ml-4 mb-2">
                                 <p className="font-medium text-sm">{group.groupName}</p>
                                 <ul className="list-disc ml-6 text-xs">
-                                  {group.ingredients?.map((ing: any, iIdx: number) => (
+                                  {group.ingredients?.map((ing: Ingredient, iIdx: number) => (
                                     <li key={iIdx}>
                                       {ing.amount} {ing.units} {ing.ingredient}
                                     </li>
@@ -1052,36 +840,50 @@ export default function DebugParserPage() {
                           ) : (
                             <p className="text-sm text-gray-500">No ingredients found</p>
                           )}
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1">
-                            Instructions ({step.data.instructionCount || step.data.instructions?.length || 0} steps):
-                          </h4>
-                          {step.data.instructions && step.data.instructions.length > 0 ? (
-                            <ol className="list-decimal ml-6 text-xs">
-                              {step.data.instructions.map((inst: string, idx: number) => (
-                                <li key={idx} className="mb-1">{inst}</li>
-                              ))}
-                            </ol>
-                          ) : (
-                            <p className="text-sm text-gray-500">No instructions found</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">
+                              Instructions ({typeof data.instructionCount === 'number' ? data.instructionCount : (Array.isArray(data.instructions) ? data.instructions.length : 0)} steps):
+                            </h4>
+                            {Array.isArray(data.instructions) && data.instructions.length > 0 ? (
+                              <ol className="list-decimal ml-6 text-xs">
+                                {(data.instructions as string[]).map((inst: string, idx: number) => (
+                                  <li key={idx} className="mb-1">{inst}</li>
+                                ))}
+                              </ol>
+                            ) : (
+                              <p className="text-sm text-gray-500">No instructions found</p>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm mb-1">Method Used:</h4>
+                            <p className="text-sm">
+                              {data.method === 'json-ld' ? (
+                                <span className="text-green-600">JSON-LD (Fast, no AI tokens used)</span>
+                              ) : data.method === 'ai_vision' ? (
+                                <span className="text-purple-600">AI Vision (meta-llama/llama-4-scout-17b-16e-instruct)</span>
+                              ) : (
+                                <span className="text-blue-600">AI Parsing (Groq llama-3.3-70b-versatile)</span>
+                              )}
+                            </p>
+                          </div>
+                          {/* Display any additional debugging data that might be present */}
+                          {Object.keys(data).some(key => !['title', 'ingredients', 'instructions', 'method', 'ingredientCount', 'instructionCount', 'validationPassed'].includes(key)) && (
+                            <div className="mt-4 pt-4 border-t border-gray-300">
+                              <h4 className="font-semibold text-sm mb-2">Additional Debug Data:</h4>
+                              <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-48 border border-gray-200">
+                                {formatData(Object.fromEntries(
+                                  Object.entries(data).filter(([key]) => 
+                                    !['title', 'ingredients', 'instructions', 'method', 'ingredientCount', 'instructionCount', 'validationPassed'].includes(key)
+                                  )
+                                ))}
+                              </pre>
+                            </div>
                           )}
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-1">Method Used:</h4>
-                          <p className="text-sm">
-                            {step.data.method === 'json-ld' ? (
-                              <span className="text-green-600">JSON-LD (Fast, no AI tokens used)</span>
-                            ) : step.data.method === 'ai_vision' ? (
-                              <span className="text-purple-600">AI Vision (meta-llama/llama-4-scout-17b-16e-instruct)</span>
-                            ) : (
-                              <span className="text-blue-600">AI Parsing (Groq llama-3.3-70b-versatile)</span>
-                            )}
-                          </p>
-                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             ))}
@@ -1091,33 +893,28 @@ export default function DebugParserPage() {
         {/* Instructions */}
         {debugSteps.length === 0 && !loading && (
           <div className="bg-blue-50 border border-blue-500 rounded-lg p-6">
-            <h3 className="text-blue-700 font-semibold mb-2 font-domine">How to use:</h3>
+            <h3 className="text-blue-700 font-semibold mb-2">How to use:</h3>
             {inputMode === 'url' ? (
               <ol className="list-decimal ml-6 text-blue-600 space-y-1">
                 <li>Enter any recipe URL above</li>
-                <li>Click "Debug Parse" to see the full parsing flow</li>
+                <li>Click &quot;Debug Parse&quot; to see the full parsing flow</li>
                 <li>Review each step to understand what happened</li>
                 <li>Check if JSON-LD was found (fast) or AI was used (fallback)</li>
                 <li>See the cleaned HTML that was sent to the AI</li>
-                <li>View the AI's raw response and final parsed result</li>
+                <li>View the AI&apos;s raw response and final parsed result</li>
               </ol>
             ) : (
               <ol className="list-decimal ml-6 text-blue-600 space-y-1">
                 <li>Click the upload area to select a recipe image</li>
                 <li>Supported formats: JPG, PNG, WEBP, GIF (max 10MB)</li>
-                <li>Click "Debug Image Parse" to see the parsing flow</li>
+                <li>Click &quot;Debug Image Parse&quot; to see the parsing flow</li>
                 <li>Review the image upload, AI vision processing, and final result steps</li>
                 <li>See how the vision model extracts recipe data from the image</li>
               </ol>
             )}
           </div>
         )}
-          </>
-        )}
       </div>
-
-      {/* Loading Animation Component - Rendered when showLoader is true */}
-      <RecipeParsingLoader isVisible={showLoader} />
     </div>
   );
 }

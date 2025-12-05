@@ -1,74 +1,67 @@
 'use client';
 
-import { MockRecipe } from '@/lib/mockRecipeData';
 import Image from 'next/image';
-import { useState } from 'react';
 
-interface RecipeCardProps {
-  recipe: MockRecipe;
-  className?: string;
+export interface RecipeCardData {
+  id: string;
+  title: string;
+  author: string;
+  imageUrl?: string;
+  cuisine?: string;
 }
 
-/**
- * RecipeCard Component
- * 
- * Displays a single recipe card with:
- * - Recipe image
- * - Recipe name (title)
- * - Author name
- * 
- * Includes hover effects for better interactivity.
- * 
- * @param recipe - The recipe data to display
- * @param className - Optional additional CSS classes
- */
-export default function RecipeCard({ recipe, className = '' }: RecipeCardProps) {
-  const [imageError, setImageError] = useState(false);
+interface RecipeCardProps {
+  recipe: RecipeCardData;
+  onClick?: () => void;
+}
 
+export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
+  // All cards use white background (matching updated design)
+  
   return (
     <div
-      className={`
-        group w-full md:basis-0 md:grow min-h-px md:min-w-px
-        relative rounded-lg shrink-0 bg-white
-        transition-all duration-300 hover:rounded-3xl
-        cursor-pointer border border-stone-200
-        ${className}
-      `}
+      className="group w-full md:basis-0 md:grow min-h-px md:min-w-px relative rounded-[8px] shrink-0 bg-white transition-all hover:rounded-[24px] cursor-pointer"
     >
+      {/* Animated border that matches the rounded corners on hover */}
+      <div
+        aria-hidden="true"
+        className="absolute border border-solid border-stone-200 inset-0 pointer-events-none rounded-[8px] transition-all group-hover:rounded-[24px]"
+      />
+      
       <div className="size-full">
-        <div className="flex flex-col gap-6 items-start p-6 w-full">
-          {/* Recipe Image */}
-          <div className="aspect-[282.667/204] relative rounded-lg shrink-0 w-full overflow-hidden bg-stone-100">
-            {!imageError ? (
-              <Image
-                src={recipe.image}
-                alt={recipe.name}
-                fill
-                className="object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              // Fallback when image fails to load
-              <div className="w-full h-full flex items-center justify-center bg-stone-200 rounded-lg">
-                <span className="text-stone-400 text-4xl">🍳</span>
-              </div>
-            )}
-          </div>
+        <button
+          onClick={onClick}
+          className="w-full h-full focus:outline-none focus:ring-2 focus:ring-[#FFA423] focus:ring-offset-2 rounded-[inherit]"
+        >
+          <div className="box-border content-stretch flex flex-col gap-[24px] items-start p-[24px] relative w-full">
+            {/* Recipe Image */}
+            <div className="aspect-[282.667/204] relative rounded-[8px] shrink-0 w-full overflow-hidden">
+              {recipe.imageUrl ? (
+                <Image
+                  src={recipe.imageUrl}
+                  alt={recipe.title}
+                  fill
+                  className="absolute inset-0 max-w-none object-50%-50% object-cover pointer-events-none rounded-[8px] size-full transition-transform hover:scale-105"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-stone-200 to-stone-300 flex items-center justify-center rounded-[8px]">
+                  <span className="text-stone-500 font-albert text-sm">No Image</span>
+                </div>
+              )}
+            </div>
 
-          {/* Recipe Info */}
-          <div className="flex flex-col gap-1 items-start justify-center w-full">
-            {/* Recipe Name */}
-            <h3 className="font-domine leading-[1.1] text-[24px] text-black">
-              {recipe.name}
-            </h3>
-
-            {/* Author */}
-            <p className="font-albert leading-[1.4] text-[14px] text-stone-900">
-              By {recipe.author}
-            </p>
+            {/* Recipe Info */}
+            <div className="content-stretch flex flex-col font-normal gap-[4px] items-start justify-center overflow-clip relative shrink-0 text-nowrap w-full whitespace-pre">
+              <h3 className="font-domine leading-[1.1] relative shrink-0 text-[24px] text-black">
+                {recipe.title}
+              </h3>
+              <p className="font-albert leading-[1.4] relative shrink-0 text-[14px] text-stone-900">
+                <span>By </span>
+                {recipe.author}
+              </p>
+            </div>
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );

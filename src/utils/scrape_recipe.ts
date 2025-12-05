@@ -173,15 +173,41 @@ function extractFromJsonLd($: cheerio.CheerioAPI): RecipeData | null {
             if (Array.isArray(recipe.recipeInstructions)) {
               instructions = recipe.recipeInstructions
                 .map((inst: any) => {
+                  // Handle string format
                   if (typeof inst === 'string') return inst.trim();
+                  
+                  // Handle object with text property
                   if (inst.text && typeof inst.text === 'string')
                     return inst.text.trim();
+                  
+                  // Handle HowToStep format
                   if (
                     inst['@type'] === 'HowToStep' &&
                     inst.text &&
                     typeof inst.text === 'string'
                   )
                     return inst.text.trim();
+                  
+                  // Handle HowToStep with name property (Food Network sometimes uses this)
+                  if (
+                    inst['@type'] === 'HowToStep' &&
+                    inst.name &&
+                    typeof inst.name === 'string'
+                  )
+                    return inst.name.trim();
+                  
+                  // Handle itemListElement format (some sites use this)
+                  if (inst.itemListElement && Array.isArray(inst.itemListElement)) {
+                    return inst.itemListElement
+                      .map((item: any) => {
+                        if (item.text) return item.text.trim();
+                        if (item.name) return item.name.trim();
+                        return '';
+                      })
+                      .filter((t: string) => t.length > 0)
+                      .join(' ');
+                  }
+                  
                   return '';
                 })
                 .filter((text: string) => text.length > 10 && !isAuthorName(text));
@@ -257,8 +283,13 @@ function extractTitle($: cheerio.CheerioAPI): string {
     'h1[data-testid="recipe-title"]',
     '[data-testid="recipe-title"]',
 
-    // Food Network
+    // Food Network specific (prioritize)
+    'h1.o-AssetTitle__a-Headline',
+    '.o-AssetTitle__a-Headline',
+    'h1[class*="AssetTitle"]',
     '.recipe-title',
+    '.recipe-header h1',
+    'h1.recipe-title',
 
     // BBC Good Food
     '.recipe-header__title',
@@ -328,9 +359,15 @@ function extractIngredients($: cheerio.CheerioAPI): string[] {
     '.wprm-recipe-ingredient',
     '.wprm-recipe-ingredients li',
 
-    // Food Network
+    // Food Network specific (prioritize)
+    '.o-Ingredients__a-ListItem',
+    '.o-Ingredients__a-ListItemText',
+    '[class*="Ingredients"] [class*="ListItem"]',
+    '.ingredients-list li',
     '.recipe-ingredients li',
     '.ingredients li',
+    '[data-testid*="ingredient"]',
+    '[class*="ingredient-item"]',
 
     // BBC Good Food
     '.recipe-ingredients__list li',
@@ -363,7 +400,15 @@ function extractIngredients($: cheerio.CheerioAPI): string[] {
           $element.find('style').remove();
           $element.find('svg').remove();
           
-          let text = $element.text().trim();
+          // For Food Network, check if there's a nested text element
+          // Food Network uses .o-Ingredients__a-ListItemText for the actual ingredient text
+          let text = '';
+          const textElement = $element.find('.o-Ingredients__a-ListItemText').first();
+          if (textElement.length > 0) {
+            text = textElement.text().trim();
+          } else {
+            text = $element.text().trim();
+          }
           
           // Filter out section headers (like "For the sauce:", "Ingredients:")
           if (text.toLowerCase() === 'ingredients' || 
@@ -399,6 +444,75 @@ function extractIngredients($: cheerio.CheerioAPI): string[] {
     }
   }
 
+  // Fallback: Look for headings that say "Ingredients" and extract following content
+  // This handles sites like shychef.com that use semantic headings instead of class names
+  try {
+    // Find all h1-h6 headings
+    const headings = $('h1, h2, h3, h4, h5, h6');
+    headings.each((_, heading) => {
+      const $heading = $(heading);
+      const headingText = $heading.text().trim().toLowerCase();
+      
+      // Check if this heading says "Ingredients"
+      if (headingText === 'ingredients' || headingText.includes('ingredients')) {
+        // Strategy 1: Find the next sibling element
+        let $container = $heading.next();
+        
+        // Strategy 2: If no next sibling, try parent's next sibling
+        if ($container.length === 0) {
+          $container = $heading.parent().next();
+        }
+        
+        // Strategy 3: Look within the same parent container (for grid layouts)
+        if ($container.length === 0) {
+          const $parent = $heading.parent();
+          $container = $parent.find('p, li, span').not($heading);
+        }
+        
+        // Strategy 4: Look in closest div/section container
+        if ($container.length === 0) {
+          $container = $heading.closest('div, section').find('p, li, span');
+        } else {
+          // Get all p, li, and span elements within the container
+          $container = $container.find('p, li, span').add($container.filter('p, li, span'));
+        }
+        
+        // Extract text from each element
+        $container.each((_, element) => {
+          const $element = $(element);
+          const text = $element.text().trim();
+          
+          // Skip empty text, headings, and section labels
+          if (text && 
+              text.length > 2 && 
+              text.toLowerCase() !== 'ingredients' &&
+              text.toLowerCase() !== 'main' &&
+              text.toLowerCase() !== 'garnish' &&
+              !/^[A-Z\s]+:$/.test(text) &&
+              !text.match(/^\d+\.?\s*$/)) { // Skip just numbers
+            
+            // Normalize whitespace
+            const normalizedText = text.replace(/\s+/g, ' ').trim();
+            
+            // Don't add duplicates
+            if (!ingredients.includes(normalizedText)) {
+              ingredients.push(normalizedText);
+            }
+          }
+        });
+      }
+    });
+    
+    if (ingredients.length > 0) {
+      console.log(
+        `Successfully extracted ${ingredients.length} ingredients using heading-based fallback`,
+      );
+      return ingredients;
+    }
+  } catch (error) {
+    console.log('Heading-based ingredient extraction failed:', error);
+  }
+
   console.log('No ingredients found with any selector');
   return [];
 }
@@ -432,6 +546,17 @@ function isAuthorOrAttributionElement(
     'meta-author',
     'entry-author',
     'post-author',
+    // Food Network specific patterns
+    'o-attribution',
+    'attribution-author',
+    'recipe-attribution',
+    'recipe-byline',
+    'recipe-credit',
+    'recipe-contributor',
+    // Common variations
+    'fn-author',
+    'fn-byline',
+    'fn-attribution',
   ];
 
   // Check if element has author-related classes/IDs
@@ -498,10 +623,18 @@ function extractInstructions($: cheerio.CheerioAPI): string[] {
     '.wprm-recipe-instruction-text',
     '.wprm-recipe-instructions li',
 
-    // Food Network
+    // Food Network specific (prioritize)
+    '.o-Method__m-Step',
+    '.o-Method__m-StepText',
+    '[class*="Method"] [class*="Step"]',
+    '.directions-list li',
     '.recipe-instructions li',
     '.instructions li',
     '.recipe-steps li',
+    '[data-testid*="instruction"]',
+    '[data-testid*="step"]',
+    '[class*="instruction-step"]',
+    '[class*="direction"]',
 
     // BBC Good Food
     '.recipe-method__list li',
@@ -554,8 +687,24 @@ function extractInstructions($: cheerio.CheerioAPI): string[] {
           // Remove any svg tags
           $element.find('svg').remove();
           
-          // Get clean text content
-          let text = $element.text().trim();
+          // For Food Network, check if there's a nested text element
+          // Food Network uses .o-Method__m-StepText for the actual instruction text
+          let text = '';
+          const textElement = $element.find('.o-Method__m-StepText').first();
+          if (textElement.length > 0) {
+            text = textElement.text().trim();
+          } else {
+            // Also check for p tags inside the step element
+            const pElement = $element.find('p').first();
+            if (pElement.length > 0) {
+              text = pElement.text().trim();
+            } else {
+              text = $element.text().trim();
+            }
+          }
+          
+          // Remove step numbers if present (e.g., "1.", "2.", etc.)
+          text = text.replace(/^\d+\.\s*/, '').trim();
           
           // Skip if it's just a header like "Directions" or "Instructions"
           if (text.toLowerCase() === 'directions' || 
@@ -595,6 +744,95 @@ function extractInstructions($: cheerio.CheerioAPI): string[] {
     } catch (error) {
       continue;
     }
+  }
+
+  // Fallback: Look for headings that say "Recipe", "Directions", or "Instructions" 
+  // and extract following list items or paragraphs
+  // This handles sites like shychef.com that use semantic headings instead of class names
+  try {
+    // Find all h1-h6 headings
+    const headings = $('h1, h2, h3, h4, h5, h6');
+    headings.each((_, heading) => {
+      const $heading = $(heading);
+      const headingText = $heading.text().trim().toLowerCase();
+      
+      // Check if this heading says "Recipe", "Directions", or "Instructions"
+      if (headingText === 'recipe' || 
+          headingText === 'directions' || 
+          headingText === 'instructions' ||
+          headingText.includes('recipe') ||
+          headingText.includes('directions') ||
+          headingText.includes('instructions')) {
+        
+        // Strategy 1: Find the next sibling element
+        let $container = $heading.next();
+        
+        // Strategy 2: If no next sibling, try parent's next sibling
+        if ($container.length === 0) {
+          $container = $heading.parent().next();
+        }
+        
+        // Strategy 3: Look within the same parent container (for grid layouts)
+        let $listItems = $container.find('ol li, ul li');
+        
+        if ($listItems.length === 0) {
+          const $parent = $heading.parent();
+          $listItems = $parent.find('ol li, ul li');
+        }
+        
+        // Strategy 4: Look in closest div/section container
+        if ($listItems.length === 0) {
+          $listItems = $heading.closest('div, section').find('ol li, ul li');
+        }
+        
+        // Extract text from each list item
+        $listItems.each((_, element) => {
+          const $element = $(element);
+          
+          // Filter out author/attribution elements
+          if (isAuthorOrAttributionElement($element, $)) {
+            return; // Skip this element
+          }
+          
+          // Remove any img, script, style tags before extracting text
+          $element.find('img').remove();
+          $element.find('script').remove();
+          $element.find('style').remove();
+          $element.find('svg').remove();
+          
+          const text = $element.text().trim();
+          
+          // Skip empty text, headings, and section labels
+          if (text && 
+              text.length > 10 && 
+              text.toLowerCase() !== 'directions' &&
+              text.toLowerCase() !== 'instructions' &&
+              text.toLowerCase() !== 'recipe' &&
+              !/^by\s+[A-Z]/i.test(text)) { // Skip "By [Name]" patterns
+            
+            // Remove step numbers if present (e.g., "1.", "2.", etc.)
+            const cleanedText = text.replace(/^\d+\.\s*/, '').trim();
+            
+            // Normalize whitespace
+            const normalizedText = cleanedText.replace(/\s+/g, ' ').trim();
+            
+            // Don't add duplicates
+            if (!instructions.includes(normalizedText)) {
+              instructions.push(normalizedText);
+            }
+          }
+        });
+      }
+    });
+    
+    if (instructions.length > 0) {
+      console.log(
+        `Successfully extracted ${instructions.length} instructions using heading-based fallback`,
+      );
+      return instructions;
+    }
+  } catch (error) {
+    console.log('Heading-based instruction extraction failed:', error);
   }
 
   console.log('No instructions found with any selector');
