@@ -7,7 +7,17 @@ import React, {
   useEffect,
 } from 'react';
 
-interface ParsedRecipe {
+export interface RecipeStep {
+  stepNumber: number;
+  instruction: string;
+  ingredientsNeeded?: string[];
+  toolsNeeded?: string[];
+  timerMinutes?: number;
+  timerLabel?: string;
+  tips?: string;
+}
+
+export interface ParsedRecipe {
   title?: string;
   description?: string;          // NEW: Recipe description
   imageUrl?: string;              // NEW: Recipe image URL
