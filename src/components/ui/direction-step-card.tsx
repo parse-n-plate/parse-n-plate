@@ -23,7 +23,7 @@ export function DirectionStepCard({
   
   if (variant === 'compact') {
     return (
-      <div className="py-4 border-b border-stone-100 last:border-0 flex gap-4 group">
+      <div className="py-4 border-b border-stone-100 last:border-0 flex gap-4 group hover:bg-[#FAFAF9] transition-colors duration-200 rounded-lg px-2 -mx-2">
         <div className="flex-shrink-0 w-6 pt-1">
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-stone-100 text-stone-600 text-xs font-bold font-albert">
             {step.stepNumber}

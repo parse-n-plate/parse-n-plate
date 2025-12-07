@@ -5,7 +5,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 
 export default function HomepageSkeleton() {
   return (
-    <div className="bg-[#fbf7f2] min-h-screen" aria-busy="true">
+    <div className="bg-white min-h-screen" aria-busy="true">
       {/* Main Content Container */}
       <div className="max-w-md mx-auto px-4 pt-28 pb-16">
         {/* Hero Section Skeleton */}

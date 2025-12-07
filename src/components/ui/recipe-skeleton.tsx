@@ -5,7 +5,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 
 export default function RecipeSkeleton() {
   return (
-    <div className="bg-stone-50 min-h-screen" aria-busy="true">
+    <div className="bg-white min-h-screen" aria-busy="true">
       {/* Hero Section Skeleton */}
       <div className="h-[360px] w-full bg-stone-200 rounded-b-[24px] mb-6"></div>
 

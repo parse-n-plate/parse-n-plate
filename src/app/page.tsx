@@ -164,7 +164,7 @@ function HomeContent() {
   }
 
   return (
-    <div className="bg-stone-50 min-h-screen relative flex flex-col">
+    <div className="bg-white min-h-screen relative flex flex-col">
 
       <div className="transition-opacity duration-300 ease-in-out opacity-100 relative z-10 flex-1">
         {/* Main Content Container */}

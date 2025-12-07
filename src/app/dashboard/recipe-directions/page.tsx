@@ -17,9 +17,9 @@ function RecipeDirectionsContent() {
   const currentVariant = searchParams.get('variant') || 'compact';
 
   return (
-    <div className="min-h-screen bg-[#F7F7F5] font-albert text-[#37352F]">
+    <div className="min-h-screen bg-white font-albert text-[#37352F]">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#F7F7F5]/80 backdrop-blur-sm border-b border-[#E0E0E0] px-4 py-3 md:px-8 transition-all">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-[#E0E0E0] px-4 py-3 md:px-8 transition-all">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/dashboard">

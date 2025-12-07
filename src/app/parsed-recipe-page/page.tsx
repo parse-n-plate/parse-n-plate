@@ -363,7 +363,7 @@ export default function ParsedRecipePage() {
                             <h3 className="font-domine text-[18px] text-[#193d34] mb-3 leading-none">
                               {group.groupName}
                             </h3>
-                            <div className="flex flex-col gap-3">
+                            <div className="ingredient-list-container">
                               {Array.isArray(group.ingredients) &&
                                 group.ingredients.map(
                                   (
@@ -375,13 +375,17 @@ export default function ParsedRecipePage() {
                                           ingredient: string;
                                         },
                                     index: number,
-                                  ) => (
-                                    <IngredientCard
-                                      key={index}
-                                      ingredient={ingredient}
-                                      description={undefined} // Empty state - not connected to backend yet
-                                    />
-                                  ),
+                                  ) => {
+                                    const isLast = index === group.ingredients.length - 1;
+                                    return (
+                                      <IngredientCard
+                                        key={index}
+                                        ingredient={ingredient}
+                                        description={undefined} // Empty state - not connected to backend yet
+                                        isLast={isLast}
+                                      />
+                                    );
+                                  },
                                 )}
                             </div>
                           </div>

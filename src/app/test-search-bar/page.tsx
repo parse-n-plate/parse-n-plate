@@ -10,7 +10,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 
 export default function SearchBarTestingPage() {
   return (
-    <div className="min-h-screen bg-stone-50 py-12 px-4 md:px-8">
+    <div className="min-h-screen bg-white py-12 px-4 md:px-8">
       <div className="max-w-5xl mx-auto space-y-12">
         <div className="text-center space-y-4">
           <div className="flex justify-center mb-6">

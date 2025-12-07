@@ -45,7 +45,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F7F7F5] p-8 md:p-12 font-albert text-[#37352F]">
+    <div className="min-h-screen bg-white p-8 md:p-12 font-albert text-[#37352F]">
       <div className="max-w-4xl mx-auto space-y-12">
         
         {/* Notion-style Header */}
