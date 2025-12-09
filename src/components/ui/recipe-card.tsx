@@ -31,7 +31,7 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
       <div className="size-full">
         <button
           onClick={onClick}
-          className="w-full h-full focus:outline-none focus:ring-2 focus:ring-[#FFA423] focus:ring-offset-2 rounded-[inherit]"
+          className="w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-0 rounded-[inherit]"
         >
           <div className="box-border content-stretch flex flex-col gap-[24px] items-start p-[24px] relative w-full">
             {/* Recipe Image */}
@@ -51,11 +51,11 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
             </div>
 
             {/* Recipe Info */}
-            <div className="content-stretch flex flex-col font-normal gap-[4px] items-start justify-center overflow-clip relative shrink-0 text-nowrap w-full whitespace-pre">
-              <h3 className="font-domine leading-[1.1] relative shrink-0 text-[24px] text-black">
+            <div className="content-stretch flex flex-col font-normal gap-[8px] items-start justify-center overflow-clip relative shrink-0 w-full whitespace-normal break-words">
+              <h3 className="font-domine leading-[1.1] relative shrink-0 text-[24px] text-black text-left">
                 {recipe.title}
               </h3>
-              <p className="font-albert leading-[1.4] relative shrink-0 text-[14px] text-stone-900">
+              <p className="font-albert leading-[1.4] relative shrink-0 text-[16px] text-stone-700">
                 <span>By </span>
                 {recipe.author}
               </p>

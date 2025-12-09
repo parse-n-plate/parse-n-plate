@@ -173,23 +173,17 @@ function HomeContent() {
           <div className="mb-10 md:mb-12">
             <div className="text-center mb-6">
               {/* App Name */}
-              <p className="font-domine text-[24px] font-normal text-black leading-[1.1] mb-6">
-                Parse & Plate
+              <p className="font-domine text-[16px] md:text-[18px] font-normal text-[#5a5a5a] tracking-[0.08em] uppercase leading-[1.2] mb-4">
+                Mis San Plas
               </p>
-              <h1 className="font-domine text-[64px] font-normal text-black leading-[1.1] mb-3">
+              <h1 className="font-domine text-[48px] md:text-[72px] font-normal text-black leading-[1.05] mb-4">
                 Clean recipes,
-                <br />
-                fast cooking.
+                <span className="block md:inline"> fast cooking.</span>
               </h1>
-              <p className="font-albert text-[14px] text-stone-900 leading-[1.4] max-w-2xl mx-auto">
+              <p className="font-albert text-[16px] md:text-[18px] text-stone-700 leading-[1.5] max-w-2xl mx-auto">
                 Spend less time on ad-filled recipes and more time cooking.
               </p>
             </div>
-          </div>
-
-          {/* Cuisine Filter Pills */}
-          <div className="mb-6 md:mb-8">
-            <CuisinePills onCuisineChange={handleCuisineChange} />
           </div>
 
           {/* Recent Recipes Section */}
@@ -198,7 +192,7 @@ function HomeContent() {
               <div className="mb-4 md:mb-6">
                 {/* Header with title and Clear All button */}
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-domine text-[24px] font-normal text-black leading-[1.1]">
+                  <h2 className="font-domine text-[24px] md:text-[32px] font-normal text-black leading-[1.1]">
                     Recent Recipes
                   </h2>
                   {/* Clear All button - positioned to the right */}
@@ -206,14 +200,14 @@ function HomeContent() {
                     variant="outline"
                     size="sm"
                     onClick={handleClearRecipes}
-                    className="flex items-center gap-2 font-albert text-[12px] text-[#757575] hover:text-[#1e1e1e]"
+                    className="flex items-center gap-2 font-albert text-[14px] text-[#757575] hover:text-[#1e1e1e]"
                     aria-label="Clear all recent recipes"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="hidden sm:inline">Clear All</span>
                   </Button>
                 </div>
-                <p className="font-albert text-[14px] text-stone-600 leading-[1.4]">
+                <p className="font-albert text-[16px] text-stone-600 leading-[1.4]">
                   Your recently parsed recipes
                 </p>
               </div>
@@ -234,15 +228,20 @@ function HomeContent() {
           {/* Trending Recipes Section */}
           <div className="mb-8 md:mb-12">
             <div className="mb-4 md:mb-6">
-              <h2 className="font-domine text-[24px] font-normal text-black leading-[1.1] mb-3">
+              <h2 className="font-domine text-[24px] md:text-[32px] font-normal text-black leading-[1.1] mb-3">
                 Trending Recipes
               </h2>
               <div className="flex items-center gap-2">
                 <span className="text-xl md:text-2xl">🍅</span>
-                <h3 className="font-domine text-[32px] font-normal text-black leading-[1.1]">
+                <h3 className="font-domine text-[24px] md:text-[28px] font-normal text-black leading-[1.1]">
                   {selectedCuisine}
                 </h3>
               </div>
+            </div>
+
+            {/* Cuisine Filter Pills now sit below the Trending header */}
+            <div className="mb-6 md:mb-8">
+              <CuisinePills onCuisineChange={handleCuisineChange} />
             </div>
 
             {/* Recipe Cards Grid */}

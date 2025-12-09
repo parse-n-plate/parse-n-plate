@@ -12,7 +12,7 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="bg-white border-b border-[#d9d9d9] px-4 py-4">
+      <div className="bg-white px-4 py-4 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 md:gap-6">
           {/* Left: Logo */}
           <div className="flex items-center flex-shrink-0">
