@@ -43,6 +43,9 @@ function normalizeInstructions(
 ): InstructionStep[] {
   if (!instructions || !Array.isArray(instructions)) return [];
 
+  const cleanLeading = (text: string): string =>
+    (text || '').replace(/^[\s.:;,\-–—]+/, '').trim();
+
   const stripLeadingTitle = (title: string, detail: string): string => {
     if (!title) return detail;
     const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -50,7 +53,8 @@ function normalizeInstructions(
       new RegExp(`^${escaped}\\s*[:\\-–—]?\\s*`, 'i'),
       '',
     ).trim();
-    return stripped.length > 0 ? stripped : detail;
+    const candidate = stripped.length > 0 ? stripped : detail;
+    return cleanLeading(candidate);
   };
 
   return instructions
@@ -58,10 +62,10 @@ function normalizeInstructions(
       if (typeof item === 'string') {
         const detail = item.trim();
         if (!detail) return null;
-        const autoTitle = deriveStepTitle(detail);
+        const autoTitle = cleanLeading(deriveStepTitle(detail)) || 'Step';
         const cleanedDetail = stripLeadingTitle(autoTitle, detail);
         return {
-          title: autoTitle || 'Step',
+          title: autoTitle,
           detail: cleanedDetail,
         } satisfies InstructionStep;
       }
@@ -78,8 +82,8 @@ function normalizeInstructions(
 
         if (!detail) return null;
 
-        const autoTitle = deriveStepTitle(detail);
-        const chosenTitle = autoTitle || 'Step';
+        const autoTitle = cleanLeading(deriveStepTitle(detail)) || 'Step';
+        const chosenTitle = autoTitle;
         const cleanedDetail = stripLeadingTitle(chosenTitle, detail);
 
         return {

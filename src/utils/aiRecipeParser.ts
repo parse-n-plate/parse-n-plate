@@ -29,6 +29,9 @@ const normalizeInstructionSteps = (
 ): InstructionStep[] => {
   if (!Array.isArray(instructions)) return [];
 
+  const cleanLeading = (text: string): string =>
+    (text || '').replace(/^[\s.:;,\-–—]+/, '').trim();
+
   const chooseTitleAndDetail = (
     detailRaw: string,
     extras?: {
@@ -41,7 +44,7 @@ const normalizeInstructionSteps = (
     if (!detail) return null;
 
     const autoTitle = deriveStepTitle(detail);
-    const chosenTitle = autoTitle || 'Step';
+    const chosenTitle = cleanLeading(autoTitle) || 'Step';
 
     // Strip leading chosen title from detail to avoid duplication
     const escapedTitle = chosenTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -50,7 +53,9 @@ const normalizeInstructionSteps = (
       '',
     ).trim();
 
-    const finalDetail = stripped.length > 0 ? stripped : detail;
+    const finalDetail = cleanLeading(
+      stripped.length > 0 ? stripped : detail,
+    );
 
     return {
       title: chosenTitle,

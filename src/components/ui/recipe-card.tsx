@@ -52,7 +52,7 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
 
             {/* Recipe Info */}
             <div className="content-stretch flex flex-col font-normal gap-[8px] items-start justify-center overflow-clip relative shrink-0 w-full whitespace-normal break-words">
-              <h3 className="font-domine leading-[1.1] relative shrink-0 text-[24px] text-black text-left">
+              <h3 className="font-domine leading-[1.1] relative text-[24px] text-black text-left line-clamp-1 break-words">
                 {recipe.title}
               </h3>
               <p className="font-albert leading-[1.4] relative shrink-0 text-[16px] text-stone-700">

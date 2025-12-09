@@ -77,6 +77,9 @@ const normalizeInstructions = (
 ): InstructionStep[] => {
   if (!instructions || !Array.isArray(instructions)) return [];
 
+  const cleanLeading = (text: string): string =>
+    (text || '').replace(/^[\s.:;,\-–—]+/, '').trim();
+
   const stripLeadingTitle = (title: string, detail: string): string => {
     if (!title) return detail;
     const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -84,7 +87,8 @@ const normalizeInstructions = (
       new RegExp(`^${escaped}\\s*[:\\-–—]?\\s*`, 'i'),
       '',
     ).trim();
-    return stripped.length > 0 ? stripped : detail;
+    const candidate = stripped.length > 0 ? stripped : detail;
+    return cleanLeading(candidate);
   };
 
   return instructions
@@ -93,7 +97,7 @@ const normalizeInstructions = (
         const detail = item.trim();
         if (!detail) return null;
         const autoTitle = deriveStepTitle(detail);
-        const title = autoTitle || 'Step';
+        const title = cleanLeading(autoTitle) || 'Step';
         const cleanedDetail = stripLeadingTitle(title, detail);
         return { title, detail: cleanedDetail };
       }
@@ -109,7 +113,7 @@ const normalizeInstructions = (
             : '';
         if (!detail) return null;
         const autoTitle = deriveStepTitle(detail);
-        const chosenTitle = autoTitle || 'Step';
+        const chosenTitle = cleanLeading(autoTitle) || 'Step';
         const cleanedDetail = stripLeadingTitle(chosenTitle, detail);
         return {
           title: chosenTitle,
