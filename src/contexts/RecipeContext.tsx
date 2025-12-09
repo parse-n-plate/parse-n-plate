@@ -103,7 +103,7 @@ const normalizeInstructions = (
       }
 
       if (item && typeof item === 'object') {
-        const title =
+        const rawTitle =
           typeof (item as any).title === 'string'
             ? (item as any).title.trim()
             : '';
@@ -112,6 +112,19 @@ const normalizeInstructions = (
             ? (item as any).detail.trim()
             : '';
         if (!detail) return null;
+
+        // Preserve already-normalized instructions so we do not strip twice
+        if (rawTitle) {
+          return {
+            title: rawTitle,
+            detail,
+            timeMinutes: (item as any).timeMinutes,
+            ingredients: (item as any).ingredients,
+            tips: (item as any).tips,
+          } satisfies InstructionStep;
+        }
+
+        // Legacy/object without title: derive a title and strip it from detail
         const autoTitle = deriveStepTitle(detail);
         const chosenTitle = cleanLeading(autoTitle) || 'Step';
         const cleanedDetail = stripLeadingTitle(chosenTitle, detail);

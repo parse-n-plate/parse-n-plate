@@ -71,7 +71,7 @@ function normalizeInstructions(
       }
 
       if (item && typeof item === 'object') {
-        const title =
+        const rawTitle =
           typeof (item as any).title === 'string'
             ? (item as any).title.trim()
             : '';
@@ -80,14 +80,27 @@ function normalizeInstructions(
             ? (item as any).detail.trim()
             : '';
 
+        // If there is no usable detail, drop the step
         if (!detail) return null;
 
+        // Preserve existing title/detail pairs to avoid double-stripping when
+        // loading from cache (instructions may already be normalized)
+        if (rawTitle) {
+          return {
+            title: rawTitle,
+            detail,
+            timeMinutes: (item as any).timeMinutes,
+            ingredients: (item as any).ingredients,
+            tips: (item as any).tips,
+          } satisfies InstructionStep;
+        }
+
+        // Legacy/object without title: derive a title and strip it from detail
         const autoTitle = cleanLeading(deriveStepTitle(detail)) || 'Step';
-        const chosenTitle = autoTitle;
-        const cleanedDetail = stripLeadingTitle(chosenTitle, detail);
+        const cleanedDetail = stripLeadingTitle(autoTitle, detail);
 
         return {
-          title: chosenTitle,
+          title: autoTitle,
           detail: cleanedDetail,
           timeMinutes: (item as any).timeMinutes,
           ingredients: (item as any).ingredients,
