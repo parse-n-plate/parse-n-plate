@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
+import { ChevronRight } from 'lucide-react';
 
 // Cuisine categories matching the prototype
 const CUISINES = [
@@ -25,6 +26,11 @@ interface CuisinePillsProps {
 
 export default function CuisinePills({ onCuisineChange }: CuisinePillsProps) {
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('Asian');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScrollRight = () => {
+    scrollRef.current?.scrollBy({ left: 160, behavior: 'smooth' });
+  };
 
   const handleCuisineClick = (cuisine: CuisineType) => {
     setSelectedCuisine(cuisine);
@@ -36,7 +42,7 @@ export default function CuisinePills({ onCuisineChange }: CuisinePillsProps) {
   return (
     <div className="relative w-full">
       {/* Scroll container keeps content aligned to parent padding; overflow only to the right */}
-      <div className="overflow-x-auto pr-6">
+      <div className="overflow-x-auto pr-6" ref={scrollRef}>
         <LayoutGroup>
           <div className="flex items-center gap-2 py-1">
             {CUISINES.map((cuisine) => {
@@ -78,6 +84,16 @@ export default function CuisinePills({ onCuisineChange }: CuisinePillsProps) {
         className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white via-white to-transparent z-20"
         aria-hidden
       />
+
+      {/* Quick nudge arrow to indicate horizontal scroll on small viewports */}
+      <button
+        type="button"
+        onClick={handleScrollRight}
+        className="absolute right-3 top-1/2 -translate-y-1/2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md border border-stone-200 text-stone-500 hover:text-stone-700 hover:shadow-lg transition"
+        aria-label="Scroll cuisine pills to the right"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
     </div>
   );
 }
