@@ -278,15 +278,15 @@ export default function NavbarSearch() {
           onMouseLeave={() => setIsHovered(false)}
           onClick={handleContainerClick}
         >
-          <div className="flex items-center pl-4 pr-3.5 md:pr-4 py-2 relative min-h-[44px]">
+          <div className="flex items-center pl-3 md:pl-4 pr-2.5 md:pr-4 py-1.5 md:py-2 relative min-h-[38px] md:min-h-[44px]">
             {/* Search Icon */}
-            <Search className="w-4 h-4 text-stone-600 flex-shrink-0" />
+            <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-stone-600 flex-shrink-0" />
 
             {/* Input */}
-            <div className="flex-1 ml-2 relative min-h-[20px] flex items-center">
+            <div className="flex-1 ml-1.5 md:ml-2 relative min-h-[18px] md:min-h-[20px] flex items-center">
               {/* Show URL display when on parsed recipe page and not focused/editing */}
               {isOnParsedRecipePage && parsedRecipe?.sourceUrl && !isFocused && !query ? (
-                <div className="w-full font-albert text-[14px] truncate flex-1 min-w-0 cursor-text h-[20px] flex items-center">
+                <div className="w-full font-albert text-[13px] md:text-[14px] truncate flex-1 min-w-0 cursor-text h-[18px] md:h-[20px] flex items-center">
                   <AnimatePresence mode="wait">
                     {isHovered ? (
                       <motion.span
@@ -297,7 +297,7 @@ export default function NavbarSearch() {
                         transition={{ duration: 0.2 }}
                         className="text-stone-500 block"
                       >
-                        Try entering recipe URL
+                        Enter URL
                       </motion.span>
                     ) : (
                       <motion.div
@@ -322,7 +322,7 @@ export default function NavbarSearch() {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder={isOnParsedRecipePage ? "Try entering recipe URL" : "Try entering recipe URL"}
+                  placeholder={isFocused ? "Enter URL" : "Enter recipe URL"}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -338,15 +338,15 @@ export default function NavbarSearch() {
                       }
                     }, 0);
                   }}
-                  className="w-full bg-transparent font-albert text-[14px] text-stone-600 placeholder:text-stone-500 focus:outline-none border-none h-[20px]"
+                  className="w-full bg-transparent font-albert text-[13px] md:text-[14px] text-stone-600 placeholder:text-stone-500 focus:outline-none border-none h-[18px] md:h-[20px]"
                 />
               )}
             </div>
 
-            {/* Keyboard Shortcut Indicator (⌘+K) - shown when not focused or no query, but not on parsed recipe page showing URL */}
+            {/* Keyboard Shortcut Indicator (⌘+K) - shown when not focused or no query, but not on mobile or parsed recipe page showing URL */}
             {!isFocused && !query && !(isOnParsedRecipePage && parsedRecipe?.sourceUrl) && (
-              <div className="ml-2 flex items-center gap-1 flex-shrink-0">
-                <kbd className="hidden md:inline-flex items-center px-2 py-1 text-[10px] font-albert text-stone-500 bg-white border border-[#d9d9d9] rounded">
+              <div className="hidden md:flex ml-2 items-center gap-1 flex-shrink-0">
+                <kbd className="inline-flex items-center px-2 py-1 text-[10px] font-albert text-stone-500 bg-white border border-[#d9d9d9] rounded">
                   ⌘K
                 </kbd>
               </div>
@@ -357,9 +357,9 @@ export default function NavbarSearch() {
               <button
                 type="button"
                 onClick={clearInput}
-                className="ml-2 p-1 hover:bg-stone-200 rounded-full transition-all duration-200 flex-shrink-0"
+                className="ml-1 md:ml-2 p-1 hover:bg-stone-200 rounded-full transition-all duration-200 flex-shrink-0"
               >
-                <X className="w-4 h-4 text-stone-600" />
+                <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-stone-600" />
               </button>
             )}
 
@@ -368,9 +368,10 @@ export default function NavbarSearch() {
               <button
                 type="submit"
                 disabled={loading}
-                className="ml-2 bg-stone-900 hover:bg-stone-800 text-stone-50 font-albert font-medium text-[14px] leading-[1.4] px-5 py-2 rounded-full transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-1 md:ml-2 bg-stone-900 hover:bg-stone-800 text-stone-50 font-albert font-medium text-[11px] md:text-[14px] leading-[1.4] px-2.5 md:px-5 py-1.5 md:py-2 rounded-full transition-colors duration-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Parse Recipe
+                <span className="md:hidden">Parse</span>
+                <span className="hidden md:inline">Parse Recipe</span>
               </button>
             )}
           </div>
