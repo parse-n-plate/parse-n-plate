@@ -9,7 +9,8 @@ export type InstructionStep = {
 export type ParsedRecipe = {
   id: string;
   title: string;
-  summary: string;
+  summary: string; // Brief text for landing page cards
+  description?: string; // AI-generated engagement summary
   url: string;
   imageUrl?: string;
   parsedAt: string;

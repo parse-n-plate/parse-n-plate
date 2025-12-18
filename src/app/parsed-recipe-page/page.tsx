@@ -4,10 +4,53 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, use } from 'react';
 import RecipeSkeleton from '@/components/ui/recipe-skeleton';
 import * as Tabs from '@radix-ui/react-tabs';
-import { Plus, Minus, X, ArrowLeft } from 'lucide-react';
+import { Plus, Minus, X, ArrowLeft, ExternalLink } from 'lucide-react';
 import { scaleIngredients } from '@/utils/ingredientScaler';
 import ClassicSplitView from '@/components/ClassicSplitView';
 import IngredientCard from '@/components/ui/ingredient-card';
+
+// Helper function to extract domain from URL for display
+const getDomainFromUrl = (url: string): string => {
+  try {
+    const domain = new URL(url).hostname;
+    return domain.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+};
+
+// Helper function to format time display
+const formatTimeDisplay = (
+  prepTime?: number,
+  cookTime?: number,
+  totalTime?: number,
+  servings?: number,
+): string => {
+  const parts: string[] = [];
+  
+  // Show prep and cook times if both available
+  if (prepTime && cookTime) {
+    parts.push(`${prepTime} min prep`);
+    parts.push(`${cookTime} min cook`);
+  } 
+  // Show total time if available
+  else if (totalTime) {
+    parts.push(`${totalTime} min total`);
+  } 
+  // Show individual times if only one is available
+  else if (prepTime) {
+    parts.push(`${prepTime} min prep`);
+  } else if (cookTime) {
+    parts.push(`${cookTime} min cook`);
+  }
+  
+  // Always append servings
+  if (servings) {
+    parts.push(`${servings} servings`);
+  }
+  
+  return parts.join(' • ');
+};
 
 // Helper function to extract step title from instruction text
 const extractStepTitle = (text: string): string => {
@@ -105,9 +148,19 @@ export default function ParsedRecipePage({
   const [multiplier, setMultiplier] = useState<string>('1x');
 
   // Redirect if loaded and no recipe
+  // Check both state and localStorage to handle race conditions where navigation
+  // happens before React state updates complete
   useEffect(() => {
     if (isLoaded && !parsedRecipe) {
-      router.push('/');
+      // Check localStorage as a fallback - if recipe was just set, it might be
+      // in localStorage but state hasn't updated yet due to React's async updates
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('parsedRecipe') : null;
+      if (!saved) {
+        // No recipe in state or localStorage, redirect to home
+        router.push('/');
+      }
+      // If saved exists, RecipeContext's useEffect will load it and update state
+      // So we don't redirect - just wait for the state to update
     }
   }, [isLoaded, parsedRecipe, router]);
 
@@ -209,28 +262,52 @@ export default function ParsedRecipePage({
                     <h1 className="font-domine text-[36px] text-[#193d34] leading-[1.2] font-bold">
                       {parsedRecipe.title || 'Beef Udon'}
                     </h1>
-                    {parsedRecipe.author?.trim() && (
-                      <p className="font-albert text-[16px] text-stone-400 leading-[1.4]">
-                        by {parsedRecipe.author.trim()}
+                    
+                    {/* Author and Source URL */}
+                    {(parsedRecipe.author?.trim() || parsedRecipe.sourceUrl) && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {parsedRecipe.author?.trim() && (
+                          <p className="font-albert text-[16px] text-stone-400 leading-[1.4]">
+                            by {parsedRecipe.author.trim()}
+                          </p>
+                        )}
+                        {parsedRecipe.sourceUrl && (
+                          <>
+                            {parsedRecipe.author?.trim() && (
+                              <span className="text-stone-400">•</span>
+                            )}
+                            <a
+                              href={parsedRecipe.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1"
+                              aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
+                            >
+                              {getDomainFromUrl(parsedRecipe.sourceUrl)}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* AI-Generated Summary */}
+                    {parsedRecipe.summary?.trim() && (
+                      <p className="font-albert text-[16px] text-stone-600 leading-[1.5] italic">
+                        {parsedRecipe.summary.trim()}
                       </p>
                     )}
                   </div>
+                  
+                  {/* Time and Servings */}
                   <div className="flex flex-col gap-2.5">
                     <p className="font-albert text-[16px] text-stone-500 leading-[1.4]">
-                      {(() => {
-                        const time =
-                          parsedRecipe.totalTimeMinutes ??
-                          parsedRecipe.prepTimeMinutes ??
-                          parsedRecipe.cookTimeMinutes;
-                        const servingsDisplay = parsedRecipe.servings ?? servings;
-                        const timeText =
-                          typeof time === 'number' ? `${time} min` : undefined;
-
-                        if (timeText) {
-                          return `${timeText} • ${servingsDisplay} servings`;
-                        }
-                        return `${servingsDisplay} servings`;
-                      })()}
+                      {formatTimeDisplay(
+                        parsedRecipe.prepTimeMinutes,
+                        parsedRecipe.cookTimeMinutes,
+                        parsedRecipe.totalTimeMinutes,
+                        parsedRecipe.servings ?? servings
+                      )}
                     </p>
                   </div>
                 </div>

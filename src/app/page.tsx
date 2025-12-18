@@ -138,6 +138,7 @@ function HomeContent() {
           instructions: fullRecipe.instructions,
           author: fullRecipe.author, // Include author if available
           sourceUrl: fullRecipe.sourceUrl || fullRecipe.url, // Include source URL if available
+          summary: fullRecipe.description || fullRecipe.summary, // Use AI summary if available, fallback to card summary
         });
         router.push('/parsed-recipe-page');
       }

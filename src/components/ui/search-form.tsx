@@ -180,6 +180,7 @@ export default function SearchForm({
         instructions: response.instructions,
         author: response.author, // Include author if available
         sourceUrl: response.sourceUrl, // Include source URL if available
+        summary: response.summary, // Include AI-generated summary if available
       });
 
       // Add to recent recipes
@@ -281,22 +282,37 @@ export default function SearchForm({
 
       // Step 3: Store parsed recipe in context
       // The new parser already returns data in the correct grouped format
-      setParsedRecipe({
+      // Step 3: Store parsed recipe in context
+      // The new parser already returns data in the correct grouped format
+      const recipeToStore = {
         title: response.title,
         ingredients: response.ingredients,
         instructions: response.instructions,
         author: response.author, // Include author if available
         sourceUrl: response.sourceUrl || query, // Use sourceUrl from response or fallback to query URL
-      });
+        summary: response.summary, // Include AI-generated summary if available
+      };
+      
+      // Store recipe first (this writes to localStorage synchronously)
+      setParsedRecipe(recipeToStore);
+      
+      // Ensure localStorage write completes before navigation
+      // localStorage.setItem is synchronous, but we want to ensure React state
+      // has a chance to update. Use setTimeout to defer navigation slightly.
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       // Step 4: Add to recent recipes for quick access
       const recipeSummary = Array.isArray(response.instructions)
-        ? response.instructions.join(' ').slice(0, 140)
+        ? response.instructions
+            .map((inst: any) => (typeof inst === 'string' ? inst : inst.detail))
+            .join(' ')
+            .slice(0, 140)
         : response.instructions.slice(0, 140);
 
       addRecipe({
         title: response.title,
         summary: recipeSummary,
+        description: response.summary, // Store the AI-generated summary
         url: query,
         ingredients: response.ingredients,
         instructions: response.instructions,

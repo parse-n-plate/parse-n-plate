@@ -144,6 +144,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       instructions: result.data.instructions,
       author: result.data.author, // Include author if available
       sourceUrl: result.data.sourceUrl, // Include source URL if available
+      summary: result.data.summary, // Include AI-generated summary if available
       method: result.method, // Include which method was used (json-ld or ai)
     });
   } catch (error) {

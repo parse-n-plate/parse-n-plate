@@ -163,6 +163,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       // Surface optional metadata so the client can display attribution
       author: result.data.author,
       sourceUrl: result.data.sourceUrl,
+      summary: result.data.summary, // Include AI-generated summary
     });
   } catch (error) {
     console.error('[API /recipeScraperPython] Unexpected error:', error);

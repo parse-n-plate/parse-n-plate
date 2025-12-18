@@ -130,6 +130,7 @@ export interface ParsedRecipe {
   author?: string;
   publishedDate?: string;
   sourceUrl?: string;
+  summary?: string; // AI-generated recipe summary (1-2 sentences)
   ingredients: IngredientGroup[];
   instructions: InstructionStep[];
 }
@@ -357,6 +358,101 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
   }
 
   return null;
+}
+
+/**
+ * Generate a recipe summary using AI
+ * Creates a single sentence summary describing the dish, flavor profile, and cooking methods
+ * 
+ * @param recipe - The parsed recipe data
+ * @returns A summary string or null if generation fails
+ */
+async function generateRecipeSummary(recipe: ParsedRecipe): Promise<string | null> {
+  try {
+    // Check if Groq API key is configured
+    if (!process.env.GROQ_API_KEY) {
+      console.warn('[Summary Generator] GROQ_API_KEY is not configured, skipping summary generation');
+      return null;
+    }
+
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
+
+    // Extract key information for summary generation
+    const title = recipe.title || 'this dish';
+    const instructionTexts = recipe.instructions
+      .map((inst) => (typeof inst === 'string' ? inst : inst.detail))
+      .slice(0, 5) // Use first 5 instructions to understand cooking methods
+      .join(' ');
+
+    // Get ingredient names for flavor profile context
+    const ingredientNames = recipe.ingredients
+      .flatMap((group) => group.ingredients)
+      .map((ing) => ing.ingredient)
+      .slice(0, 10) // Use first 10 ingredients
+      .join(', ');
+
+    console.log('[Summary Generator] Generating summary for recipe:', title);
+
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a culinary expert writing recipe descriptions. Write a concise, engaging single sentence summary that describes:
+1. What the dish is
+2. Its flavor profile (savory, sweet, spicy, umami, etc.)
+3. Main cooking methods used (baking, sautéing, simmering, etc.)
+
+Keep it brief (exactly one sentence), engaging, and informative. Write only the summary text - no labels, no quotes, no extra formatting. Use proper punctuation to end the sentence.`,
+        },
+        {
+          role: 'user',
+          content: `Recipe: ${title}
+
+Ingredients: ${ingredientNames}
+
+Instructions: ${instructionTexts}
+
+Write a single sentence summary describing what this dish is, its flavor profile, and main cooking methods.`,
+        },
+      ],
+      temperature: 0.7, // Slightly higher for more creative descriptions
+      max_tokens: 100, // Single sentence summary
+    });
+
+    const summary = response.choices[0]?.message?.content?.trim();
+
+    if (!summary || summary.length === 0) {
+      console.warn('[Summary Generator] Empty response from AI');
+      return null;
+    }
+
+    // Clean up the summary (remove quotes if AI added them)
+    let cleanedSummary = summary.replace(/^["']|["']$/g, '').trim();
+
+    // Ensure it's exactly one sentence - take only the first sentence if multiple exist
+    // Split by sentence-ending punctuation and take the first complete sentence
+    const sentenceMatch = cleanedSummary.match(/^[^.!?]+[.!?]/);
+    if (sentenceMatch) {
+      cleanedSummary = sentenceMatch[0].trim();
+    } else {
+      // If no sentence-ending punctuation found, ensure it ends with proper punctuation
+      cleanedSummary = cleanedSummary.replace(/[.!?]+$/, '') + '.';
+    }
+
+    if (cleanedSummary.length > 0) {
+      console.log('[Summary Generator] Successfully generated summary');
+      return cleanedSummary;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[Summary Generator] Error generating summary:', error);
+    // Don't fail the entire parsing if summary generation fails
+    return null;
+  }
 }
 
 /**
@@ -696,9 +792,15 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
     console.log('[Recipe Parser] Attempting JSON-LD extraction...');
     const jsonLdResult = extractFromJsonLd($);
     if (jsonLdResult) {
+      // Generate summary for JSON-LD parsed recipe
+      const summary = await generateRecipeSummary(jsonLdResult);
+      const recipeWithSummary = {
+        ...jsonLdResult,
+        ...(summary && { summary }),
+      };
       return {
         success: true,
-        data: jsonLdResult,
+        data: recipeWithSummary,
         method: 'json-ld',
       };
     }
@@ -712,9 +814,15 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
       console.log(
         `[Recipe Parser] AI parsing succeeded${aiResult.author ? ` with author "${aiResult.author}"` : ' (no author found)'}`
       );
+      // Generate summary for AI parsed recipe
+      const summary = await generateRecipeSummary(aiResult);
+      const recipeWithSummary = {
+        ...aiResult,
+        ...(summary && { summary }),
+      };
       return {
         success: true,
-        data: aiResult,
+        data: recipeWithSummary,
         method: 'ai',
       };
     }
@@ -979,12 +1087,18 @@ Start your response with { and end with }`,
         console.log(
           `[Image Parser] Successfully parsed recipe: "${parsedData.title}" with ${parsedData.ingredients.reduce((sum: number, g: any) => sum + g.ingredients.length, 0)} ingredients and ${normalizedInstructions.length} instructions`
         );
+        const recipe: ParsedRecipe = {
+          ...parsedData,
+          instructions: normalizedInstructions,
+        };
+        // Generate summary for image-parsed recipe
+        const summary = await generateRecipeSummary(recipe);
+        if (summary) {
+          recipe.summary = summary;
+        }
         return {
           success: true,
-          data: {
-            ...parsedData,
-            instructions: normalizedInstructions,
-          } as ParsedRecipe,
+          data: recipe,
           method: 'ai',
         };
       }

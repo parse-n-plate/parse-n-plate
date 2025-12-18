@@ -129,6 +129,7 @@ export default function NavbarSearch() {
       instructions: recipe.instructions || [],
       author: recipe.author, // Include author if available
       sourceUrl: recipe.sourceUrl, // Include source URL if available
+      summary: recipe.description || recipe.summary, // Use AI summary if available, fallback to card summary
     });
     setQuery('');
     setShowDropdown(false);
@@ -185,22 +186,32 @@ export default function NavbarSearch() {
       console.log('[Navbar] Successfully parsed recipe:', response.title);
 
       // Step 3: Store parsed recipe in context
-      setParsedRecipe({
+      const recipeToStore = {
         title: response.title,
         ingredients: response.ingredients,
         instructions: response.instructions,
         author: response.author, // Include author if available
         sourceUrl: response.sourceUrl || query, // Use sourceUrl from response or fallback to query URL
-      });
+        summary: response.summary, // Include AI-generated summary if available
+      };
+      
+      setParsedRecipe(recipeToStore);
+      
+      // Ensure localStorage write completes before navigation
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       // Step 4: Add to recent recipes
       const recipeSummary = Array.isArray(response.instructions)
-        ? response.instructions.join(' ').slice(0, 140)
+        ? response.instructions
+            .map((inst: any) => (typeof inst === 'string' ? inst : inst.detail))
+            .join(' ')
+            .slice(0, 140)
         : response.instructions.slice(0, 140);
 
       addRecipe({
         title: response.title,
         summary: recipeSummary,
+        description: response.summary, // Store the AI-generated summary
         url: query,
         ingredients: response.ingredients,
         instructions: response.instructions,

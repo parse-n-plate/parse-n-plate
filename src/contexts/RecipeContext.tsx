@@ -29,6 +29,7 @@ export interface RecipeStep {
 export interface ParsedRecipe {
   title?: string;
   description?: string;          // NEW: Recipe description
+  summary?: string;             // NEW: AI-generated recipe summary (1-2 sentences)
   imageUrl?: string;              // NEW: Recipe image URL
   author?: string;                // NEW: Recipe author/source
   publishedDate?: string;         // NEW: Publication date
@@ -152,10 +153,11 @@ export function RecipeProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const loaded = JSON.parse(saved) as ParsedRecipe;
-        setParsedRecipe({
+        const normalized = {
           ...loaded,
           instructions: normalizeInstructions(loaded.instructions),
-        });
+        };
+        setParsedRecipe(normalized);
       } catch (error) {
         console.error('Error loading recipe from localStorage:', error);
       }
