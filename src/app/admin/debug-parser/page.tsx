@@ -962,24 +962,42 @@ export default function DebugParserPage({
                               Instructions ({typeof data.instructionCount === 'number' ? data.instructionCount : (Array.isArray(data.instructions) ? data.instructions.length : 0)} steps):
                             </h4>
                             {Array.isArray(data.instructions) && data.instructions.length > 0 ? (
-                              <ol className="list-decimal ml-6 text-xs">
+                              <ol className="list-decimal ml-6 text-xs space-y-3">
                                 {data.instructions.map((inst: any, idx: number) => {
                                   // Handle both string and object instruction formats
                                   if (typeof inst === 'string') {
-                                    // String format (from URL parsing)
+                                    // String format (from URL parsing - legacy)
                                     return (
                                       <li key={idx} className="mb-1">{inst}</li>
                                     );
                                   } else if (inst && typeof inst === 'object') {
-                                    // Object format (from image parsing) - has title, detail, timeMinutes, ingredients, tips
+                                    // Object format - has title, detail, timeMinutes, ingredients, tips
+                                    const title = inst.title || `Step ${idx + 1}`;
+                                    const detail = inst.detail || inst.text || '';
                                     return (
-                                      <li key={idx} className="mb-2">
-                                        {inst.title && (
-                                          <span className="font-semibold">{inst.title}: </span>
+                                      <li key={idx} className="mb-3">
+                                        <div className="font-semibold text-sm text-gray-900 mb-1">
+                                          {title}
+                                        </div>
+                                        {detail && (
+                                          <div className="text-gray-700 ml-0">
+                                            {detail}
+                                          </div>
                                         )}
-                                        {inst.detail || inst.text || JSON.stringify(inst)}
-                                        {inst.timeMinutes && inst.timeMinutes > 0 && (
-                                          <span className="text-gray-500 ml-2">({inst.timeMinutes} min)</span>
+                                        {(inst.timeMinutes && inst.timeMinutes > 0) && (
+                                          <div className="text-gray-500 text-xs mt-1">
+                                            ⏱️ {inst.timeMinutes} minutes
+                                          </div>
+                                        )}
+                                        {Array.isArray(inst.ingredients) && inst.ingredients.length > 0 && (
+                                          <div className="text-gray-600 text-xs mt-1">
+                                            🥘 Ingredients: {inst.ingredients.join(', ')}
+                                          </div>
+                                        )}
+                                        {inst.tips && (
+                                          <div className="text-blue-600 text-xs mt-1 italic">
+                                            💡 Tip: {inst.tips}
+                                          </div>
                                         )}
                                       </li>
                                     );

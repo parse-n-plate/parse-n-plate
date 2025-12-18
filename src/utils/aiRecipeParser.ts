@@ -13,17 +13,8 @@ import Groq from 'groq-sdk';
 import { cleanRecipeHTML } from './htmlCleaner';
 
 // Derive a concise, human-friendly title from an instruction detail
-const deriveStepTitle = (text: string): string => {
-  const trimmed = text?.trim() || '';
-  if (!trimmed) return 'Step';
-  const match = trimmed.match(/^([^.!?]+[.!?]?)/);
-  if (match) {
-    return match[1].trim().replace(/[.!?]+$/, '') || 'Step';
-  }
-  return trimmed;
-};
-
 // Normalize any instruction array (strings or objects) into InstructionStep objects
+// Simplified: Trust AI-generated titles, use generic fallback only for legacy string inputs
 const normalizeInstructionSteps = (
   instructions: any,
 ): InstructionStep[] => {
@@ -32,47 +23,29 @@ const normalizeInstructionSteps = (
   const cleanLeading = (text: string): string =>
     (text || '').replace(/^[\s.:;,\-–—]+/, '').trim();
 
-  const chooseTitleAndDetail = (
-    detailRaw: string,
-    extras?: {
-      timeMinutes?: number;
-      ingredients?: string[];
-      tips?: string;
-    },
-  ): InstructionStep | null => {
-    const detail = detailRaw.trim();
-    if (!detail) return null;
-
-    const autoTitle = deriveStepTitle(detail);
-    const chosenTitle = cleanLeading(autoTitle) || 'Step';
-
-    // Strip leading chosen title from detail to avoid duplication
-    const escapedTitle = chosenTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const stripped = detail.replace(
-      new RegExp(`^${escapedTitle}\\s*[:\\-–—]?\\s*`, 'i'),
-      '',
-    ).trim();
-
-    const finalDetail = cleanLeading(
-      stripped.length > 0 ? stripped : detail,
-    );
-
-    return {
-      title: chosenTitle,
-      detail: finalDetail,
-      timeMinutes: extras?.timeMinutes,
-      ingredients: extras?.ingredients,
-      tips: extras?.tips,
-    };
-  };
-
   return instructions
-    .map((item: any) => {
+    .map((item: any, index: number) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:27',message:'normalizeInstructionSteps processing item',data:{index,itemType:typeof item,isString:typeof item==='string',isObject:typeof item==='object'&&item!==null,itemKeys:item&&typeof item==='object'?Object.keys(item):null,hasTitle:item&&typeof item==='object'?typeof item.title==='string':false,titleValue:item&&typeof item==='object'?item.title:null,hasDetail:item&&typeof item==='object'?typeof item.detail==='string':false},timestamp:Date.now(),sessionId:'debug-session',runId:'title-debug',hypothesisId:'title-missing'})}).catch(()=>{});
+      // #endregion
+
+      // Handle string inputs (legacy format - AI should not return these)
       if (typeof item === 'string') {
-        return chooseTitleAndDetail(item);
+        const detail = cleanLeading(item.trim());
+        if (!detail) return null;
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:32',message:'Using fallback title for string input',data:{index,detail:detail.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'title-debug',hypothesisId:'title-missing'})}).catch(()=>{});
+        // #endregion
+        // Use generic title for legacy string inputs
+        return {
+          title: `Step ${index + 1}`,
+          detail,
+        };
       }
 
+      // Handle object inputs (expected format from AI)
       if (item && typeof item === 'object') {
+        // Extract detail from various possible fields
         const rawDetail =
           typeof item.detail === 'string'
             ? item.detail
@@ -82,11 +55,33 @@ const normalizeInstructionSteps = (
             ? item.name
             : '';
 
-        return chooseTitleAndDetail(rawDetail, {
+        if (!rawDetail.trim()) return null;
+
+        // Extract title if provided by AI
+        const aiTitle =
+          typeof item.title === 'string' && item.title.trim()
+            ? item.title.trim()
+            : null;
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:58',message:'Processing object instruction',data:{index,hasTitle:!!aiTitle,aiTitle,rawDetail:rawDetail.substring(0,50),itemKeys:Object.keys(item),itemTitleType:typeof item.title,itemTitleValue:item.title},timestamp:Date.now(),sessionId:'debug-session',runId:'title-debug',hypothesisId:'title-missing'})}).catch(()=>{});
+        // #endregion
+
+        // Use AI-provided title, or fallback to generic if missing
+        const title = aiTitle ? cleanLeading(aiTitle) : `Step ${index + 1}`;
+        const detail = cleanLeading(rawDetail.trim());
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:64',message:'Final title decision',data:{index,finalTitle:title,usedFallback:!aiTitle,aiTitleProvided:aiTitle},timestamp:Date.now(),sessionId:'debug-session',runId:'title-debug',hypothesisId:'title-missing'})}).catch(()=>{});
+        // #endregion
+
+        return {
+          title,
+          detail,
           timeMinutes: item.timeMinutes,
           ingredients: item.ingredients,
           tips: item.tips,
-        });
+        };
       }
 
       return null;
@@ -164,18 +159,29 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
         const items = Array.isArray(data) ? data : [data];
 
         for (const item of items) {
+          // Check if @type is Recipe (handle both string and array formats)
+          const itemType = item['@type'];
+          const isRecipeType = 
+            itemType === 'Recipe' ||
+            (Array.isArray(itemType) && itemType.includes('Recipe'));
+          
           // Look for Recipe type or items with recipe data
           if (
-            item['@type'] === 'Recipe' ||
+            isRecipeType ||
             (item['@graph'] &&
               Array.isArray(item['@graph']) &&
-              item['@graph'].some((g: any) => g['@type'] === 'Recipe'))
+              item['@graph'].some((g: any) => {
+                const gType = g['@type'];
+                return gType === 'Recipe' || (Array.isArray(gType) && gType.includes('Recipe'));
+              }))
           ) {
             // If it's in @graph, find the Recipe object
-            const recipe =
-              item['@type'] === 'Recipe'
-                ? item
-                : item['@graph'].find((g: any) => g['@type'] === 'Recipe');
+            const recipe = isRecipeType
+              ? item
+              : item['@graph'].find((g: any) => {
+                  const gType = g['@type'];
+                  return gType === 'Recipe' || (Array.isArray(gType) && gType.includes('Recipe'));
+                });
 
             if (!recipe) continue;
 
@@ -487,6 +493,10 @@ CRITICAL OUTPUT FORMAT
 You MUST output ONLY raw JSON. NO thinking, NO reasoning, NO explanations, NO text before or after the JSON.
 START YOUR RESPONSE IMMEDIATELY WITH { and END WITH }. Nothing else.
 
+🚨 CRITICAL: INSTRUCTIONS MUST BE OBJECTS, NOT STRINGS 🚨
+Every instruction in the "instructions" array MUST be an object with "title" and "detail" properties.
+NEVER use strings like ["Step 1", "Step 2"] - ALWAYS use objects like [{"title": "...", "detail": "..."}]
+
 Required JSON structure:
 {
   "title": "string",
@@ -513,7 +523,14 @@ Required JSON structure:
 CRITICAL: ingredients and instructions MUST be arrays, NEVER null.
 - If ingredients are found: extract them into the array structure above
 - If NO ingredients found: use empty array []
-- If instructions are found: extract them into an array of instruction objects
+
+🚨 INSTRUCTIONS FORMAT - THIS IS MANDATORY 🚨
+- Each instruction MUST be an OBJECT (not a string)
+- Each instruction object MUST have exactly two properties: "title" and "detail"
+- "title": A concise summary (2-8 words) describing the main action (e.g., "Mix ingredients", "Cook until done")
+- "detail": The complete instruction text exactly as written in the HTML
+- CORRECT: [{"title": "Mix ingredients", "detail": "Mix blueberries, sugar..."}]
+- WRONG: ["Mix blueberries, sugar..."] ← This is FORBIDDEN
 - If NO instructions found: use empty array []
 - NEVER use null for ingredients or instructions - ALWAYS use [] if nothing is found
 
@@ -543,9 +560,10 @@ Follow these steps in order:
    - The ingredient name EXACTLY as written
 4. Preserve any ingredient groups found in the HTML
 5. Locate the instructions section in the HTML
-6. Extract each instruction step EXACTLY as written, preserving all details
-7. Create a concise, action-oriented title for each step (do NOT invent new content; summarize the step in 3-8 words)
-8. Format the extracted data into the required JSON structure
+6. For each instruction step:
+   - Extract the full instruction text EXACTLY as written in the HTML → use as "detail"
+   - Create a concise summary (2-8 words) describing the main action → use as "title"
+   - Format as an object: {"title": "Summary", "detail": "Full instruction text"}
 
 ========================================
 INGREDIENT EXTRACTION RULES
@@ -595,11 +613,11 @@ DETAIL PRESERVATION:
 - Keep all helpful details about techniques, visual cues, and tips
 - Maintain the original level of detail from the HTML
 
-STEP TITLES:
-- Provide a short, clear title that summarizes what the step does (3-8 words)
-- Use action verbs and keep it high-level (e.g., "Make the broth", "Simmer the soup", "Season the noodles")
-- Do NOT include times or temperatures in the title (keep those in detail)
-- Do NOT leave titles blank; if unclear, use a brief summary of the action
+INSTRUCTION TITLES:
+- Each instruction object must have a "title" property (2-8 words max)
+- Title should summarize the main action using action verbs (e.g., "Mix ingredients", "Cook until done", "Serve warm")
+- Do NOT include times, temperatures, or measurements in the title - keep those in "detail"
+- Title is a summary, "detail" contains the full instruction text
 
 AUTHOR EXTRACTION:
 - Extract the recipe author name if clearly visible (e.g., "By Chef John", "Recipe by Jane Doe")
@@ -666,9 +684,27 @@ Example showing varied fraction formats:
     }
   ],
   "instructions": [
-    "In a large bowl, dissolve 2 1/4 teaspoons yeast in 1/4 cup warm water. Let stand until creamy, about 10 minutes.",
-    "Add 3 1/2 cups flour, 1/2 tablespoon salt, and remaining water to the yeast mixture. Mix until dough comes together.",
-    "Turn dough out onto a lightly floured surface and knead for 8 to 10 minutes, until smooth and elastic."
+    {
+      "title": "Activate the yeast",
+      "detail": "In a large bowl, dissolve 2 1/4 teaspoons yeast in 1/4 cup warm water. Let stand until creamy, about 10 minutes.",
+      "timeMinutes": 10,
+      "ingredients": [],
+      "tips": ""
+    },
+    {
+      "title": "Mix the dry ingredients",
+      "detail": "Add 3 1/2 cups flour, 1/2 tablespoon salt, and remaining water to the yeast mixture. Mix until dough comes together.",
+      "timeMinutes": 0,
+      "ingredients": [],
+      "tips": ""
+    },
+    {
+      "title": "Knead the dough",
+      "detail": "Turn dough out onto a lightly floured surface and knead for 8 to 10 minutes, until smooth and elastic.",
+      "timeMinutes": 10,
+      "ingredients": [],
+      "tips": ""
+    }
   ]
 }
 
@@ -683,8 +719,9 @@ START with { and END with }. Nothing else.
 ABSOLUTE REQUIREMENTS:
 - ingredients: MUST be an array [] (never null)
 - instructions: MUST be an array [] (never null)
+- Each instruction MUST be an object: {"title": "Summary", "detail": "Full text"}
 - If you find ingredients in the HTML, extract them
-- If you find instructions in the HTML, extract them
+- If you find instructions in the HTML, extract them as objects with title and detail
 - If you don't find them, use empty arrays [] - NEVER null
 - The recipe data exists in the HTML - extract it carefully`,
         },
@@ -715,7 +752,25 @@ ABSOLUTE REQUIREMENTS:
     const jsonString = jsonMatch ? jsonMatch[0] : result;
 
     // Parse the JSON response
-    const parsedData = JSON.parse(jsonString);
+    let parsedData;
+    try {
+      parsedData = JSON.parse(jsonString);
+      
+      // #region agent log
+      console.log('[DEBUG] Parsed AI response:', {
+        hasTitle: !!parsedData.title,
+        hasInstructions: Array.isArray(parsedData.instructions),
+        instructionsCount: parsedData.instructions?.length || 0,
+        firstInstruction: parsedData.instructions?.[0],
+        firstInstructionType: typeof parsedData.instructions?.[0],
+        firstInstructionIsObject: typeof parsedData.instructions?.[0] === 'object' && parsedData.instructions?.[0] !== null,
+        firstInstructionKeys: parsedData.instructions?.[0] && typeof parsedData.instructions[0] === 'object' ? Object.keys(parsedData.instructions[0]) : null
+      });
+      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:800',message:'Parsed AI response',data:{hasTitle:!!parsedData.title,hasInstructions:Array.isArray(parsedData.instructions),instructionsCount:parsedData.instructions?.length||0,firstInstruction:parsedData.instructions?.[0],firstInstructionType:typeof parsedData.instructions?.[0],firstInstructionIsObject:typeof parsedData.instructions?.[0]==='object'&&parsedData.instructions?.[0]!==null,firstInstructionKeys:parsedData.instructions?.[0]&&typeof parsedData.instructions[0]==='object'?Object.keys(parsedData.instructions[0]):null},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v3',hypothesisId:'A,B,C'})}).catch(()=>{});
+      // #endregion
+    } catch (parseError) {
+      throw parseError;
+    }
 
     // Validate structure
     if (
@@ -723,6 +778,10 @@ ABSOLUTE REQUIREMENTS:
       Array.isArray(parsedData.ingredients) &&
       Array.isArray(parsedData.instructions)
     ) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:815',message:'AI response instructions structure',data:{instructionsCount:parsedData.instructions.length,firstInstruction:parsedData.instructions[0],firstInstructionType:typeof parsedData.instructions[0],firstInstructionKeys:parsedData.instructions[0]?Object.keys(parsedData.instructions[0]):null},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix-v2',hypothesisId:'A,B,C'})}).catch(()=>{});
+      // #endregion
+
       // Ensure ingredients have the correct structure
       const validIngredients = parsedData.ingredients.every(
         (group: any) =>
@@ -736,9 +795,43 @@ ABSOLUTE REQUIREMENTS:
           )
       );
 
+      // #region agent log
+      console.log('[DEBUG] Parsed AI response instructions:', {
+        instructionsCount: parsedData.instructions?.length || 0,
+        firstInstruction: parsedData.instructions?.[0],
+        firstInstructionType: typeof parsedData.instructions?.[0],
+        firstInstructionIsObject: typeof parsedData.instructions?.[0] === 'object' && parsedData.instructions?.[0] !== null,
+        firstInstructionKeys: parsedData.instructions?.[0] && typeof parsedData.instructions[0] === 'object' ? Object.keys(parsedData.instructions[0]) : null,
+        firstInstructionTitle: parsedData.instructions?.[0] && typeof parsedData.instructions[0] === 'object' ? parsedData.instructions[0].title : null,
+        firstInstructionDetail: parsedData.instructions?.[0] && typeof parsedData.instructions[0] === 'object' ? parsedData.instructions[0].detail : null,
+      });
+      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:789',message:'AI response before normalization',data:{instructionsCount:parsedData.instructions?.length||0,firstInstruction:parsedData.instructions?.[0],firstInstructionType:typeof parsedData.instructions?.[0],firstInstructionKeys:parsedData.instructions?.[0]&&typeof parsedData.instructions[0]==='object'?Object.keys(parsedData.instructions[0]):null,firstInstructionTitle:parsedData.instructions?.[0]&&typeof parsedData.instructions[0]==='object'?parsedData.instructions[0].title:null,firstInstructionDetail:parsedData.instructions?.[0]&&typeof parsedData.instructions[0]==='object'?parsedData.instructions[0].detail:null},timestamp:Date.now(),sessionId:'debug-session',runId:'title-debug',hypothesisId:'title-missing'})}).catch(()=>{});
+      // #endregion
+
+      // Validate that AI returned objects, not strings
+      const hasStringInstructions = parsedData.instructions.some(
+        (inst: any) => typeof inst === 'string'
+      );
+      
+      if (hasStringInstructions) {
+        console.warn('[AI Parser] ⚠️ AI returned instructions as strings instead of objects. Prompt may need adjustment.');
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:804',message:'AI returned strings instead of objects',data:{instructionsCount:parsedData.instructions.length,firstInstruction:parsedData.instructions[0],firstInstructionType:typeof parsedData.instructions[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'title-debug',hypothesisId:'title-missing'})}).catch(()=>{});
+        // #endregion
+      } else {
+        console.log('[AI Parser] ✅ AI correctly returned instructions as objects with title/detail');
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:808',message:'AI correctly returned objects',data:{instructionsCount:parsedData.instructions.length,firstInstruction:parsedData.instructions[0],firstInstructionHasTitle:typeof parsedData.instructions[0]?.title==='string',firstInstructionTitle:parsedData.instructions[0]?.title},timestamp:Date.now(),sessionId:'debug-session',runId:'title-debug',hypothesisId:'title-missing'})}).catch(()=>{});
+        // #endregion
+      }
+
       const normalizedInstructions = normalizeInstructionSteps(
         parsedData.instructions,
       );
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'aiRecipeParser.ts:858',message:'Normalized instructions output',data:{normalizedCount:normalizedInstructions.length,firstNormalized:normalizedInstructions[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'prompt-fix',hypothesisId:'A,B,C'})}).catch(()=>{});
+      // #endregion
 
       if (validIngredients && normalizedInstructions.length > 0) {
         console.log(

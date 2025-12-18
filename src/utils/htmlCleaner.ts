@@ -38,6 +38,16 @@ export function cleanRecipeHTML(rawHtml: string): CleanedHTML {
     // Load HTML with Cheerio
     const $ = cheerio.load(rawHtml);
 
+    // STEP 0: Extract JSON-LD scripts FIRST (before any cleaning)
+    // These are critical for structured data extraction and must be preserved
+    const jsonLdScripts: string[] = [];
+    $('script[type="application/ld+json"]').each((_, element) => {
+      const scriptContent = $(element).html();
+      if (scriptContent && scriptContent.trim()) {
+        jsonLdScripts.push(scriptContent);
+      }
+    });
+
     // STEP 1: Extract recipe-specific sections FIRST (before removing other content)
     // This ensures we prioritize ingredients and directions
     
@@ -163,8 +173,17 @@ export function cleanRecipeHTML(rawHtml: string): CleanedHTML {
 
     // STEP 2: Remove all non-essential elements
     // Remove scripts, styles, and media elements
+    // IMPORTANT: Preserve JSON-LD scripts for structured data extraction
+    $('script').each((_, element) => {
+      const $script = $(element);
+      // Keep JSON-LD scripts, remove all others
+      if ($script.attr('type') !== 'application/ld+json') {
+        $script.remove();
+      }
+    });
+    // Remove other non-essential elements
     $(
-      'script, style, noscript, link, meta, head, svg, symbol, img, button, iframe, video, audio, canvas, form, input, select, option, textarea'
+      'style, noscript, link, meta, head, svg, symbol, img, button, iframe, video, audio, canvas, form, input, select, option, textarea'
     ).remove();
 
     // Remove navigation and site structure elements
@@ -295,6 +314,13 @@ export function cleanRecipeHTML(rawHtml: string): CleanedHTML {
     // Start with a structured format that emphasizes ingredients and directions
     
     let optimizedHtml = '';
+
+    // Add JSON-LD scripts FIRST (critical for structured data extraction)
+    if (jsonLdScripts.length > 0) {
+      jsonLdScripts.forEach((scriptContent) => {
+        optimizedHtml += `<script type="application/ld+json">${scriptContent}</script>\n`;
+      });
+    }
 
     // Add title if found
     if (recipeTitle) {

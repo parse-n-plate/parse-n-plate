@@ -62,17 +62,6 @@ interface RecipeContextType {
 const RecipeContext = createContext<RecipeContextType | undefined>(undefined);
 
 // --- Helpers to normalize instructions into titled steps for legacy data ---
-const deriveStepTitle = (text: string): string => {
-  const trimmed = text?.trim() || '';
-  if (!trimmed) return 'Step';
-  const firstSentenceMatch = trimmed.match(/^([^.!?]+[.!?]?)/);
-  if (firstSentenceMatch) {
-    const firstSentence = firstSentenceMatch[1].trim();
-    return firstSentence.replace(/[.!?]+$/, '') || 'Step';
-  }
-  return trimmed;
-};
-
 const normalizeInstructions = (
   instructions?: Array<string | InstructionStep>,
 ): InstructionStep[] => {
@@ -81,57 +70,34 @@ const normalizeInstructions = (
   const cleanLeading = (text: string): string =>
     (text || '').replace(/^[\s.:;,\-–—]+/, '').trim();
 
-  const stripLeadingTitle = (title: string, detail: string): string => {
-    if (!title) return detail;
-    const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const stripped = detail.replace(
-      new RegExp(`^${escaped}\\s*[:\\-–—]?\\s*`, 'i'),
-      '',
-    ).trim();
-    const candidate = stripped.length > 0 ? stripped : detail;
-    return cleanLeading(candidate);
-  };
-
   return instructions
-    .map((item) => {
+    .map((item, index) => {
+      // Handle string inputs (legacy format)
       if (typeof item === 'string') {
-        const detail = item.trim();
+        const detail = cleanLeading(item.trim());
         if (!detail) return null;
-        const autoTitle = deriveStepTitle(detail);
-        const title = cleanLeading(autoTitle) || 'Step';
-        const cleanedDetail = stripLeadingTitle(title, detail);
-        return { title, detail: cleanedDetail };
+        // Use generic title for legacy string inputs
+        return { title: `Step ${index + 1}`, detail };
       }
 
+      // Handle object inputs (expected format)
       if (item && typeof item === 'object') {
-        const rawTitle =
+        const title =
           typeof (item as any).title === 'string'
-            ? (item as any).title.trim()
-            : '';
+            ? cleanLeading((item as any).title.trim())
+            : `Step ${index + 1}`;
         const detail =
           typeof (item as any).detail === 'string'
-            ? (item as any).detail.trim()
+            ? cleanLeading((item as any).detail.trim())
+            : typeof (item as any).text === 'string'
+            ? cleanLeading((item as any).text.trim())
             : '';
+        
         if (!detail) return null;
 
-        // Preserve already-normalized instructions so we do not strip twice
-        if (rawTitle) {
-          return {
-            title: rawTitle,
-            detail,
-            timeMinutes: (item as any).timeMinutes,
-            ingredients: (item as any).ingredients,
-            tips: (item as any).tips,
-          } satisfies InstructionStep;
-        }
-
-        // Legacy/object without title: derive a title and strip it from detail
-        const autoTitle = deriveStepTitle(detail);
-        const chosenTitle = cleanLeading(autoTitle) || 'Step';
-        const cleanedDetail = stripLeadingTitle(chosenTitle, detail);
         return {
-          title: chosenTitle,
-          detail: cleanedDetail,
+          title,
+          detail,
           timeMinutes: (item as any).timeMinutes,
           ingredients: (item as any).ingredients,
           tips: (item as any).tips,
