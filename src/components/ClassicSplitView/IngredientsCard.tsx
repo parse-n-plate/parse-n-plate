@@ -32,3 +32,8 @@ export default function IngredientsCard({ ingredients }: IngredientsCardProps) {
 
 
 
+
+
+
+
+

@@ -890,9 +890,33 @@ export default function DebugParserPage() {
                             </h4>
                             {Array.isArray(data.instructions) && data.instructions.length > 0 ? (
                               <ol className="list-decimal ml-6 text-xs">
-                                {(data.instructions as string[]).map((inst: string, idx: number) => (
-                                  <li key={idx} className="mb-1">{inst}</li>
-                                ))}
+                                {data.instructions.map((inst: any, idx: number) => {
+                                  // Handle both string and object instruction formats
+                                  if (typeof inst === 'string') {
+                                    // String format (from URL parsing)
+                                    return (
+                                      <li key={idx} className="mb-1">{inst}</li>
+                                    );
+                                  } else if (inst && typeof inst === 'object') {
+                                    // Object format (from image parsing) - has title, detail, timeMinutes, ingredients, tips
+                                    return (
+                                      <li key={idx} className="mb-2">
+                                        {inst.title && (
+                                          <span className="font-semibold">{inst.title}: </span>
+                                        )}
+                                        {inst.detail || inst.text || JSON.stringify(inst)}
+                                        {inst.timeMinutes && inst.timeMinutes > 0 && (
+                                          <span className="text-gray-500 ml-2">({inst.timeMinutes} min)</span>
+                                        )}
+                                      </li>
+                                    );
+                                  } else {
+                                    // Fallback for unexpected formats
+                                    return (
+                                      <li key={idx} className="mb-1">{JSON.stringify(inst)}</li>
+                                    );
+                                  }
+                                })}
                               </ol>
                             ) : (
                               <p className="text-sm text-gray-500">No instructions found</p>

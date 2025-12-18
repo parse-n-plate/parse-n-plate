@@ -18,20 +18,22 @@ export default function ContextPanel({ step }: ContextPanelProps) {
           <div className="h-px bg-stone-200 w-full" />
           
           {/* Ingredients List */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
             {step.ingredients.map((ingredient, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <p className="font-albert text-[18px] text-stone-500 leading-[28px]">
+              <div
+                key={index}
+                className="group flex items-center justify-between p-2 -mx-2 rounded-lg transition-all duration-200 hover:bg-stone-50 cursor-pointer"
+              >
+                <p className="font-albert text-[18px] text-stone-500 leading-[28px] transition-colors duration-200 group-hover:text-stone-900">
                   {ingredient}
                 </p>
-                <div className="w-6 h-6 shrink-0">
+                <div className="w-6 h-6 shrink-0 transition-colors duration-200 text-stone-400 group-hover:text-stone-600">
                   <svg
                     width="24"
                     height="24"
                     viewBox="0 0 24 24"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    className="text-stone-400"
                   >
                     <path
                       d="M7 17L17 7M17 7H7M17 7V17"
