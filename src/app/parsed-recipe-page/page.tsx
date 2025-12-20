@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, use } from 'react';
 import RecipeSkeleton from '@/components/ui/recipe-skeleton';
 import * as Tabs from '@radix-ui/react-tabs';
-import { X, ArrowLeft, ExternalLink } from 'lucide-react';
+import { X, ArrowLeft, ExternalLink, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { scaleIngredients } from '@/utils/ingredientScaler';
 import ClassicSplitView from '@/components/ClassicSplitView';
@@ -149,6 +149,18 @@ export default function ParsedRecipePage({
   const [servings, setServings] = useState<number>(parsedRecipe?.servings || 4);
   const [multiplier, setMultiplier] = useState<string>('1x');
   const [activeTab, setActiveTab] = useState<string>('prep');
+  const [copied, setCopied] = useState(false);
+
+  // Helper function to handle copying the URL
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 
   // Redirect if loaded and no recipe
   // Check both state and localStorage to handle race conditions where navigation
@@ -281,16 +293,49 @@ export default function ParsedRecipePage({
                             {parsedRecipe.author?.trim() && (
                               <span className="text-stone-400">•</span>
                             )}
-                            <a
-                              href={parsedRecipe.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1"
-                              aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
-                            >
-                              {getDomainFromUrl(parsedRecipe.sourceUrl)}
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
+                            <div className="flex items-center gap-1 group">
+                              <a
+                                href={parsedRecipe.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1"
+                                aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
+                              >
+                                {getDomainFromUrl(parsedRecipe.sourceUrl)}
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                              
+                              {/* Simple Copy Button - slides out from under URL on hover */}
+                              <button
+                                className="opacity-0 group-hover:opacity-100 translate-x-[-8px] group-hover:translate-x-0 transition-all duration-150 p-1 flex items-center justify-center cursor-pointer"
+                                onClick={() => handleCopy(parsedRecipe.sourceUrl || '')}
+                                title="Copy recipe URL"
+                              >
+                                <AnimatePresence mode="wait">
+                                  {copied ? (
+                                    <motion.div
+                                      key="check"
+                                      initial={{ scale: 0.5, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      exit={{ scale: 0.5, opacity: 0 }}
+                                      transition={{ duration: 0.1 }}
+                                    >
+                                      <Check className="w-3.5 h-3.5 text-green-600" />
+                                    </motion.div>
+                                  ) : (
+                                    <motion.div
+                                      key="copy"
+                                      initial={{ scale: 0.5, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      exit={{ scale: 0.5, opacity: 0 }}
+                                      transition={{ duration: 0.1 }}
+                                    >
+                                      <Copy className="w-3.5 h-3.5 text-stone-400" />
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </button>
+                            </div>
                           </>
                         )}
                       </div>
