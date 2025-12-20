@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, use } from 'react';
 import RecipeSkeleton from '@/components/ui/recipe-skeleton';
 import * as Tabs from '@radix-ui/react-tabs';
-import { X, ArrowLeft, ExternalLink, Copy, Check } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { scaleIngredients } from '@/utils/ingredientScaler';
 import ClassicSplitView from '@/components/ClassicSplitView';
 import IngredientCard from '@/components/ui/ingredient-card';
 import { ServingsControls } from '@/components/ui/servings-controls';
+import { MobileToolbar } from '@/components/ui/mobile-toolbar';
 import { UISettingsProvider } from '@/contexts/UISettingsContext';
 import { AdminPrototypingPanel } from '@/components/ui/admin-prototyping-panel';
 
@@ -322,7 +323,7 @@ export default function ParsedRecipePage({
 
   return (
     <UISettingsProvider>
-      <div className="bg-white min-h-screen relative max-w-full overflow-x-hidden">
+      <div className="bg-white min-h-screen relative max-w-full overflow-x-hidden mobile-toolbar-page-padding">
         <div className="transition-opacity duration-300 ease-in-out opacity-100">
           {/* Tabs Root - wraps both navigation and content */}
           <Tabs.Root 
@@ -337,7 +338,7 @@ export default function ParsedRecipePage({
                 {/* Header Section with Navigation */}
                 <div className="w-full mb-8">
                   <div className="flex flex-col gap-4">
-                    {/* Responsive Navigation: Breadcrumb for desktop, X button for mobile */}
+                    {/* Responsive Navigation: Back to Home breadcrumb */}
                     <div className="flex gap-3 items-center justify-between">
                       {/* Desktop: Back to Home breadcrumb */}
                       <button
@@ -347,15 +348,6 @@ export default function ParsedRecipePage({
                       >
                         <ArrowLeft className="w-4 h-4" />
                         <span className="font-albert text-[14px]">Back to Home</span>
-                      </button>
-                      
-                      {/* Mobile: X close button */}
-                      <button
-                        onClick={() => router.push('/')}
-                        className="md:hidden bg-white rounded-full p-4 flex items-center justify-center shrink-0 w-12 h-12 hover:bg-stone-50 transition-colors ml-auto"
-                        aria-label="Close and return to homepage"
-                      >
-                        <X className="w-6 h-6 text-stone-600" />
                       </button>
                     </div>
                   </div>
@@ -556,12 +548,15 @@ export default function ParsedRecipePage({
                     >
                       <div className="p-6 space-y-6">
                         {/* Servings Adjuster and Multiplier Container */}
-                        <ServingsControls
-                          servings={servings}
-                          onServingsChange={handleServingsChange}
-                          multiplier={multiplier}
-                          onMultiplierChange={handleMultiplierChange}
-                        />
+                        {/* Hidden on mobile - available in mobile toolbar instead */}
+                        <div className="servings-controls-desktop-only">
+                          <ServingsControls
+                            servings={servings}
+                            onServingsChange={handleServingsChange}
+                            multiplier={multiplier}
+                            onMultiplierChange={handleMultiplierChange}
+                          />
+                        </div>
 
                         {/* Ingredients */}
                         <div className="bg-white">
@@ -670,6 +665,13 @@ export default function ParsedRecipePage({
             </div>
           </Tabs.Root>
         </div>
+        
+        {/* Mobile Toolbar - Fixed bottom navigation for quick actions */}
+        {/* Only visible on mobile screens (< 768px) */}
+        <MobileToolbar 
+          servings={servings}
+          onServingsChange={handleServingsChange}
+        />
         
         {/* Admin Panel for Prototyping */}
         <AdminPrototypingPanel />

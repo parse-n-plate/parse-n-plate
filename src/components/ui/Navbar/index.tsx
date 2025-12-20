@@ -3,8 +3,12 @@
 import PPLogo from '@/components/ui/Navbar/pplogo';
 import Link from 'next/link';
 import NavbarSearch from '@/components/ui/Navbar/navbar-search';
+import { useRouter } from 'next/navigation';
+import { X } from 'lucide-react';
 
 export default function Navbar() {
+  const router = useRouter();
+
   return (
     <>
       <div className="bg-white px-3 md:px-4 py-3 md:py-4 sticky top-0 z-40 border-b border-stone-100">
@@ -21,8 +25,17 @@ export default function Navbar() {
             <NavbarSearch />
           </div>
 
-          {/* Right: Empty space for balance - Hidden on mobile to save space */}
+          {/* Right: Close button on mobile, empty space on desktop */}
           <div className="hidden md:block flex-shrink-0 w-14"></div>
+          
+          {/* Mobile: Close button - visible only on mobile screens */}
+          <button
+            onClick={() => router.push('/')}
+            className="md:hidden bg-white rounded-full p-4 flex items-center justify-center shrink-0 w-12 h-12 hover:bg-stone-50 transition-colors ml-auto"
+            aria-label="Close and return to homepage"
+          >
+            <X className="w-6 h-6 text-stone-600" />
+          </button>
         </div>
       </div>
     </>

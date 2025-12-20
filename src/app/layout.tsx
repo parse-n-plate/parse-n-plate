@@ -5,6 +5,7 @@ import Navbar from '@/components/ui/Navbar';
 import { AdminSettingsProvider } from '@/contexts/AdminSettingsContext';
 import { RecipeProvider } from '@/contexts/RecipeContext';
 import { ParsedRecipesProvider } from '@/contexts/ParsedRecipesContext';
+import { TimerProvider } from '@/contexts/TimerContext';
 import './globals.css';
 
 // Default fonts: Domine for headings (serif), Albert Sans for body (sans-serif)
@@ -39,8 +40,10 @@ export default function RootLayout({
         <AdminSettingsProvider>
           <RecipeProvider>
             <ParsedRecipesProvider>
-              <Navbar />
-              {children}
+              <TimerProvider>
+                <Navbar />
+                {children}
+              </TimerProvider>
             </ParsedRecipesProvider>
           </RecipeProvider>
         </AdminSettingsProvider>
