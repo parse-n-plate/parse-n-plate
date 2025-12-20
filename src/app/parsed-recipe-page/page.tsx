@@ -10,6 +10,8 @@ import { scaleIngredients } from '@/utils/ingredientScaler';
 import ClassicSplitView from '@/components/ClassicSplitView';
 import IngredientCard from '@/components/ui/ingredient-card';
 import { ServingsControls } from '@/components/ui/servings-controls';
+import { UISettingsProvider } from '@/contexts/UISettingsContext';
+import { AdminPrototypingPanel } from '@/components/ui/admin-prototyping-panel';
 
 // Helper function to extract domain from URL for display
 const getDomainFromUrl = (url: string): string => {
@@ -151,6 +153,42 @@ export default function ParsedRecipePage({
   const [activeTab, setActiveTab] = useState<string>('prep');
   const [copied, setCopied] = useState(false);
 
+  // Handle navigation to ingredients from the Cook tab
+  useEffect(() => {
+    const handleNavigateToIngredient = (event: any) => {
+      const { name } = event.detail;
+      setActiveTab('prep');
+      
+      // Wait for tab switch animation to complete
+      setTimeout(() => {
+        const id = `ingredient-${name.toLowerCase().replace(/\s+/g, '-')}`;
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Add a brief highlight effect
+          element.classList.add('ingredient-highlight');
+          setTimeout(() => {
+            element.classList.remove('ingredient-highlight');
+          }, 2000);
+        }
+      }, 100);
+    };
+
+    window.addEventListener('navigate-to-ingredient', handleNavigateToIngredient);
+    
+    const handleNavigateToStep = () => {
+      setActiveTab('cook');
+    };
+
+    window.addEventListener('navigate-to-step', handleNavigateToStep);
+
+    return () => {
+      window.removeEventListener('navigate-to-ingredient', handleNavigateToIngredient);
+      window.removeEventListener('navigate-to-step', handleNavigateToStep);
+    };
+  }, []);
+
   // Helper function to handle copying the URL
   const handleCopy = async (text: string) => {
     try {
@@ -218,6 +256,56 @@ export default function ParsedRecipePage({
     setMultiplier(newMultiplier);
   };
 
+  // Memoize normalized steps for bidirectional linking
+  const normalizedSteps = useMemo(() => {
+    if (!parsedRecipe || !Array.isArray(parsedRecipe.instructions)) return [];
+    
+    return parsedRecipe.instructions
+      .map((instruction) => {
+        if (typeof instruction === 'string') {
+          const detail = instruction.trim();
+          if (!detail) return null;
+          return {
+            step: extractStepTitle(detail),
+            detail,
+            time: 0,
+            ingredients: [],
+            tips: '',
+          };
+        }
+
+        if (instruction && typeof instruction === 'object') {
+          const instructionObj = instruction as unknown as Record<string, unknown>;
+          const detail = (() => {
+            if (typeof instructionObj.detail === 'string') return instructionObj.detail.trim();
+            if (typeof instructionObj.text === 'string') return instructionObj.text.trim();
+            if (typeof instructionObj.name === 'string') return instructionObj.name.trim();
+            return '';
+          })();
+
+          if (!detail) return null;
+
+          return {
+            step: typeof instructionObj.title === 'string' ? instructionObj.title.trim() : (typeof instructionObj.step === 'string' ? instructionObj.step.trim() : extractStepTitle(detail)),
+            detail,
+            time: typeof instructionObj.timeMinutes === 'number' ? instructionObj.timeMinutes : (typeof instructionObj.time === 'number' ? instructionObj.time : 0),
+            ingredients: Array.isArray(instructionObj.ingredients) ? instructionObj.ingredients : [],
+            tips: typeof instructionObj.tips === 'string' ? instructionObj.tips : '',
+          };
+        }
+        return null;
+      })
+      .filter((s): s is any => s !== null);
+  }, [parsedRecipe]);
+
+  // Memoize flattened ingredients for matching
+  const flattenedIngredients = useMemo(() => {
+    return scaledIngredients.flatMap(g => g.ingredients.map(i => {
+      if (typeof i === 'string') return { name: i };
+      return { name: i.ingredient, amount: i.amount, units: i.units, group: g.groupName };
+    }));
+  }, [scaledIngredients]);
+
   if (!isLoaded) {
     return <RecipeSkeleton />;
   }
@@ -233,444 +321,359 @@ export default function ParsedRecipePage({
   }
 
   return (
-    <div className="bg-white min-h-screen relative max-w-full overflow-x-hidden">
-      <div className="transition-opacity duration-300 ease-in-out opacity-100">
-        {/* Tabs Root - wraps both navigation and content */}
-        <Tabs.Root 
-          value={activeTab} 
-          onValueChange={setActiveTab} 
-          className="w-full"
-        >
-          {/* Header Section with #F8F8F4 Background */}
-          <div className="bg-[#f8f8f4]">
-            {/* Main Content Container with max-width */}
-            <div className="max-w-6xl mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-0">
-              {/* Header Section with Navigation */}
-              <div className="w-full mb-8">
-                <div className="flex flex-col gap-4">
-                  {/* Responsive Navigation: Breadcrumb for desktop, X button for mobile */}
-                  <div className="flex gap-3 items-center justify-between">
-                    {/* Desktop: Back to Home breadcrumb */}
-                    <button
-                      onClick={() => router.push('/')}
-                      className="hidden md:flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors"
-                      aria-label="Back to Home"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span className="font-albert text-[14px]">Back to Home</span>
-                    </button>
-                    
-                    {/* Mobile: X close button */}
-                    <button
-                      onClick={() => router.push('/')}
-                      className="md:hidden bg-white rounded-full p-4 flex items-center justify-center shrink-0 w-12 h-12 hover:bg-stone-50 transition-colors ml-auto"
-                      aria-label="Close and return to homepage"
-                    >
-                      <X className="w-6 h-6 text-stone-600" />
-                    </button>
+    <UISettingsProvider>
+      <div className="bg-white min-h-screen relative max-w-full overflow-x-hidden">
+        <div className="transition-opacity duration-300 ease-in-out opacity-100">
+          {/* Tabs Root - wraps both navigation and content */}
+          <Tabs.Root 
+            value={activeTab} 
+            onValueChange={setActiveTab} 
+            className="w-full"
+          >
+            {/* Header Section with #F8F8F4 Background */}
+            <div className="bg-[#f8f8f4]">
+              {/* Main Content Container with max-width */}
+              <div className="max-w-6xl mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-0">
+                {/* Header Section with Navigation */}
+                <div className="w-full mb-8">
+                  <div className="flex flex-col gap-4">
+                    {/* Responsive Navigation: Breadcrumb for desktop, X button for mobile */}
+                    <div className="flex gap-3 items-center justify-between">
+                      {/* Desktop: Back to Home breadcrumb */}
+                      <button
+                        onClick={() => router.push('/')}
+                        className="hidden md:flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors"
+                        aria-label="Back to Home"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span className="font-albert text-[14px]">Back to Home</span>
+                      </button>
+                      
+                      {/* Mobile: X close button */}
+                      <button
+                        onClick={() => router.push('/')}
+                        className="md:hidden bg-white rounded-full p-4 flex items-center justify-center shrink-0 w-12 h-12 hover:bg-stone-50 transition-colors ml-auto"
+                        aria-label="Close and return to homepage"
+                      >
+                        <X className="w-6 h-6 text-stone-600" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Recipe Info Section */}
-              <div className="w-full pt-6 pb-0">
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <h1 className="font-domine text-[36px] text-[#193d34] leading-[1.2] font-bold">
-                      {parsedRecipe.title || 'Beef Udon'}
-                    </h1>
-                    
-                    {/* Author and Source URL */}
-                    {(parsedRecipe.author?.trim() || parsedRecipe.sourceUrl) && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {parsedRecipe.author?.trim() && (
-                          <p className="font-albert text-[16px] text-stone-400 leading-[1.4]">
-                            by {parsedRecipe.author.trim()}
-                          </p>
-                        )}
-                        {parsedRecipe.sourceUrl && (
-                          <>
-                            {parsedRecipe.author?.trim() && (
-                              <span className="text-stone-400">•</span>
-                            )}
-                            <div className="flex items-center gap-1 group">
-                              <a
-                                href={parsedRecipe.sourceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1"
-                                aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
-                              >
-                                {getDomainFromUrl(parsedRecipe.sourceUrl)}
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                              
-                              {/* Simple Copy Button - slides out from under URL on hover */}
-                              <button
-                                className="opacity-0 group-hover:opacity-100 translate-x-[-8px] group-hover:translate-x-0 transition-all duration-150 p-1 flex items-center justify-center cursor-pointer"
-                                onClick={() => handleCopy(parsedRecipe.sourceUrl || '')}
-                                title="Copy recipe URL"
-                              >
-                                <AnimatePresence mode="wait">
-                                  {copied ? (
-                                    <motion.div
-                                      key="check"
-                                      initial={{ scale: 0.5, opacity: 0 }}
-                                      animate={{ scale: 1, opacity: 1 }}
-                                      exit={{ scale: 0.5, opacity: 0 }}
-                                      transition={{ duration: 0.1 }}
-                                    >
-                                      <Check className="w-3.5 h-3.5 text-green-600" />
-                                    </motion.div>
-                                  ) : (
-                                    <motion.div
-                                      key="copy"
-                                      initial={{ scale: 0.5, opacity: 0 }}
-                                      animate={{ scale: 1, opacity: 1 }}
-                                      exit={{ scale: 0.5, opacity: 0 }}
-                                      transition={{ duration: 0.1 }}
-                                    >
-                                      <Copy className="w-3.5 h-3.5 text-stone-400" />
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* AI-Generated Summary */}
-                    {parsedRecipe.summary?.trim() && (
-                      <p className="font-albert text-[16px] text-stone-600 leading-[1.5] italic">
-                        {parsedRecipe.summary.trim()}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Time and Servings */}
-                  <div className="flex flex-col gap-2.5">
-                    <p className="font-albert text-[16px] text-stone-500 leading-[1.4]">
-                      {formatTimeDisplay(
-                        parsedRecipe.prepTimeMinutes,
-                        parsedRecipe.cookTimeMinutes,
-                        parsedRecipe.totalTimeMinutes,
-                        parsedRecipe.servings ?? servings
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabs Navigation */}
-              <div className="w-full">
-                {/* Tab List */}
-                <Tabs.List className="flex items-start w-full relative">
-                  <Tabs.Trigger
-                    value="prep"
-                    className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
-                  >
-                    <motion.div 
-                      whileHover={{ scale: 1.1, rotate: -5 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="relative shrink-0 w-9 h-9"
-                    >
-                      <img 
-                        alt="Prep icon" 
-                        className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'prep' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
-                        src="/assets/icons/Prep_Icon.png"
-                      />
-                    </motion.div>
-                    <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'prep' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
-                      Prep
-                    </span>
-                    {activeTab === 'prep' && (
-                      <motion.div 
-                        layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                  </Tabs.Trigger>
-                  <Tabs.Trigger
-                    value="cook"
-                    className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
-                  >
-                    <motion.div 
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="relative shrink-0 w-9 h-9"
-                    >
-                      <img 
-                        alt="Cook icon" 
-                        className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'cook' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
-                        src="/assets/icons/Cook_Icon.png"
-                      />
-                    </motion.div>
-                    <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'cook' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
-                      Cook
-                    </span>
-                    {activeTab === 'cook' && (
-                      <motion.div 
-                        layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                  </Tabs.Trigger>
-                  <Tabs.Trigger
-                    value="plate"
-                    className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
-                  >
-                    <motion.div 
-                      whileHover={{ scale: 1.1, rotate: -3 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="relative shrink-0 w-9 h-9"
-                    >
-                      <img 
-                        alt="Plate icon" 
-                        className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'plate' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
-                        src="/assets/icons/Plate_Icon.png"
-                      />
-                    </motion.div>
-                    <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'plate' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
-                      Plate
-                    </span>
-                    {activeTab === 'plate' && (
-                      <motion.div 
-                        layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                  </Tabs.Trigger>
-                </Tabs.List>
-              </div>
-            </div>
-            {/* Full-width border underneath header */}
-            <div className="w-full border-b border-[#E7E5E4]"></div>
-          </div>
-
-          {/* Main Content - Tab Content Sections */}
-          <div className="max-w-6xl mx-auto px-4 md:px-8">
-            <AnimatePresence mode="wait">
-              {/* Prep Tab Content */}
-              {activeTab === 'prep' && (
-                <Tabs.Content value="prep" key="prep" className="space-y-0 outline-none" forceMount>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="bg-white"
-                  >
-                    <div className="p-6 space-y-6">
-                      {/* Servings Adjuster and Multiplier Container */}
-                      <ServingsControls
-                        servings={servings}
-                        onServingsChange={handleServingsChange}
-                        multiplier={multiplier}
-                        onMultiplierChange={handleMultiplierChange}
-                      />
-
-                      {/* Ingredients */}
-                      <div className="bg-white">
-                        <h2 className="font-domine text-[20px] text-[#193d34] mb-6 leading-[1.1]">
-                          Ingredients
-                        </h2>
-                        {Array.isArray(scaledIngredients) &&
-                          scaledIngredients.map(
-                            (
-                              group: {
-                                groupName: string;
-                                ingredients: Array<
-                                  | string
-                                  | {
-                                      amount?: string;
-                                      units?: string;
-                                      ingredient: string;
-                                    }
-                                >;
-                              },
-                              groupIdx: number,
-                            ) => (
-                              <div key={groupIdx} className="mb-6 last:mb-0">
-                                <h3 className="font-domine text-[18px] text-[#193d34] mb-3 leading-none">
-                                  {group.groupName}
-                                </h3>
-                                <div className="ingredient-list-container">
-                                  {Array.isArray(group.ingredients) &&
-                                    group.ingredients.map(
-                                      (
-                                        ingredient:
-                                          | string
-                                          | {
-                                              amount?: string;
-                                              units?: string;
-                                              ingredient: string;
-                                            },
-                                        index: number,
-                                      ) => {
-                                        const isLast = index === group.ingredients.length - 1;
-                                        return (
-                                          <IngredientCard
-                                            key={index}
-                                            ingredient={ingredient}
-                                            description={undefined} // Empty state - not connected to backend yet
-                                            isLast={isLast}
-                                          />
-                                        );
-                                      },
-                                    )}
-                                </div>
-                              </div>
-                            ),
+                {/* Recipe Info Section */}
+                <div className="w-full pt-6 pb-0">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <h1 className="font-domine text-[36px] text-[#193d34] leading-[1.2] font-bold">
+                        {parsedRecipe.title || 'Beef Udon'}
+                      </h1>
+                      
+                      {/* Author and Source URL */}
+                      {(parsedRecipe.author?.trim() || parsedRecipe.sourceUrl) && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {parsedRecipe.author?.trim() && (
+                            <p className="font-albert text-[16px] text-stone-400 leading-[1.4]">
+                              by {parsedRecipe.author.trim()}
+                            </p>
                           )}
-                      </div>
+                          {parsedRecipe.sourceUrl && (
+                            <>
+                              {parsedRecipe.author?.trim() && (
+                                <span className="text-stone-400">•</span>
+                              )}
+                              <div className="flex items-center gap-1 group">
+                                <a
+                                  href={parsedRecipe.sourceUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1"
+                                  aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
+                                >
+                                  {getDomainFromUrl(parsedRecipe.sourceUrl)}
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                                
+                                {/* Simple Copy Button - slides out from under URL on hover */}
+                                <button
+                                  className="opacity-0 group-hover:opacity-100 translate-x-[-8px] group-hover:translate-x-0 transition-all duration-150 p-1 flex items-center justify-center cursor-pointer"
+                                  onClick={() => handleCopy(parsedRecipe.sourceUrl || '')}
+                                  title="Copy recipe URL"
+                                >
+                                  <AnimatePresence mode="wait">
+                                    {copied ? (
+                                      <motion.div
+                                        key="check"
+                                        initial={{ scale: 0.5, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.5, opacity: 0 }}
+                                        transition={{ duration: 0.1 }}
+                                      >
+                                        <Check className="w-3.5 h-3.5 text-green-600" />
+                                      </motion.div>
+                                    ) : (
+                                      <motion.div
+                                        key="copy"
+                                        initial={{ scale: 0.5, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.5, opacity: 0 }}
+                                        transition={{ duration: 0.1 }}
+                                      >
+                                        <Copy className="w-3.5 h-3.5 text-stone-400" />
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* AI-Generated Summary */}
+                      {parsedRecipe.summary?.trim() && (
+                        <p className="font-albert text-[16px] text-stone-600 leading-[1.5] italic">
+                          {parsedRecipe.summary.trim()}
+                        </p>
+                      )}
                     </div>
-                  </motion.div>
-                </Tabs.Content>
-              )}
+                    
+                    {/* Time and Servings */}
+                    <div className="flex flex-col gap-2.5">
+                      <p className="font-albert text-[16px] text-stone-500 leading-[1.4]">
+                        {formatTimeDisplay(
+                          parsedRecipe.prepTimeMinutes,
+                          parsedRecipe.cookTimeMinutes,
+                          parsedRecipe.totalTimeMinutes,
+                          parsedRecipe.servings ?? servings
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Cook Tab Content */}
-              {activeTab === 'cook' && (
-                <Tabs.Content value="cook" key="cook" className="space-y-0 outline-none" forceMount>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="w-full"
-                  >
-                    <ClassicSplitView
-                      title={parsedRecipe.title}
-                      steps={
-                        Array.isArray(parsedRecipe.instructions)
-                          ? parsedRecipe.instructions
-                              .map((instruction) => {
-                                // Normalize instruction into object with title/detail
-                                if (typeof instruction === 'string') {
-                                  const detail = instruction.trim();
-                                  if (!detail) return null;
-                                  return {
-                                    step: extractStepTitle(detail),
-                                    detail,
-                                    time: 0,
-                                    ingredients: [],
-                                    tips: '',
-                                  };
-                                }
+                {/* Tabs Navigation */}
+                <div className="w-full">
+                  {/* Tab List */}
+                  <Tabs.List className="flex items-start w-full relative">
+                    <Tabs.Trigger
+                      value="prep"
+                      className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
+                    >
+                      <motion.div 
+                        whileHover={{ scale: 1.1, rotate: -5 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="relative shrink-0 w-9 h-9"
+                      >
+                        <img 
+                          alt="Prep icon" 
+                          className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'prep' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
+                          src="/assets/icons/Prep_Icon.png"
+                        />
+                      </motion.div>
+                      <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'prep' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                        Prep
+                      </span>
+                      {activeTab === 'prep' && (
+                        <motion.div 
+                          layoutId="activeTab"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
+                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      value="cook"
+                      className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
+                    >
+                      <motion.div 
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="relative shrink-0 w-9 h-9"
+                      >
+                        <img 
+                          alt="Cook icon" 
+                          className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'cook' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
+                          src="/assets/icons/Cook_Icon.png"
+                        />
+                      </motion.div>
+                      <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'cook' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                        Cook
+                      </span>
+                      {activeTab === 'cook' && (
+                        <motion.div 
+                          layoutId="activeTab"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
+                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      value="plate"
+                      className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
+                    >
+                      <motion.div 
+                        whileHover={{ scale: 1.1, rotate: -3 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="relative shrink-0 w-9 h-9"
+                      >
+                        <img 
+                          alt="Plate icon" 
+                          className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'plate' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
+                          src="/assets/icons/Plate_Icon.png"
+                        />
+                      </motion.div>
+                      <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'plate' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                        Plate
+                      </span>
+                      {activeTab === 'plate' && (
+                        <motion.div 
+                          layoutId="activeTab"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
+                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                    </Tabs.Trigger>
+                  </Tabs.List>
+                </div>
+              </div>
+              {/* Full-width border underneath header */}
+              <div className="w-full border-b border-[#E7E5E4]"></div>
+            </div>
 
-                                if (
-                                  instruction &&
-                                  typeof instruction === 'object'
-                                ) {
-                                  // Fix: Cast to unknown first, then to Record<string, unknown>
-                                  // This is necessary because InstructionStep doesn't have an index signature
-                                  const instructionObj = instruction as unknown as Record<
-                                    string,
-                                    unknown
+            {/* Main Content - Tab Content Sections */}
+            <div className="max-w-6xl mx-auto px-4 md:px-8">
+              <AnimatePresence mode="wait">
+                {/* Prep Tab Content */}
+                {activeTab === 'prep' && (
+                  <Tabs.Content value="prep" key="prep" className="space-y-0 outline-none" forceMount>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="bg-white"
+                    >
+                      <div className="p-6 space-y-6">
+                        {/* Servings Adjuster and Multiplier Container */}
+                        <ServingsControls
+                          servings={servings}
+                          onServingsChange={handleServingsChange}
+                          multiplier={multiplier}
+                          onMultiplierChange={handleMultiplierChange}
+                        />
+
+                        {/* Ingredients */}
+                        <div className="bg-white">
+                          <h2 className="font-domine text-[20px] text-[#193d34] mb-6 leading-[1.1]">
+                            Ingredients
+                          </h2>
+                          {Array.isArray(scaledIngredients) &&
+                            scaledIngredients.map(
+                              (
+                                group: {
+                                  groupName: string;
+                                  ingredients: Array<
+                                    | string
+                                    | {
+                                        amount?: string;
+                                        units?: string;
+                                        ingredient: string;
+                                      }
                                   >;
-                                  const detail = (() => {
-                                    if (
-                                      typeof instructionObj.detail === 'string'
-                                    ) {
-                                      return instructionObj.detail.trim();
-                                    }
-                                    if (
-                                      typeof instructionObj.text === 'string'
-                                    ) {
-                                      return instructionObj.text.trim();
-                                    }
-                                    if (
-                                      typeof instructionObj.name === 'string'
-                                    ) {
-                                      return instructionObj.name.trim();
-                                    }
-                                    return '';
-                                  })();
-
-                                  if (!detail) return null;
-
-                                  const title =
-                                    typeof instructionObj.title === 'string'
-                                      ? instructionObj.title.trim()
-                                      : '';
-
-                                  const time =
-                                    typeof instructionObj.timeMinutes === 'number'
-                                      ? instructionObj.timeMinutes
-                                      : 0;
-
-                                  const ingredients =
-                                    Array.isArray(instructionObj.ingredients) &&
-                                    instructionObj.ingredients.every(
-                                      (item) => typeof item === 'string',
-                                    )
-                                      ? (instructionObj.ingredients as string[])
-                                      : [];
-
-                                  const tips =
-                                    typeof instructionObj.tips === 'string'
-                                      ? instructionObj.tips
-                                      : '';
-
-                                  return {
-                                    step: title || extractStepTitle(detail),
-                                    detail,
-                                    time,
-                                    ingredients,
-                                    tips,
-                                  };
-                                }
-
-                                return null;
-                              })
-                              .filter(
-                                (step): step is {
-                                  step: string;
-                                  detail: string;
-                                  time: number;
-                                  ingredients: string[];
-                                  tips: string;
-                                } => Boolean(step),
-                              )
-                          : []
-                      }
-                    />
-                  </motion.div>
-                </Tabs.Content>
-              )}
-
-              {/* Plate Tab Content */}
-              {activeTab === 'plate' && (
-                <Tabs.Content value="plate" key="plate" className="space-y-0 outline-none" forceMount>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="bg-white border-t border-stone-200"
-                  >
-                    <div className="p-6">
-                      <div className="text-center py-12">
-                        <div className="text-6xl mb-4">🍽️</div>
-                        <p className="font-albert text-[18px] text-stone-500">
-                          Coming soon...
-                        </p>
-                        <p className="font-albert text-[16px] text-stone-500 mt-2">
-                          Plating suggestions and serving tips will be available here.
-                        </p>
+                                },
+                                groupIdx: number,
+                              ) => (
+                                <div key={groupIdx} className="mb-6 last:mb-0">
+                                  <h3 className="font-domine text-[18px] text-[#193d34] mb-3 leading-none">
+                                    {group.groupName}
+                                  </h3>
+                                  <div className="ingredient-list-container">
+                                    {Array.isArray(group.ingredients) &&
+                                      group.ingredients.map(
+                                        (
+                                          ingredient:
+                                            | string
+                                          | {
+                                                amount?: string;
+                                                units?: string;
+                                                ingredient: string;
+                                              },
+                                          index: number,
+                                        ) => {
+                                          const isLast = index === group.ingredients.length - 1;
+                                          return (
+                                            <IngredientCard
+                                              key={index}
+                                              ingredient={ingredient}
+                                              description={undefined} // Empty state - not connected to backend yet
+                                              isLast={isLast}
+                                              recipeSteps={normalizedSteps.map(s => ({ instruction: s.detail }))}
+                                            />
+                                          );
+                                        },
+                                      )}
+                                  </div>
+                                </div>
+                              ),
+                            )}
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                </Tabs.Content>
-              )}
-            </AnimatePresence>
-          </div>
-        </Tabs.Root>
+                    </motion.div>
+                  </Tabs.Content>
+                )}
+
+                {/* Cook Tab Content */}
+                {activeTab === 'cook' && (
+                  <Tabs.Content value="cook" key="cook" className="space-y-0 outline-none" forceMount>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="w-full"
+                    >
+                      <ClassicSplitView
+                        title={parsedRecipe.title}
+                        allIngredients={flattenedIngredients}
+                        steps={normalizedSteps}
+                      />
+                    </motion.div>
+                  </Tabs.Content>
+                )}
+
+                {/* Plate Tab Content */}
+                {activeTab === 'plate' && (
+                  <Tabs.Content value="plate" key="plate" className="space-y-0 outline-none" forceMount>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="bg-white border-t border-stone-200"
+                    >
+                      <div className="p-6">
+                        <div className="text-center py-12">
+                          <div className="text-6xl mb-4">🍽️</div>
+                          <p className="font-albert text-[18px] text-stone-500">
+                            Coming soon...
+                          </p>
+                          <p className="font-albert text-[16px] text-stone-500 mt-2">
+                            Plating suggestions and serving tips will be available here.
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </Tabs.Content>
+                )}
+              </AnimatePresence>
+            </div>
+          </Tabs.Root>
+        </div>
+        
+        {/* Admin Panel for Prototyping */}
+        <AdminPrototypingPanel />
       </div>
-    </div>
+    </UISettingsProvider>
   );
 }

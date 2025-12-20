@@ -1,0 +1,49 @@
+'use client';
+
+import React from 'react';
+import { motion } from 'framer-motion';
+import { IngredientExpandedContent } from './ingredient-expanded-content';
+
+interface IngredientExpandedThings3Props {
+  ingredientName: string;
+  ingredientAmount?: string;
+  description?: string;
+  linkedSteps: number[];
+  onStepClick: (stepNumber: number) => void;
+  isOpen: boolean;
+}
+
+export function IngredientExpandedThings3({
+  ingredientName,
+  ingredientAmount,
+  description,
+  linkedSteps,
+  onStepClick,
+  isOpen
+}: IngredientExpandedThings3Props) {
+  return (
+    <motion.div
+      initial={false}
+      animate={{ 
+        height: isOpen ? 'auto' : 0, 
+        opacity: isOpen ? 1 : 0,
+        marginTop: isOpen ? 12 : 0,
+        marginBottom: isOpen ? 12 : 0
+      }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="overflow-hidden"
+    >
+      <div className="bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-stone-100 mx-1 mb-2">
+        <IngredientExpandedContent
+          ingredientName={ingredientName}
+          ingredientAmount={ingredientAmount}
+          description={description}
+          linkedSteps={linkedSteps}
+          onStepClick={onStepClick}
+          variant="things3"
+        />
+      </div>
+    </motion.div>
+  );
+}
+

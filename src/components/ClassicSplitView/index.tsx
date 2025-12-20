@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RecipeStep } from './types';
 import ListView from './ListView';
 import CardView from './CardView';
@@ -9,11 +9,32 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface ClassicSplitViewProps {
   steps: RecipeStep[];
   title?: string;
+  allIngredients?: any[]; // To handle flattened ingredients
 }
 
-export default function ClassicSplitView({ steps, title = 'Recipe Steps' }: ClassicSplitViewProps) {
+export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIngredients = [] }: ClassicSplitViewProps) {
   const [view, setView] = useState<'list' | 'card'>('list');
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Listen for navigation events from outside (e.g., from the Prep tab)
+  useEffect(() => {
+    const handleSetStep = (event: any) => {
+      const { stepNumber } = event.detail;
+      if (stepNumber >= 1 && stepNumber <= steps.length) {
+        setCurrentStep(stepNumber - 1);
+        setView('card');
+        
+        // Scroll to top of the split view
+        const element = document.querySelector('.classic-split-view-container');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    };
+
+    window.addEventListener('navigate-to-step', handleSetStep);
+    return () => window.removeEventListener('navigate-to-step', handleSetStep);
+  }, [steps.length]);
 
   // Safety check: ensure steps is valid
   if (!steps || !Array.isArray(steps) || steps.length === 0) {
@@ -81,6 +102,7 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps' }: Clas
                 onNext={handleNextStep}
                 onPrev={handlePrevStep}
                 onBackToList={handleBackToList}
+                allIngredients={allIngredients}
               />
             </motion.div>
           )}

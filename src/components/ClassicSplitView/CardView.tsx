@@ -11,9 +11,10 @@ interface CardViewProps {
   onNext: () => void;
   onPrev: () => void;
   onBackToList: () => void;
+  allIngredients: any[];
 }
 
-export default function CardView({ steps, currentStep, onNext, onPrev, onBackToList }: CardViewProps) {
+export default function CardView({ steps, currentStep, onNext, onPrev, onBackToList, allIngredients }: CardViewProps) {
   // Safety check: ensure we have valid steps and currentStep is in bounds
   if (!steps || steps.length === 0) {
     return (
@@ -48,10 +49,11 @@ export default function CardView({ steps, currentStep, onNext, onPrev, onBackToL
         onNext={onNext}
         onPrev={onPrev}
         onBackToList={onBackToList}
+        allIngredients={allIngredients}
       />
 
       {/* Bottom Half: Context Panel */}
-      <ContextPanel step={step} />
+      <ContextPanel step={step} allIngredients={allIngredients} />
     </motion.div>
   );
 }

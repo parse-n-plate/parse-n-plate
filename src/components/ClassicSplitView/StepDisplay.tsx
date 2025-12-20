@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, List } from 'lucide-react';
 import { RecipeStep } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { findIngredientsInText, IngredientInfo } from '@/utils/ingredientMatcher';
 
 interface StepDisplayProps {
   step: RecipeStep;
@@ -11,6 +12,7 @@ interface StepDisplayProps {
   onNext: () => void;
   onPrev: () => void;
   onBackToList: () => void;
+  allIngredients: any[];
 }
 
 // Helper function to extract and bold keywords in text
@@ -52,7 +54,16 @@ const formatStepText = (text: string): JSX.Element => {
   );
 };
 
-export default function StepDisplay({ step, currentStep, totalSteps, onNext, onPrev, onBackToList }: StepDisplayProps) {
+export default function StepDisplay({ step, currentStep, totalSteps, onNext, onPrev, onBackToList, allIngredients }: StepDisplayProps) {
+  // Find ingredients mentioned in the step text
+  const matchedIngredients = findIngredientsInText(step.detail, allIngredients);
+
+  const handleIngredientClick = (name: string) => {
+    // Dispatch a custom event for the page to handle tab switching and scrolling
+    const event = new CustomEvent('navigate-to-ingredient', { detail: { name } });
+    window.dispatchEvent(event);
+  };
+
   return (
     <div className="shrink-0 bg-white p-8 relative overflow-hidden">
       <div className="flex flex-col gap-10">
@@ -107,9 +118,30 @@ export default function StepDisplay({ step, currentStep, totalSteps, onNext, onP
             <h2 className="font-domine text-[36px] md:text-[42px] text-[#193d34] leading-tight font-bold">
               {step.step}
             </h2>
-            <p className="font-albert text-[19px] text-[#193d34]/80 leading-relaxed max-w-2xl">
-              {formatStepText(step.detail)}
-            </p>
+            <div className="flex flex-col gap-6">
+              <p className="font-albert text-[19px] text-[#193d34]/80 leading-relaxed max-w-2xl">
+                {formatStepText(step.detail)}
+              </p>
+              
+              {/* Ingredient Tags - Minimal and Tag-like */}
+              {matchedIngredients.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {matchedIngredients.map((ing, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleIngredientClick(ing.name)}
+                      className="group relative px-3 py-1 rounded-full bg-stone-50 border border-stone-200 text-stone-500 font-albert text-[13px] font-medium transition-all duration-200 hover:bg-stone-100 hover:text-[#193d34] hover:border-[#193d34]/20"
+                    >
+                      {ing.name}
+                      {/* Simple Tooltip on hover */}
+                      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] rounded bg-stone-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                        {ing.amount} {ing.units} {ing.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>
