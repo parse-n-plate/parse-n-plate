@@ -367,96 +367,81 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
 }
 
 /**
- * Generate a recipe summary using AI
- * Creates a single sentence summary describing the dish, flavor profile, and cooking methods
- * 
- * @param recipe - The parsed recipe data
- * @returns A summary string or null if generation fails
+ * Generate a one-sentence recipe summary.
+ * Describes the dish, its flavor profile, and main cooking methods.
  */
 async function generateRecipeSummary(recipe: ParsedRecipe): Promise<string | null> {
+  if (!process.env.GROQ_API_KEY) return null;
+
   try {
-    // Check if Groq API key is configured
-    if (!process.env.GROQ_API_KEY) {
-      console.warn('[Summary Generator] GROQ_API_KEY is not configured, skipping summary generation');
-      return null;
-    }
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-    const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
-    });
+    const title = (recipe.title || '').trim();
 
-    // Extract key information for summary generation
-    const title = recipe.title || 'this dish';
-    const instructionTexts = recipe.instructions
-      .map((inst) => (typeof inst === 'string' ? inst : inst.detail))
-      .slice(0, 5) // Use first 5 instructions to understand cooking methods
-      .join(' ');
+    const ingredients = recipe.ingredients
+      .flatMap((g) => g.ingredients)
+      .map((i) => (i.ingredient || '').trim())
+      .filter(Boolean)
+      .slice(0, 12);
 
-    // Get ingredient names for flavor profile context
-    const ingredientNames = recipe.ingredients
-      .flatMap((group) => group.ingredients)
-      .map((ing) => ing.ingredient)
-      .slice(0, 10) // Use first 10 ingredients
-      .join(', ');
-
-    console.log('[Summary Generator] Generating summary for recipe:', title);
+    const steps = recipe.instructions
+      .map((s) => (typeof s === 'string' ? s : s.detail))
+      .map((t) => (t || '').trim())
+      .filter(Boolean)
+      .slice(0, 4);
 
     const response = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
+      temperature: 0.1,
+      max_tokens: 80,
       messages: [
         {
           role: 'system',
-          content: `You are a culinary expert writing recipe descriptions. Write a concise, engaging single sentence summary that describes:
-1. What the dish is
-2. Its flavor profile (savory, sweet, spicy, umami, etc.)
-3. Main cooking methods used (baking, sautéing, simmering, etc.)
+          content:
+            `Write ONE short sentence describing the dish.
 
-Keep it brief (exactly one sentence), engaging, and informative. Write only the summary text - no labels, no quotes, no extra formatting. Use proper punctuation to end the sentence.`,
+Hard rules:
+- Output ONLY the sentence text.
+- Exactly one sentence.
+- Max 200 characters.
+- No cooking method explanations.
+- No phrases like "characterized by", "achieved through", or "typically prepared".
+- No hype or marketing language.
+- Do NOT explain technique or process.
+- Do NOT guess missing information.
+
+Style:
+- Neutral menu-style description.
+- Structure:
+  A [simple descriptor if implied] [dish type] with [key components] in/on [base, sauce, or broth].
+- Use plain nouns and minimal adjectives.
+
+If details are incomplete or unclear, output exactly:
+Recipe details incomplete. Review ingredients and steps.`
         },
         {
           role: 'user',
-          content: `Recipe: ${title}
-
-Ingredients: ${ingredientNames}
-
-Instructions: ${instructionTexts}
-
-Write a single sentence summary describing what this dish is, its flavor profile, and main cooking methods.`,
+          content:
+            `Title: ${title || '(missing)'}
+Ingredients: ${ingredients.join(', ')}
+Steps: ${steps.join(' ')}`,
         },
       ],
-      temperature: 0.7, // Slightly higher for more creative descriptions
-      max_tokens: 100, // Single sentence summary
     });
 
-    const summary = response.choices[0]?.message?.content?.trim();
+    const summary = response.choices?.[0]?.message?.content?.trim();
+    if (!summary) return null;
 
-    if (!summary || summary.length === 0) {
-      console.warn('[Summary Generator] Empty response from AI');
-      return null;
-    }
+    // Minimal cleanup only
+    const cleaned = summary.replace(/^["']|["']$/g, '').trim();
 
-    // Clean up the summary (remove quotes if AI added them)
-    let cleanedSummary = summary.replace(/^["']|["']$/g, '').trim();
-
-    // Ensure it's exactly one sentence - take only the first sentence if multiple exist
-    // Split by sentence-ending punctuation and take the first complete sentence
-    const sentenceMatch = cleanedSummary.match(/^[^.!?]+[.!?]/);
-    if (sentenceMatch) {
-      cleanedSummary = sentenceMatch[0].trim();
-    } else {
-      // If no sentence-ending punctuation found, ensure it ends with proper punctuation
-      cleanedSummary = cleanedSummary.replace(/[.!?]+$/, '') + '.';
-    }
-
-    if (cleanedSummary.length > 0) {
-      console.log('[Summary Generator] Successfully generated summary');
-      return cleanedSummary;
-    }
-
-    return null;
-  } catch (error) {
-    console.error('[Summary Generator] Error generating summary:', error);
-    // Don't fail the entire parsing if summary generation fails
+    // Ensure single sentence - take first sentence if multiple exist
+    const sentenceMatch = cleaned.match(/^[^.!?]+[.!?]/);
+    if (sentenceMatch) return sentenceMatch[0].trim();
+    
+    // If no sentence-ending punctuation, add period
+    return cleaned.replace(/[.!?]+$/, '') + '.';
+  } catch {
     return null;
   }
 }
