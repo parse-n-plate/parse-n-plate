@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, use } from 'react';
 import RecipeSkeleton from '@/components/ui/recipe-skeleton';
 import * as Tabs from '@radix-ui/react-tabs';
-import { Plus, Minus, X, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Plus, Minus, X, ArrowLeft, ExternalLink, Copy, Check } from 'lucide-react';
 import { scaleIngredients } from '@/utils/ingredientScaler';
 import ClassicSplitView from '@/components/ClassicSplitView';
 import IngredientCard from '@/components/ui/ingredient-card';
@@ -71,63 +71,6 @@ const extractStepTitle = (text: string): string => {
   return trimmed;
 };
 
-// Helper function to format ingredient
-const formatIngredient = (
-  ingredient: string | { amount?: string; units?: string; ingredient: string } | null | undefined,
-): string => {
-  // Handle null or undefined
-  if (ingredient === null || ingredient === undefined) {
-    return '';
-  }
-
-  // Handle string ingredients
-  if (typeof ingredient === 'string') {
-    return ingredient;
-  }
-
-  // Handle object ingredients
-  if (typeof ingredient === 'object') {
-    // Check if it's an array (shouldn't happen, but handle it)
-    if (Array.isArray(ingredient)) {
-      return ingredient.join(', ');
-    }
-
-    // Handle ingredient objects with proper structure
-    // Even if amount is missing, we should still try to format it
-    if ('ingredient' in ingredient && ingredient.ingredient) {
-      const parts = [];
-      
-      // Add amount if it exists and is valid
-      if (ingredient.amount && ingredient.amount.trim() && ingredient.amount !== 'as much as you like') {
-        parts.push(ingredient.amount.trim());
-      }
-      
-      // Add units if they exist
-      if (ingredient.units && ingredient.units.trim()) {
-        parts.push(ingredient.units.trim());
-      }
-      
-      // Always add the ingredient name
-      parts.push(ingredient.ingredient.trim());
-      
-      return parts.join(' ');
-    }
-
-    // If it's an object but doesn't match expected structure, try to extract what we can
-    // This handles edge cases where the structure might be different
-    if ('ingredient' in ingredient) {
-      return String(ingredient.ingredient || '');
-    }
-  }
-
-  // Fallback: try to convert to string safely
-  try {
-    return String(ingredient);
-  } catch {
-    return '';
-  }
-};
-
 export default function ParsedRecipePage({
   params,
   searchParams,
@@ -146,6 +89,16 @@ export default function ParsedRecipePage({
   const router = useRouter();
   const [servings, setServings] = useState<number>(parsedRecipe?.servings || 4);
   const [multiplier, setMultiplier] = useState<string>('1x');
+  const [copied, setCopied] = useState<boolean>(false);
+
+  // Function to copy URL to clipboard
+  const handleCopyUrl = () => {
+    if (parsedRecipe?.sourceUrl) {
+      navigator.clipboard.writeText(parsedRecipe.sourceUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Redirect if loaded and no recipe
   // Check both state and localStorage to handle race conditions where navigation
@@ -276,16 +229,34 @@ export default function ParsedRecipePage({
                             {parsedRecipe.author?.trim() && (
                               <span className="text-stone-400">•</span>
                             )}
-                            <a
-                              href={parsedRecipe.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1"
-                              aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
-                            >
-                              {getDomainFromUrl(parsedRecipe.sourceUrl)}
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={parsedRecipe.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1"
+                                aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
+                              >
+                                {getDomainFromUrl(parsedRecipe.sourceUrl)}
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleCopyUrl();
+                                }}
+                                className="p-1.5 rounded hover:bg-stone-100 transition-colors flex items-center justify-center"
+                                aria-label="Copy recipe URL"
+                                title="Copy URL"
+                              >
+                                {copied ? (
+                                  <Check className="w-4 h-4 text-[#193d34]" />
+                                ) : (
+                                  <Copy className="w-4 h-4 text-stone-400 hover:text-[#193d34] transition-colors" />
+                                )}
+                              </button>
+                            </div>
                           </>
                         )}
                       </div>
