@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, ChevronLeft, Layout, MousePointer2, PanelRight, SquareStack } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Layout, MousePointer2, PanelRight, SquareStack, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUISettings, IngredientExpandStyle } from '@/contexts/UISettingsContext';
 
@@ -15,6 +15,7 @@ export function AdminPrototypingPanel() {
     { id: 'modal', label: 'Modal', icon: <Layout className="h-4 w-4" /> },
     { id: 'sidepanel', label: 'Side Panel', icon: <PanelRight className="h-4 w-4" /> },
     { id: 'things3', label: 'Things 3', icon: <SquareStack className="h-4 w-4" /> },
+    { id: 'mobile-drawer', label: 'Mobile Drawer', icon: <Smartphone className="h-4 w-4" /> },
   ];
 
   return (

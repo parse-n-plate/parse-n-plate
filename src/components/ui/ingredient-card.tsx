@@ -9,6 +9,7 @@ import { IngredientExpandedAccordion } from './ingredient-expanded-accordion';
 import { IngredientExpandedModal } from './ingredient-expanded-modal';
 import { IngredientExpandedSidePanel } from './ingredient-expanded-sidepanel';
 import { IngredientExpandedThings3 } from './ingredient-expanded-things3';
+import { IngredientExpandedDrawer } from './ingredient-expanded-drawer';
 import { cn } from '@/lib/utils';
 
 /**
@@ -177,16 +178,20 @@ export default function IngredientCard({ ingredient, description, isLast = false
           </div>
 
           {/* Swap icon on the right */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+          <button
             type="button"
             className="ingredient-list-swap-button"
             aria-label={`Reorder ${ingredientText}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <ArrowUpDown className="ingredient-list-swap-icon" />
-          </motion.button>
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="flex items-center justify-center"
+            >
+              <ArrowUpDown className="ingredient-list-swap-icon" />
+            </motion.div>
+          </button>
         </div>
       </motion.div>
 
@@ -230,6 +235,15 @@ export default function IngredientCard({ ingredient, description, isLast = false
         linkedSteps={linkedSteps}
         onStepClick={handleStepClick}
         isOpen={isExpanded && settings.ingredientExpandStyle === 'sidepanel'}
+        onClose={() => setIsExpanded(false)}
+      />
+
+      <IngredientExpandedDrawer
+        ingredientName={ingredientNameOnly}
+        ingredientAmount={ingredientAmount}
+        linkedSteps={linkedSteps}
+        onStepClick={handleStepClick}
+        isOpen={isExpanded && settings.ingredientExpandStyle === 'mobile-drawer'}
         onClose={() => setIsExpanded(false)}
       />
     </div>

@@ -4,6 +4,7 @@ export interface RecipeStep {
   time: number;           // Time in minutes
   ingredients: string[];  // Ingredients for this specific step
   tips: string;          // Pro tip for this step
+  imageUrl?: string;      // Optional image URL for the step
 }
 
 

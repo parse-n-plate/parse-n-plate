@@ -9,7 +9,7 @@ import React, {
   ReactNode,
 } from 'react';
 
-export type IngredientExpandStyle = 'accordion' | 'modal' | 'sidepanel' | 'things3';
+export type IngredientExpandStyle = 'accordion' | 'modal' | 'sidepanel' | 'things3' | 'mobile-drawer';
 
 type UISettingsState = {
   ingredientExpandStyle: IngredientExpandStyle;
