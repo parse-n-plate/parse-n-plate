@@ -64,7 +64,7 @@ export default function IngredientCard({
 
   // Helper function to parse amount/unit from ingredient string
   const parseIngredientString = (ingredientStr: string): { amount: string; unit: string; name: string } => {
-    // Pattern: matches amount (can include fractions like 1½, 2½, ⅛) + unit + ingredient name
+    // Pattern 1: matches amount (can include fractions like 1½, 2½, ⅛) + unit + ingredient name
     // Examples: "1½ Tbsp soy sauce", "2½ cups dashi", "1 tsp sugar"
     const match = ingredientStr.match(/^([\d½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]+(?:\s*[–-]\s*[\d½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]+)?)\s+([a-zA-Z]+)\s+(.+)$/);
     if (match) {
@@ -74,13 +74,31 @@ export default function IngredientCard({
         name: match[3].trim()
       };
     }
-    // Fallback: try simpler pattern without fractions
+    // Pattern 2: try simpler pattern without fractions (amount + unit + ingredient name)
     const simpleMatch = ingredientStr.match(/^(\d+(?:\s*[–-]\s*\d+)?)\s+([a-zA-Z]+)\s+(.+)$/);
     if (simpleMatch) {
       return {
         amount: simpleMatch[1].trim(),
         unit: simpleMatch[2].trim(),
         name: simpleMatch[3].trim()
+      };
+    }
+    // Pattern 3: matches amount + ingredient name (no unit) - e.g., "3 eggs", "2 apples"
+    const noUnitMatch = ingredientStr.match(/^([\d½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]+(?:\s*[–-]\s*[\d½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]+)?)\s+(.+)$/);
+    if (noUnitMatch) {
+      return {
+        amount: noUnitMatch[1].trim(),
+        unit: '',
+        name: noUnitMatch[2].trim()
+      };
+    }
+    // Pattern 4: simpler pattern for amount + ingredient name without fractions
+    const simpleNoUnitMatch = ingredientStr.match(/^(\d+(?:\s*[–-]\s*\d+)?)\s+(.+)$/);
+    if (simpleNoUnitMatch) {
+      return {
+        amount: simpleNoUnitMatch[1].trim(),
+        unit: '',
+        name: simpleNoUnitMatch[2].trim()
       };
     }
     // No match found, return empty amount/unit
@@ -94,8 +112,8 @@ export default function IngredientCard({
     // If amount/units are empty, try to parse from ingredient string to get just the name
     if (!ingredient.amount && !ingredient.units && ingredient.ingredient) {
       const parsed = parseIngredientString(ingredient.ingredient);
-      if (parsed.amount && parsed.unit) {
-        return parsed.name; // Return just the name part
+      if (parsed.amount) {
+        return parsed.name; // Return just the name part (works with or without unit)
       }
     }
     
@@ -152,8 +170,9 @@ export default function IngredientCard({
     // If amount/units are empty, try to parse from ingredient string
     if (!ingredient.amount && !ingredient.units && ingredient.ingredient) {
       const parsed = parseIngredientString(ingredient.ingredient);
-      if (parsed.amount && parsed.unit) {
-        return `${parsed.amount} ${parsed.unit}`;
+      if (parsed.amount) {
+        // Return amount with unit if unit exists, otherwise just amount
+        return parsed.unit ? `${parsed.amount} ${parsed.unit}` : parsed.amount;
       }
     }
     
@@ -226,17 +245,44 @@ export default function IngredientCard({
                 }}
                 className="ingredient-list-name transition-all duration-300"
               >
-                {/* Render amount/unit in black and ingredient name in gray */}
+                {/* Render amount/unit in black and ingredient name in gray, or ingredient name in bold black with parentheses in gray if no amount */}
                 {typeof ingredient === 'string' ? (
-                  <span className="text-stone-600">{ingredientText}</span>
+                  (() => {
+                    // Split string ingredients: main name in bold, parentheses in gray
+                    const parenMatch = ingredientText.match(/^([^(]+?)\s*(\(.+\))$/);
+                    if (parenMatch) {
+                      return (
+                        <>
+                          <span className="text-stone-900 font-bold">{parenMatch[1].trim()}</span>
+                          <span className="text-stone-600"> {parenMatch[2]}</span>
+                        </>
+                      );
+                    }
+                    return <span className="text-stone-900 font-bold">{ingredientText}</span>;
+                  })()
                 ) : (
                   <>
-                    {/* Amount and unit in black */}
-                    {ingredientAmount && (
-                      <span className="text-stone-900 font-bold">{ingredientAmount} </span>
+                    {ingredientAmount ? (
+                      // Has amount/unit: show amount in bold black, name in gray
+                      <>
+                        <span className="text-stone-900 font-bold">{ingredientAmount} </span>
+                        <span className="text-stone-600">{ingredientNameOnly}</span>
+                      </>
+                    ) : (
+                      // No amount/unit: show main name in bold black, parentheses in gray
+                      (() => {
+                        const parenMatch = ingredientText.match(/^([^(]+?)\s*(\(.+\))$/);
+                        if (parenMatch) {
+                          return (
+                            <>
+                              <span className="text-stone-900 font-bold">{parenMatch[1].trim()}</span>
+                              <span className="text-stone-600"> {parenMatch[2]}</span>
+                            </>
+                          );
+                        }
+                        return <span className="text-stone-900 font-bold">{ingredientText}</span>;
+                      })()
                     )}
-                    {/* Ingredient name in gray */}
-                    <span className="text-stone-600">{ingredientNameOnly}</span>
                   </>
                 )}
               </motion.p>
