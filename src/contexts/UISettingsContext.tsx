@@ -10,21 +10,29 @@ import React, {
 } from 'react';
 
 export type IngredientExpandStyle = 'accordion' | 'modal' | 'sidepanel' | 'things3' | 'mobile-drawer';
+export type StepSizing = 'sm' | 'med' | 'lg';
+export type FontFamily = 'sans' | 'serif';
 
 type UISettingsState = {
   ingredientExpandStyle: IngredientExpandStyle;
+  stepSizing: StepSizing;
+  fontFamily: FontFamily;
 };
 
 type UISettingsContextType = {
   settings: UISettingsState;
   isReady: boolean;
   setIngredientExpandStyle: (style: IngredientExpandStyle) => void;
+  setStepSizing: (sizing: StepSizing) => void;
+  setFontFamily: (family: FontFamily) => void;
 };
 
 const STORAGE_KEY = 'uiSettings';
 
 const defaultSettings: UISettingsState = {
   ingredientExpandStyle: 'things3',
+  stepSizing: 'med',
+  fontFamily: 'sans',
 };
 
 const UISettingsContext = createContext<UISettingsContextType | undefined>(
@@ -44,6 +52,10 @@ export function UISettingsProvider({ children }: { children: ReactNode }) {
         setSettings({
           ingredientExpandStyle:
             parsed.ingredientExpandStyle ?? defaultSettings.ingredientExpandStyle,
+          stepSizing:
+            parsed.stepSizing ?? defaultSettings.stepSizing,
+          fontFamily:
+            parsed.fontFamily ?? defaultSettings.fontFamily,
         });
       }
     } catch (error) {
@@ -68,11 +80,21 @@ export function UISettingsProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ingredientExpandStyle: style }));
   };
 
+  const setStepSizing = (sizing: StepSizing) => {
+    setSettings((prev) => ({ ...prev, stepSizing: sizing }));
+  };
+
+  const setFontFamily = (family: FontFamily) => {
+    setSettings((prev) => ({ ...prev, fontFamily: family }));
+  };
+
   const value = useMemo(
     () => ({
       settings,
       isReady,
       setIngredientExpandStyle,
+      setStepSizing,
+      setFontFamily,
     }),
     [settings, isReady],
   );

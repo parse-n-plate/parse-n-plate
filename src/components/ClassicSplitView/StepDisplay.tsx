@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, List } from 'lucide-react';
 import { RecipeStep } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { findIngredientsInText, IngredientInfo } from '@/utils/ingredientMatcher';
+import { useUISettings } from '@/contexts/UISettingsContext';
 
 interface StepDisplayProps {
   step: RecipeStep;
@@ -55,6 +56,9 @@ const formatStepText = (text: string): JSX.Element => {
 };
 
 export default function StepDisplay({ step, currentStep, totalSteps, onNext, onPrev, onBackToList, allIngredients }: StepDisplayProps) {
+  const { settings } = useUISettings();
+  const { stepSizing } = settings;
+
   // Find ingredients mentioned in the step text
   const matchedIngredients = findIngredientsInText(step.detail, allIngredients);
 
@@ -64,9 +68,34 @@ export default function StepDisplay({ step, currentStep, totalSteps, onNext, onP
     window.dispatchEvent(event);
   };
 
+  // Sizing maps shifted: sm -> old med, med -> old lg, lg -> new step
+  const titleSizeMap = {
+    sm: 'text-[36px] md:text-[42px]',
+    med: 'text-[44px] md:text-[52px]',
+    lg: 'text-[52px] md:text-[62px]',
+  };
+
+  const detailSizeMap = {
+    sm: 'text-[19px]',
+    med: 'text-[24px]',
+    lg: 'text-[30px]',
+  };
+
+  const paddingMap = {
+    sm: 'p-8',
+    med: 'p-12',
+    lg: 'p-16',
+  };
+
+  const gapMap = {
+    sm: 'gap-10',
+    med: 'gap-14',
+    lg: 'gap-20',
+  };
+
   return (
-    <div className="shrink-0 bg-white p-8 relative overflow-hidden">
-      <div className="flex flex-col gap-10">
+    <div className={`shrink-0 bg-white relative overflow-hidden transition-all duration-300 ${paddingMap[stepSizing]}`}>
+      <div className={`flex flex-col ${gapMap[stepSizing]}`}>
         {/* Navigation Header */}
         <div className="flex items-center justify-between">
           <motion.button
@@ -115,11 +144,11 @@ export default function StepDisplay({ step, currentStep, totalSteps, onNext, onP
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="flex flex-col gap-4"
           >
-            <h2 className="font-domine text-[36px] md:text-[42px] text-[#193d34] leading-tight font-bold">
+            <h2 className={`font-domine text-[#193d34] leading-tight font-bold transition-all duration-300 ${titleSizeMap[stepSizing]}`}>
               {step.step}
             </h2>
             <div className="flex flex-col gap-6">
-              <p className="font-albert text-[19px] text-[#193d34]/80 leading-relaxed max-w-2xl">
+              <p className={`font-albert text-[#193d34]/80 leading-relaxed max-w-2xl transition-all duration-300 ${detailSizeMap[stepSizing]} ${settings.fontFamily === 'serif' ? 'font-domine' : ''}`}>
                 {formatStepText(step.detail)}
               </p>
               
