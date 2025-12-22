@@ -162,7 +162,7 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
   const menuItems = [
     { id: 'copy-link', label: 'Copy link', icon: Link2, shortcut: '⌘L', action: 'copy-link' },
     { id: 'copy-recipe', label: 'Copy recipe', icon: FileText, action: 'copy-recipe' },
-    { id: 'edit-mode', label: 'Edit mode', icon: Edit, action: 'edit-mode' },
+    { id: 'edit-mode', label: 'Edit mode', icon: Edit, action: 'edit-mode', disabled: true },
   ];
 
   const filteredMenuItems = menuItems.filter(item =>
@@ -360,18 +360,36 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
                       filteredMenuItems.map((item) => {
                         const Icon = item.icon;
                         const isCopied = (item.id === 'copy-link' && copiedLink) || (item.id === 'copy-recipe' && copiedRecipe);
+                        const isDisabled = item.disabled === true;
                         
                         return (
                           <button
                             key={item.id}
-                            onClick={() => handleMenuAction(item.action)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-stone-50 transition-colors group"
+                            onClick={() => !isDisabled && handleMenuAction(item.action)}
+                            disabled={isDisabled}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors group ${
+                              isDisabled 
+                                ? 'cursor-not-allowed opacity-50' 
+                                : 'hover:bg-stone-50'
+                            }`}
                           >
-                            <Icon className={`w-4 h-4 flex-shrink-0 ${isCopied ? 'text-green-600' : 'text-stone-500 group-hover:text-stone-700'}`} />
-                            <span className={`flex-1 font-albert text-[14px] ${isCopied ? 'text-green-600 font-medium' : 'text-stone-700'}`}>
+                            <Icon className={`w-4 h-4 flex-shrink-0 ${
+                              isCopied 
+                                ? 'text-green-600' 
+                                : isDisabled 
+                                  ? 'text-stone-300' 
+                                  : 'text-stone-500 group-hover:text-stone-700'
+                            }`} />
+                            <span className={`flex-1 font-albert text-[14px] ${
+                              isCopied 
+                                ? 'text-green-600 font-medium' 
+                                : isDisabled 
+                                  ? 'text-stone-400' 
+                                  : 'text-stone-700'
+                            }`}>
                               {isCopied ? (item.id === 'copy-link' ? 'Link copied' : 'Recipe copied') : item.label}
                             </span>
-                            {item.shortcut && (
+                            {item.shortcut && !isDisabled && (
                               <span className="font-albert text-[11px] text-stone-400 font-mono">
                                 {item.shortcut}
                               </span>
