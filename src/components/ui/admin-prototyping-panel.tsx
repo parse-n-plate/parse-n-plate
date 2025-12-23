@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight, ChevronLeft, Layout, MousePointer2, PanelRight, SquareStack, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUISettings, IngredientExpandStyle } from '@/contexts/UISettingsContext';
+import { useAdminSettings } from '@/contexts/AdminSettingsContext';
 
 export function AdminPrototypingPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const { settings, setIngredientExpandStyle } = useUISettings();
+  const { settings: adminSettings, toggleShowIngredientStepTags, toggleShowIngredientsForStepList } = useAdminSettings();
 
   const styles: { id: IngredientExpandStyle; label: string; icon: React.ReactNode }[] = [
     { id: 'accordion', label: 'Accordion', icon: <ChevronRight className="h-4 w-4" /> },
@@ -60,6 +62,57 @@ export function AdminPrototypingPanel() {
                 )}
               </Button>
             ))}
+          </div>
+        </div>
+
+        {/* Toggle Controls Section */}
+        <div className="space-y-3 pt-2 border-t border-stone-100">
+          <h3 className="text-[10px] font-albert font-bold uppercase tracking-widest text-stone-400">Display Options</h3>
+          
+          {/* Toggle for Ingredient Step Tags */}
+          <div className="flex items-center justify-between p-2 rounded-lg hover:bg-stone-50 transition-colors">
+            <div className="flex flex-col">
+              <span className="text-xs font-albert font-medium text-stone-900">Ingredient Step Tags</span>
+              <span className="text-[10px] font-albert text-stone-400 mt-0.5">Show ingredient pills in step view</span>
+            </div>
+            <button
+              onClick={toggleShowIngredientStepTags}
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#193d34]/20 focus:ring-offset-2",
+                adminSettings.showIngredientStepTags ? "bg-stone-900" : "bg-stone-200"
+              )}
+              aria-label="Toggle ingredient step tags"
+            >
+              <span
+                className={cn(
+                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                  adminSettings.showIngredientStepTags ? "translate-x-6" : "translate-x-1"
+                )}
+              />
+            </button>
+          </div>
+
+          {/* Toggle for Ingredients List */}
+          <div className="flex items-center justify-between p-2 rounded-lg hover:bg-stone-50 transition-colors">
+            <div className="flex flex-col">
+              <span className="text-xs font-albert font-medium text-stone-900">Ingredients for Step</span>
+              <span className="text-[10px] font-albert text-stone-400 mt-0.5">Show ingredients list in context panel</span>
+            </div>
+            <button
+              onClick={toggleShowIngredientsForStepList}
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#193d34]/20 focus:ring-offset-2",
+                adminSettings.showIngredientsForStepList ? "bg-stone-900" : "bg-stone-200"
+              )}
+              aria-label="Toggle ingredients for step list"
+            >
+              <span
+                className={cn(
+                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                  adminSettings.showIngredientsForStepList ? "translate-x-6" : "translate-x-1"
+                )}
+              />
+            </button>
           </div>
         </div>
 

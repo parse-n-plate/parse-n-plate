@@ -12,6 +12,10 @@ import React, {
 type AdminSettingsState = {
   /** Controls whether recent recipe cards should try to render images */
   showRecentRecipeImages: boolean;
+  /** Controls whether ingredient step tags (pills) are shown in StepDisplay */
+  showIngredientStepTags: boolean;
+  /** Controls whether "Ingredients for this step" list is shown in ContextPanel */
+  showIngredientsForStepList: boolean;
 };
 
 type AdminSettingsContextType = {
@@ -19,12 +23,18 @@ type AdminSettingsContextType = {
   isReady: boolean;
   setShowRecentRecipeImages: (value: boolean) => void;
   toggleShowRecentRecipeImages: () => void;
+  setShowIngredientStepTags: (value: boolean) => void;
+  toggleShowIngredientStepTags: () => void;
+  setShowIngredientsForStepList: (value: boolean) => void;
+  toggleShowIngredientsForStepList: () => void;
 };
 
 const STORAGE_KEY = 'adminSettings';
 
 const defaultSettings: AdminSettingsState = {
   showRecentRecipeImages: true,
+  showIngredientStepTags: true,
+  showIngredientsForStepList: true,
 };
 
 const AdminSettingsContext = createContext<AdminSettingsContextType | undefined>(
@@ -44,6 +54,10 @@ export function AdminSettingsProvider({ children }: { children: ReactNode }) {
         setSettings({
           showRecentRecipeImages:
             parsed.showRecentRecipeImages ?? defaultSettings.showRecentRecipeImages,
+          showIngredientStepTags:
+            parsed.showIngredientStepTags ?? defaultSettings.showIngredientStepTags,
+          showIngredientsForStepList:
+            parsed.showIngredientsForStepList ?? defaultSettings.showIngredientsForStepList,
         });
       }
     } catch (error) {
@@ -75,12 +89,38 @@ export function AdminSettingsProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const setShowIngredientStepTags = (value: boolean) => {
+    setSettings((prev) => ({ ...prev, showIngredientStepTags: value }));
+  };
+
+  const toggleShowIngredientStepTags = () => {
+    setSettings((prev) => ({
+      ...prev,
+      showIngredientStepTags: !prev.showIngredientStepTags,
+    }));
+  };
+
+  const setShowIngredientsForStepList = (value: boolean) => {
+    setSettings((prev) => ({ ...prev, showIngredientsForStepList: value }));
+  };
+
+  const toggleShowIngredientsForStepList = () => {
+    setSettings((prev) => ({
+      ...prev,
+      showIngredientsForStepList: !prev.showIngredientsForStepList,
+    }));
+  };
+
   const value = useMemo(
     () => ({
       settings,
       isReady,
       setShowRecentRecipeImages,
       toggleShowRecentRecipeImages,
+      setShowIngredientStepTags,
+      toggleShowIngredientStepTags,
+      setShowIngredientsForStepList,
+      toggleShowIngredientsForStepList,
     }),
     [settings, isReady],
   );
@@ -99,6 +139,7 @@ export function useAdminSettings() {
   }
   return context;
 }
+
 
 
 

@@ -5,6 +5,7 @@ import { RecipeStep } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { findIngredientsInText, IngredientInfo } from '@/utils/ingredientMatcher';
 import { useUISettings } from '@/contexts/UISettingsContext';
+import { useAdminSettings } from '@/contexts/AdminSettingsContext';
 
 interface StepDisplayProps {
   step: RecipeStep;
@@ -58,6 +59,7 @@ const formatStepText = (text: string): JSX.Element => {
 export default function StepDisplay({ step, currentStep, totalSteps, onNext, onPrev, onBackToList, allIngredients }: StepDisplayProps) {
   const { settings } = useUISettings();
   const { stepSizing } = settings;
+  const { settings: adminSettings } = useAdminSettings();
 
   // Find ingredients mentioned in the step text
   const matchedIngredients = findIngredientsInText(step.detail, allIngredients);
@@ -153,7 +155,7 @@ export default function StepDisplay({ step, currentStep, totalSteps, onNext, onP
               </p>
               
               {/* Ingredient Tags - Minimal and Tag-like */}
-              {matchedIngredients.length > 0 && (
+              {adminSettings.showIngredientStepTags && matchedIngredients.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {matchedIngredients.map((ing, idx) => (
                     <button
