@@ -34,11 +34,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // ⚠️ TEMPORARY: Ignore ESLint and TypeScript errors during build to allow Vercel deployment
-  // TODO: Fix all lint/type errors and remove these settings
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // ⚠️ TEMPORARY: Ignore TypeScript errors during build to allow Vercel deployment
+  // TODO: Fix all type errors and remove this setting
+  // Note: ESLint config moved to eslint.config.mjs in Next.js 16+
   typescript: {
     ignoreBuildErrors: true,
   },
