@@ -2,7 +2,7 @@
 
 import PPLogo from '@/components/ui/Navbar/pplogo';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { Search, User } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useCommandK } from '@/contexts/CommandKContext';
 
@@ -67,23 +67,10 @@ export default function Navbar() {
           >
             About
           </Link>
-          <Link
-            href="/profile"
-            className={`
-              font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-colors
-              ${
-                isProfileActive
-                  ? 'bg-stone-800 text-white font-medium'
-                  : 'text-stone-600 hover:text-stone-900'
-              }
-            `}
-          >
-            Profile
-          </Link>
         </nav>
 
-        {/* Right: Search Icon */}
-        <div className="flex items-center flex-shrink-0">
+        {/* Right: Search Icon and Profile Icon */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => openCommandK()}
             className="p-2 hover:bg-stone-100 rounded-lg transition-colors"
@@ -91,6 +78,16 @@ export default function Navbar() {
           >
             <Search className="w-5 h-5 text-stone-600" />
           </button>
+          <Link
+            href="/profile"
+            className={`
+              p-2 hover:bg-stone-100 rounded-lg transition-colors
+              ${isProfileActive ? 'bg-stone-100' : ''}
+            `}
+            aria-label="Profile"
+          >
+            <User className="w-5 h-5 text-stone-600" />
+          </Link>
         </div>
       </div>
     </div>
