@@ -154,6 +154,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     console.log(
       `[API /recipeScraperPython] Successfully parsed recipe using ${result.method}: "${result.data.title}" with ${result.data.ingredients.reduce((sum, g) => sum + g.ingredients.length, 0)} total ingredients and ${result.data.instructions.length} instructions`,
     );
+    console.log('[API /recipeScraperPython] 🍽️ Cuisine data in response:', {
+      cuisine: result.data.cuisine,
+      hasCuisine: !!result.data.cuisine,
+      cuisineCount: result.data.cuisine?.length || 0,
+    });
 
     return NextResponse.json({
       success: true,
@@ -164,6 +169,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       author: result.data.author,
       sourceUrl: result.data.sourceUrl,
       summary: result.data.summary, // Include AI-generated summary
+      cuisine: result.data.cuisine, // Include cuisine tags if available
     });
   } catch (error) {
     console.error('[API /recipeScraperPython] Unexpected error:', error);

@@ -3,7 +3,7 @@
 import HomepageSkeleton from '@/components/ui/homepage-skeleton';
 import CuisinePills from '@/components/ui/cuisine-pills';
 import RecipeCard, { RecipeCardData } from '@/components/ui/recipe-card';
-import { useState, useEffect, Suspense, use } from 'react';
+import { useState, useEffect, useMemo, Suspense, use } from 'react';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useAdminSettings } from '@/contexts/AdminSettingsContext';
@@ -25,8 +25,7 @@ function HomeContent() {
   const { setParsedRecipe } = useRecipe();
   const { open: openCommandK } = useCommandK();
   const router = useRouter();
-  const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('Chinese');
-  const [filteredRecipes] = useState<RecipeCardData[]>([]);
+  const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('All');
   const [keyboardShortcut, setKeyboardShortcut] = useState<string>('⌘K');
   const [isPageLoaded, setIsPageLoaded] = useState<boolean>(false);
   
@@ -76,6 +75,7 @@ function HomeContent() {
           author: fullRecipe.author, // Include author if available
           sourceUrl: fullRecipe.sourceUrl || fullRecipe.url, // Include source URL if available
           summary: fullRecipe.description || fullRecipe.summary, // Use AI summary if available, fallback to card summary
+          cuisine: fullRecipe.cuisine, // Include cuisine tags if available
         });
         router.push('/parsed-recipe-page');
       }
@@ -108,12 +108,32 @@ function HomeContent() {
       title: recipe.title,
       author: author,
       imageUrl: recipe.imageUrl, // Optional image support when available
-      cuisine: undefined,
+      cuisine: recipe.cuisine, // Include cuisine tags if available
     };
   };
 
   // Get recent recipes for display (limit to 6 most recent)
   const displayRecentRecipes = recentRecipes.slice(0, 6).map(convertToRecipeCardData);
+
+  // Filter recipes by selected cuisine
+  const filteredRecipes = useMemo(() => {
+    console.log('[Homepage] 🍽️ Filtering recipes by cuisine:', selectedCuisine);
+    console.log('[Homepage] Available recipes:', displayRecentRecipes.map(r => ({ title: r.title, cuisine: r.cuisine })));
+    
+    if (selectedCuisine === 'All') {
+      console.log('[Homepage] Showing all recipes (All selected)');
+      return displayRecentRecipes;
+    }
+    
+    const filtered = displayRecentRecipes.filter(recipe => {
+      const hasMatchingCuisine = recipe.cuisine && recipe.cuisine.includes(selectedCuisine);
+      console.log(`[Homepage] Recipe "${recipe.title}": cuisine=${recipe.cuisine}, matches=${hasMatchingCuisine}`);
+      return hasMatchingCuisine;
+    });
+    
+    console.log('[Homepage] Filtered results:', filtered.length, 'recipes match', selectedCuisine);
+    return filtered;
+  }, [selectedCuisine, displayRecentRecipes]);
 
   if (!isLoaded) {
     return <HomepageSkeleton />;
@@ -225,11 +245,20 @@ function HomeContent() {
               ))}
             </div>
 
-            {/* Show message if no recipes match filter */}
-            {filteredRecipes.length === 0 && (
+            {/* Show message if no recipes match filter (but only if there are recipes available) */}
+            {filteredRecipes.length === 0 && displayRecentRecipes.length > 0 && (
               <div className="text-center py-12">
                 <p className="font-albert text-[16px] text-stone-600">
-                  No recipes found for {selectedCuisine}
+                  No recipes found for {selectedCuisine === 'All' ? 'this filter' : selectedCuisine}
+                </p>
+              </div>
+            )}
+            
+            {/* Show message if no recipes at all */}
+            {displayRecentRecipes.length === 0 && (
+              <div className="text-center py-12">
+                <p className="font-albert text-[16px] text-stone-600">
+                  No recipes yet. Parse your first recipe to see it here!
                 </p>
               </div>
             )}

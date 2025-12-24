@@ -136,7 +136,12 @@ export async function POST(req: NextRequest): Promise<Response> {
     console.log(
       `[API /parseRecipe] Successfully parsed recipe using ${result.method}: "${result.data.title}" with ${result.data.ingredients.reduce((sum, g) => sum + g.ingredients.length, 0)} ingredients and ${result.data.instructions.length} instructions`
     );
-
+    console.log('[API /parseRecipe] 🍽️ Cuisine data in response:', {
+      cuisine: result.data.cuisine,
+      hasCuisine: !!result.data.cuisine,
+      cuisineCount: result.data.cuisine?.length || 0,
+    });
+    
     return NextResponse.json({
       success: true,
       title: result.data.title,
@@ -145,6 +150,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       author: result.data.author, // Include author if available
       sourceUrl: result.data.sourceUrl, // Include source URL if available
       summary: result.data.summary, // Include AI-generated summary if available
+      cuisine: result.data.cuisine, // Include cuisine tags if available
       method: result.method, // Include which method was used (json-ld or ai)
     });
   } catch (error) {

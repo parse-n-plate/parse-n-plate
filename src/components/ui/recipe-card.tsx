@@ -2,13 +2,14 @@
 
 import Image from 'next/image';
 import { X } from 'lucide-react';
+import { CUISINE_ICON_MAP } from '@/config/cuisineConfig';
 
 export interface RecipeCardData {
   id: string;
   title: string;
   author: string;
   imageUrl?: string;
-  cuisine?: string;
+  cuisine?: string[]; // Array of cuisine names (e.g., ["Italian", "Mediterranean"])
 }
 
 interface RecipeCardProps {
@@ -75,6 +76,36 @@ export default function RecipeCard({
                 <span>By </span>
                 {recipe.author}
               </p>
+              {/* Cuisine Icons */}
+              {recipe.cuisine && recipe.cuisine.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {recipe.cuisine.slice(0, 3).map((cuisineName) => {
+                    const iconPath = CUISINE_ICON_MAP[cuisineName];
+                    if (!iconPath) {
+                      console.warn(`[RecipeCard] ⚠️ Missing icon for cuisine: "${cuisineName}". Check cuisineConfig.ts and ensure icon file exists.`);
+                      return null;
+                    }
+                    console.log(`[RecipeCard] 🍽️ Displaying cuisine icon for "${cuisineName}" on recipe "${recipe.title}"`);
+                    return (
+                      <div
+                        key={cuisineName}
+                        className="flex items-center gap-1.5"
+                        title={cuisineName}
+                      >
+                        <Image
+                          src={iconPath}
+                          alt={`${cuisineName} cuisine icon`}
+                          width={20}
+                          height={20}
+                          quality={100}
+                          unoptimized={true}
+                          className="w-5 h-5 object-contain"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </button>

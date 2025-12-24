@@ -14,6 +14,8 @@ import { ServingsControls } from '@/components/ui/servings-controls';
 import { MobileToolbar } from '@/components/ui/mobile-toolbar';
 import { UISettingsProvider } from '@/contexts/UISettingsContext';
 import { AdminPrototypingPanel } from '@/components/ui/admin-prototyping-panel';
+import { CUISINE_ICON_MAP } from '@/config/cuisineConfig';
+import Image from 'next/image';
 
 // Helper function to extract domain from URL for display
 const getDomainFromUrl = (url: string): string => {
@@ -502,14 +504,52 @@ export default function ParsedRecipePage({
                     
                     {/* Time and Servings */}
                     <div className="flex flex-col gap-2.5">
-                      <p className="font-albert text-[16px] text-stone-500 leading-[1.4]">
-                        {formatTimeDisplay(
-                          parsedRecipe.prepTimeMinutes,
-                          parsedRecipe.cookTimeMinutes,
-                          parsedRecipe.totalTimeMinutes,
-                          parsedRecipe.servings ?? servings
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-albert text-[16px] text-stone-500 leading-[1.4]">
+                          {formatTimeDisplay(
+                            parsedRecipe.prepTimeMinutes,
+                            parsedRecipe.cookTimeMinutes,
+                            parsedRecipe.totalTimeMinutes,
+                            parsedRecipe.servings ?? servings
+                          )}
+                        </p>
+                        {/* Cuisine Badges */}
+                        {parsedRecipe.cuisine && parsedRecipe.cuisine.length > 0 && (
+                          <>
+                            <span className="text-stone-400">•</span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {parsedRecipe.cuisine.map((cuisineName) => {
+                                const iconPath = CUISINE_ICON_MAP[cuisineName];
+                                if (!iconPath) {
+                                  console.warn(`[ParsedRecipePage] ⚠️ Missing icon for cuisine: "${cuisineName}". Check cuisineConfig.ts and ensure icon file exists.`);
+                                  return null;
+                                }
+                                console.log(`[ParsedRecipePage] 🍽️ Displaying cuisine badge for "${cuisineName}" on recipe "${parsedRecipe.title}"`);
+                                return (
+                                  <div
+                                    key={cuisineName}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-stone-100 border border-stone-200"
+                                    title={cuisineName}
+                                  >
+                                    <Image
+                                      src={iconPath}
+                                      alt={`${cuisineName} cuisine icon`}
+                                      width={16}
+                                      height={16}
+                                      quality={100}
+                                      unoptimized={true}
+                                      className="w-4 h-4 object-contain"
+                                    />
+                                    <span className="font-albert text-[14px] text-stone-700">
+                                      {cuisineName}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
                         )}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -11,6 +11,7 @@
 import * as cheerio from 'cheerio';
 import Groq from 'groq-sdk';
 import { cleanRecipeHTML } from './htmlCleaner';
+import { SUPPORTED_CUISINES, isSupportedCuisine } from '@/config/cuisineConfig';
 
 // Derive a concise, human-friendly title from an instruction detail
 // Normalize any instruction array (strings or objects) into InstructionStep objects
@@ -113,6 +114,7 @@ export interface ParsedRecipe {
   summary?: string; // AI-generated recipe summary (1-2 sentences)
   ingredients: IngredientGroup[];
   instructions: InstructionStep[];
+  cuisine?: string[]; // Cuisine types/tags (e.g., ["Italian", "Mediterranean"])
 }
 
 /**
@@ -478,6 +480,7 @@ Required JSON structure:
 {
   "title": "string (cleaned recipe title following TITLE EXTRACTION RULES - no prefixes/suffixes)",
   "author": "string (optional - recipe author name if found)",
+  "cuisine": ["Italian", "Mediterranean"],
   "ingredients": [
     {
       "groupName": "string",
@@ -807,6 +810,90 @@ Example showing logical ingredient groupings (ALWAYS create groups):
 IMPORTANT: The example above shows JSON format structure only. You MUST extract actual amounts, units, and text from the HTML provided, not use these example values.
 
 ========================================
+🍽️ CUISINE DETECTION - REQUIRED FIELD 🍽️
+========================================
+THIS IS A REQUIRED FIELD. You MUST analyze and return cuisine(s) for EVERY recipe.
+
+Supported cuisines (use EXACT names only):
+${JSON.stringify(SUPPORTED_CUISINES)}
+
+CRITICAL RULES:
+1. You MUST analyze EVERY recipe and return cuisine(s) - this is NOT optional
+2. Use ONLY exact cuisine names from the supported list above (case-sensitive)
+3. Return 1-3 cuisines maximum (prioritize primary cuisines)
+4. For fusion recipes, include ALL relevant cuisines (e.g., ["Korean", "Italian"])
+
+DETECTION STRATEGY - Analyze in this order:
+A. RECIPE NAME/TITLE (strongest indicator):
+   - "Pad Thai" → ["Chinese"]
+   - "Spaghetti Carbonara" → ["Italian"]
+   - "Kimchi Fried Rice" → ["Korean"]
+   - "Chicken Tikka Masala" → ["Indian"]
+   - "Beef Bulgogi" → ["Korean"]
+   - "Miso Soup" → ["Japanese"]
+   - "Ratatouille" → ["French"]
+   - "Chicken Mole" → ["Mexican"]
+   - "Hummus" → ["Mediterranean"]
+   - "Spam Musubi" → ["Hawaiian"]
+
+B. KEY INGREDIENTS (reliable indicators):
+   Chinese: soy sauce, hoisin, oyster sauce, sesame oil, Szechuan peppercorns, bok choy, Chinese five-spice
+   Italian: pasta, polenta, risotto, parmesan, mozzarella, basil, oregano, balsamic vinegar, prosciutto
+   Mexican: tortillas, cilantro, lime, jalapeños, cumin, chipotle, black beans, avocado, queso fresco
+   Mediterranean: olive oil, feta, olives, tahini, chickpeas, za'atar, sumac, pita, hummus
+   French: butter, wine, shallots, herbes de Provence, Dijon mustard, crème fraîche, baguette
+   Indian: curry powder, garam masala, turmeric, cardamom, ghee, paneer, naan, basmati rice
+   Japanese: miso, soy sauce, mirin, sake, dashi, nori, wasabi, pickled ginger, sushi rice
+   Korean: gochujang, kimchi, doenjang, sesame oil, Korean chili flakes, bulgogi marinade
+   Hawaiian: pineapple, coconut, macadamia nuts, Spam, teriyaki sauce, poi, kalua pork
+
+C. COOKING TECHNIQUES:
+   - Stir-frying → Chinese
+   - Pasta-making → Italian
+   - Grilling with gochujang → Korean
+   - Sushi-making → Japanese
+   - Slow-cooking with spices → Indian
+   - Braising with wine → French
+
+D. FUSION RECIPES (include ALL relevant cuisines):
+   - "Gochujang Pasta" → ["Korean", "Italian"] (Korean ingredient + Italian pasta)
+   - "Korean Tacos" → ["Korean", "Mexican"] (Korean filling + Mexican tortilla)
+   - "Teriyaki Pizza" → ["Japanese", "Italian"] (Japanese sauce + Italian base)
+   - "Curry Pasta" → ["Indian", "Italian"] (Indian spices + Italian pasta)
+   - "Hawaiian Pizza" → ["Hawaiian", "Italian"] (Hawaiian toppings + Italian base)
+
+EXAMPLES (ALL use exact names from supported list):
+✅ "Pad Thai" → ["Chinese"]
+✅ "Spaghetti Carbonara" → ["Italian"]
+✅ "Gochujang Pasta" → ["Korean", "Italian"]
+✅ "Kimchi Fried Rice" → ["Korean"]
+✅ "Chicken Tikka Masala" → ["Indian"]
+✅ "Miso Ramen" → ["Japanese"]
+✅ "Ratatouille" → ["French"]
+✅ "Chicken Mole" → ["Mexican"]
+✅ "Hummus Bowl" → ["Mediterranean"]
+✅ "Spam Musubi" → ["Hawaiian"]
+✅ "Korean Carbonara" → ["Korean", "Italian"]
+✅ "Mediterranean Pasta" → ["Italian", "Mediterranean"]
+
+OUTPUT FORMAT:
+- Include in JSON as: "cuisine": ["Italian", "Mediterranean"]
+- If you cannot determine with confidence, return empty array: "cuisine": []
+- NEVER use variations like "Korean Fusion", "Italian-American", "Asian", "European" - ONLY exact names from the list
+- NEVER skip this field - always include "cuisine" in your JSON response
+
+INGREDIENT-BASED DETECTION QUICK REFERENCE:
+- gochujang, kimchi → ["Korean"]
+- miso, dashi, nori → ["Japanese"]
+- curry powder, garam masala → ["Indian"]
+- pasta, polenta, risotto → ["Italian"]
+- tortillas, chipotle → ["Mexican"]
+- tahini, za'atar → ["Mediterranean"]
+- wine, herbes de Provence → ["French"]
+- pineapple, Spam → ["Hawaiian"]
+- soy sauce, hoisin → ["Chinese"]
+
+========================================
 FINAL REMINDER
 ========================================
 Output ONLY the JSON object. No markdown, no code blocks, no explanations, no text before or after.
@@ -815,11 +902,18 @@ START with { and END with }. Nothing else.
 ABSOLUTE REQUIREMENTS:
 - ingredients: MUST be an array [] (never null)
 - instructions: MUST be an array [] (never null)
+- cuisine: MUST be an array [] (REQUIRED FIELD - analyze every recipe, can be empty [] if truly uncertain)
 - Each instruction MUST be an object: {"title": "Summary", "detail": "Full text"}
 - If you find ingredients in the HTML, extract them
 - If you find instructions in the HTML, extract them as objects with title and detail
-- If you don't find them, use empty arrays [] - NEVER null
-- The recipe data exists in the HTML - extract it carefully`,
+
+🍽️ CUISINE DETECTION IS MANDATORY:
+- ALWAYS analyze the recipe name, ingredients, and techniques to determine cuisine(s)
+- Use ONLY exact cuisine names from the supported list: ${JSON.stringify(SUPPORTED_CUISINES)}
+- For fusion recipes (e.g., Korean pasta, Mexican-Italian fusion), include BOTH cuisines
+- Return empty array [] only if you truly cannot determine the cuisine
+- NEVER skip the "cuisine" field - it must always be present in your JSON response
+- The recipe data exists in the HTML - extract it carefully, including cuisine analysis`,
         },
         {
           role: 'user',
@@ -852,6 +946,7 @@ ABSOLUTE REQUIREMENTS:
     try {
       parsedData = JSON.parse(jsonString);
     } catch (parseError) {
+      console.error('[AI Parser] JSON parse error:', parseError);
       throw parseError;
     }
 
@@ -894,7 +989,7 @@ ABSOLUTE REQUIREMENTS:
         console.log(
           `[AI Parser] Successfully parsed recipe: "${parsedData.title}" with ${parsedData.ingredients.reduce((sum: number, g: any) => sum + g.ingredients.length, 0)} ingredients and ${normalizedInstructions.length} instructions`
         );
-        // Return recipe with author if available
+        // Return recipe with author and cuisine if available
         const recipe: ParsedRecipe = {
           title: parsedData.title,
           ingredients: parsedData.ingredients,
@@ -903,6 +998,121 @@ ABSOLUTE REQUIREMENTS:
         if (parsedData.author && typeof parsedData.author === 'string') {
           recipe.author = parsedData.author;
         }
+        
+        // Handle cuisine - normalize to array format and filter to supported cuisines only
+        console.log('[AI Parser] 🍽️ Starting cuisine detection for recipe:', parsedData.title);
+        console.log('[AI Parser] Raw cuisine data from AI:', {
+          cuisine: parsedData.cuisine,
+          type: typeof parsedData.cuisine,
+          isArray: Array.isArray(parsedData.cuisine),
+        });
+        
+        if (parsedData.cuisine) {
+          if (Array.isArray(parsedData.cuisine)) {
+            // Filter out empty strings and ensure all items are strings
+            const detectedCuisines = parsedData.cuisine
+              .filter((c: any) => typeof c === 'string' && c.trim().length > 0)
+              .map((c: string) => c.trim());
+            
+            console.log('[AI Parser] Detected cuisines (array):', detectedCuisines);
+            
+            // Normalize cuisine names: try exact match first, then case-insensitive match
+            const normalizeCuisineName = (name: string): string | null => {
+              // Try exact match first
+              if (isSupportedCuisine(name)) {
+                console.log(`[AI Parser] ✅ Exact match found: "${name}"`);
+                return name;
+              }
+              // Try case-insensitive match
+              const lowerName = name.toLowerCase();
+              const matched = SUPPORTED_CUISINES.find(
+                (supported) => supported.toLowerCase() === lowerName
+              );
+              if (matched) {
+                console.log(`[AI Parser] ✅ Case-insensitive match: "${name}" → "${matched}"`);
+                return matched;
+              }
+              console.log(`[AI Parser] ❌ No match for: "${name}"`);
+              return null;
+            };
+            
+            // Filter to only include supported cuisines (with normalization)
+            const validCuisines = detectedCuisines
+              .map(normalizeCuisineName)
+              .filter((c): c is string => c !== null);
+            
+            if (validCuisines.length > 0) {
+              recipe.cuisine = validCuisines;
+              console.log('[AI Parser] ✅ Cuisine detection SUCCESS:', {
+                title: recipe.title,
+                detectedCuisines,
+                validCuisines,
+                unsupportedCuisines: detectedCuisines.filter(c => !normalizeCuisineName(c)),
+                supportedCuisines: SUPPORTED_CUISINES,
+              });
+            } else if (detectedCuisines.length > 0) {
+              console.warn('[AI Parser] ⚠️ Cuisine detected but not supported:', {
+                title: recipe.title,
+                detectedCuisines,
+                supportedCuisines: SUPPORTED_CUISINES,
+                reason: 'None of the detected cuisines match supported list (even with case-insensitive matching)',
+              });
+            } else {
+              console.log('[AI Parser] ⚠️ Cuisine array was empty or invalid');
+            }
+          } else if (typeof parsedData.cuisine === 'string' && parsedData.cuisine.trim().length > 0) {
+            // Handle single string cuisine
+            const cuisineStr = parsedData.cuisine.trim();
+            console.log('[AI Parser] Detected single cuisine string:', cuisineStr);
+            
+            // Try exact match first, then case-insensitive
+            let normalizedCuisine: string | null = null;
+            if (isSupportedCuisine(cuisineStr)) {
+              normalizedCuisine = cuisineStr;
+              console.log(`[AI Parser] ✅ Exact match found: "${cuisineStr}"`);
+            } else {
+              const lowerName = cuisineStr.toLowerCase();
+              const matched = SUPPORTED_CUISINES.find(
+                (supported) => supported.toLowerCase() === lowerName
+              );
+              normalizedCuisine = matched || null;
+              if (matched) {
+                console.log(`[AI Parser] ✅ Case-insensitive match: "${cuisineStr}" → "${matched}"`);
+              } else {
+                console.log(`[AI Parser] ❌ No match for: "${cuisineStr}"`);
+              }
+            }
+            
+            if (normalizedCuisine) {
+              recipe.cuisine = [normalizedCuisine];
+              console.log('[AI Parser] ✅ Single cuisine string added:', {
+                title: recipe.title,
+                detectedCuisine: cuisineStr,
+                normalizedCuisine,
+              });
+            } else {
+              console.warn('[AI Parser] ⚠️ Single cuisine string not supported:', {
+                title: recipe.title,
+                detectedCuisine: cuisineStr,
+                supportedCuisines: SUPPORTED_CUISINES,
+              });
+            }
+          } else {
+            console.log('[AI Parser] ⚠️ Cuisine field exists but is invalid type:', {
+              type: typeof parsedData.cuisine,
+              value: parsedData.cuisine,
+            });
+          }
+        } else {
+          console.warn('[AI Parser] ⚠️ No cuisine detected by AI:', {
+            title: parsedData.title,
+            hasCuisineField: 'cuisine' in parsedData,
+            cuisineValue: parsedData.cuisine,
+            note: 'AI may have skipped this optional field - check AI prompt',
+          });
+        }
+        
+        console.log('[AI Parser] Final recipe cuisine:', recipe.cuisine || 'none');
         return recipe;
       }
     }
@@ -956,10 +1166,11 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
                                     (aiResult.ingredients.length === 1 && aiResult.ingredients[0].groupName !== 'Main');
           
           if (hasBetterGroupings) {
-            // Merge JSON-LD data (title, author, etc.) with AI-detected groupings
+            // Merge JSON-LD data (title, author, etc.) with AI-detected groupings and cuisine
             const mergedRecipe: ParsedRecipe = {
               ...jsonLdResult,
               ingredients: aiResult.ingredients, // Use AI-detected groupings
+              cuisine: aiResult.cuisine, // Include AI-detected cuisine tags
             };
             
             const summary = await generateRecipeSummary(mergedRecipe);
@@ -977,16 +1188,38 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
         }
       }
       
-      // Generate summary for JSON-LD parsed recipe
-      const summary = await generateRecipeSummary(jsonLdResult);
-      const recipeWithSummary = {
+      // Always try AI parsing for cuisine detection, even if JSON-LD has good groupings
+      // This ensures we get cuisine tags even when JSON-LD parsing succeeds
+      console.log('[Recipe Parser] JSON-LD succeeded, calling AI parsing for cuisine detection...');
+      let aiResult: ParsedRecipe | null = null;
+      try {
+        aiResult = await parseWithAI(cleaned.html);
+      } catch (error) {
+        console.error('[Recipe Parser] AI parsing for cuisine failed:', error);
+        // Continue without cuisine if AI fails
+      }
+      
+      // Merge JSON-LD data with AI-detected cuisine (and summary if available)
+      console.log('[Recipe Parser] 🔄 Merging JSON-LD + AI results for cuisine detection');
+      console.log('[Recipe Parser] JSON-LD result cuisine:', jsonLdResult.cuisine || 'none');
+      console.log('[Recipe Parser] AI result cuisine:', aiResult?.cuisine || 'none');
+      
+      const mergedRecipe: ParsedRecipe = {
         ...jsonLdResult,
+        ...(aiResult?.cuisine && aiResult.cuisine.length > 0 && { cuisine: aiResult.cuisine }), // Add cuisine from AI if detected
+      };
+      
+      console.log('[Recipe Parser] ✅ Final merged recipe cuisine:', mergedRecipe.cuisine || 'none');
+      
+      const summary = await generateRecipeSummary(mergedRecipe);
+      const recipeWithSummary = {
+        ...mergedRecipe,
         ...(summary && { summary }),
       };
       return {
         success: true,
         data: recipeWithSummary,
-        method: 'json-ld',
+        method: 'json-ld+ai', // Indicate hybrid approach (JSON-LD for data, AI for cuisine)
       };
     }
 
@@ -999,6 +1232,13 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
       console.log(
         `[Recipe Parser] AI parsing succeeded${aiResult.author ? ` with author "${aiResult.author}"` : ' (no author found)'}`
       );
+      // #region agent log
+      console.log('[DEBUG] AI-only parsing - cuisine check:', {
+        title: aiResult.title,
+        hasCuisine: !!aiResult.cuisine,
+        cuisine: aiResult.cuisine,
+      });
+      // #endregion
       // Generate summary for AI parsed recipe
       const summary = await generateRecipeSummary(aiResult);
       const recipeWithSummary = {
@@ -1039,28 +1279,10 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
 export async function parseRecipeFromUrl(url: string): Promise<ParserResult> {
   try {
     console.log(`[Recipe Parser] Fetching recipe from URL: ${url}`);
-    // #region agent log
-    try {
-      const { appendFile } = await import('fs/promises');
-      const logPath = '/Users/gageminamoto/Documents/GitHub/parse-n-plate/.cursor/debug.log';
-      await appendFile(logPath, JSON.stringify({location:'aiRecipeParser.ts:1040',message:'parseRecipeFromUrl entry',data:{url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'}) + '\n', 'utf8').catch((err) => console.error('[DEBUG LOG] Write failed:', err));
-    } catch (importErr) {
-      console.error('[DEBUG LOG] Import failed:', importErr);
-    }
-    // #endregion
 
     // Fetch HTML with timeout and proper headers
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
-    // #region agent log
-    try {
-      const { appendFile } = await import('fs/promises');
-      const logPath = '/Users/gageminamoto/Documents/GitHub/parse-n-plate/.cursor/debug.log';
-      await appendFile(logPath, JSON.stringify({location:'aiRecipeParser.ts:1048',message:'Before fetch call',data:{url,timeout:10000},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}) + '\n', 'utf8').catch((err) => console.error('[DEBUG LOG] Write failed:', err));
-    } catch (importErr) {
-      console.error('[DEBUG LOG] Import failed:', importErr);
-    }
-    // #endregion
 
     console.log(`[Recipe Parser] Making fetch request to: ${url}`);
     const response = await fetch(url, {
@@ -1076,27 +1298,9 @@ export async function parseRecipeFromUrl(url: string): Promise<ParserResult> {
 
     clearTimeout(timeoutId);
     console.log(`[Recipe Parser] Fetch response: ${response.status} ${response.statusText}, ok: ${response.ok}`);
-    // #region agent log
-    try {
-      const { appendFile } = await import('fs/promises');
-      const logPath = '/Users/gageminamoto/Documents/GitHub/parse-n-plate/.cursor/debug.log';
-      await appendFile(logPath, JSON.stringify({location:'aiRecipeParser.ts:1066',message:'After fetch success',data:{status:response.status,statusText:response.statusText,ok:response.ok,contentType:response.headers.get('content-type'),url:response.url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}) + '\n', 'utf8').catch((err) => console.error('[DEBUG LOG] Write failed:', err));
-    } catch (importErr) {
-      console.error('[DEBUG LOG] Import failed:', importErr);
-    }
-    // #endregion
 
     if (!response.ok) {
       console.error(`[Recipe Parser] Response not ok: ${response.status} ${response.statusText}`);
-      // #region agent log
-      try {
-        const { appendFile } = await import('fs/promises');
-        const logPath = '/Users/gageminamoto/Documents/GitHub/parse-n-plate/.cursor/debug.log';
-        await appendFile(logPath, JSON.stringify({location:'aiRecipeParser.ts:1071',message:'Response not ok',data:{status:response.status,statusText:response.statusText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'}) + '\n', 'utf8').catch((err) => console.error('[DEBUG LOG] Write failed:', err));
-      } catch (importErr) {
-        console.error('[DEBUG LOG] Import failed:', importErr);
-      }
-      // #endregion
       return {
         success: false,
         error: `Failed to fetch URL: ${response.status} ${response.statusText}`,
@@ -1106,27 +1310,9 @@ export async function parseRecipeFromUrl(url: string): Promise<ParserResult> {
 
     const html = await response.text();
     console.log(`[Recipe Parser] HTML length: ${html.length}`);
-    // #region agent log
-    try {
-      const { appendFile } = await import('fs/promises');
-      const logPath = '/Users/gageminamoto/Documents/GitHub/parse-n-plate/.cursor/debug.log';
-      await appendFile(logPath, JSON.stringify({location:'aiRecipeParser.ts:1084',message:'After text extraction',data:{htmlLength:html.length,htmlTrimmedLength:html.trim().length,first200Chars:html.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}) + '\n', 'utf8').catch((err) => console.error('[DEBUG LOG] Write failed:', err));
-    } catch (importErr) {
-      console.error('[DEBUG LOG] Import failed:', importErr);
-    }
-    // #endregion
 
     if (!html || html.trim().length === 0) {
       console.error('[Recipe Parser] HTML content is empty');
-      // #region agent log
-      try {
-        const { appendFile } = await import('fs/promises');
-        const logPath = '/Users/gageminamoto/Documents/GitHub/parse-n-plate/.cursor/debug.log';
-        await appendFile(logPath, JSON.stringify({location:'aiRecipeParser.ts:1089',message:'HTML content empty',data:{htmlLength:html?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'}) + '\n', 'utf8').catch((err) => console.error('[DEBUG LOG] Write failed:', err));
-      } catch (importErr) {
-        console.error('[DEBUG LOG] Import failed:', importErr);
-      }
-      // #endregion
       return {
         success: false,
         error: 'Fetched HTML is empty',
@@ -1145,30 +1331,12 @@ export async function parseRecipeFromUrl(url: string): Promise<ParserResult> {
     return result;
   } catch (error) {
     console.error('[Recipe Parser] Error caught:', error);
-    // #region agent log
-    try {
-      const { appendFile } = await import('fs/promises');
-      const logPath = '/Users/gageminamoto/Documents/GitHub/parse-n-plate/.cursor/debug.log';
-      await appendFile(logPath, JSON.stringify({location:'aiRecipeParser.ts:1107',message:'Error caught in parseRecipeFromUrl',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined,errorType:error instanceof TypeError?'TypeError':error instanceof Error?'Error':'Unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'ALL'}) + '\n', 'utf8').catch((err) => console.error('[DEBUG LOG] Write failed:', err));
-    } catch (importErr) {
-      console.error('[DEBUG LOG] Import failed:', importErr);
-    }
-    // #endregion
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error fetching URL';
     
     // Check for timeout
     if (errorMessage.includes('abort')) {
       console.error('[Recipe Parser] Timeout error detected');
-      // #region agent log
-      try {
-        const { appendFile } = await import('fs/promises');
-        const logPath = '/Users/gageminamoto/Documents/GitHub/parse-n-plate/.cursor/debug.log';
-        await appendFile(logPath, JSON.stringify({location:'aiRecipeParser.ts:1118',message:'Timeout error detected',data:{errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'}) + '\n', 'utf8').catch((err) => console.error('[DEBUG LOG] Write failed:', err));
-      } catch (importErr) {
-        console.error('[DEBUG LOG] Import failed:', importErr);
-      }
-      // #endregion
       return {
         success: false,
         error: 'Request timed out after 10 seconds',

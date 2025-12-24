@@ -23,6 +23,7 @@ export type ParsedRecipe = {
   instructions?: Array<string | InstructionStep>;
   author?: string; // Recipe author if available
   sourceUrl?: string; // Source URL if available
+  cuisine?: string[]; // Cuisine types/tags (e.g., ["Italian", "Mediterranean"])
 };
 
 const RECENT_RECIPES_KEY = 'recentRecipes';
@@ -86,9 +87,14 @@ function normalizeInstructions(
 export function getRecentRecipes(): ParsedRecipe[] {
   try {
     const stored = localStorage.getItem(RECENT_RECIPES_KEY);
-    if (!stored) return [];
+    if (!stored) {
+      console.log('[Storage] No recipes found in localStorage');
+      return [];
+    }
 
     const recipes = JSON.parse(stored) as ParsedRecipe[];
+    console.log(`[Storage] 🍽️ Loading ${recipes.length} recipes from localStorage`);
+    
     const normalized = recipes
       .map((recipe) => ({
         ...recipe,
@@ -98,6 +104,12 @@ export function getRecentRecipes(): ParsedRecipe[] {
         (a, b) =>
           new Date(b.parsedAt).getTime() - new Date(a.parsedAt).getTime(),
       );
+    
+    // Log cuisine data for each recipe
+    normalized.forEach(recipe => {
+      console.log(`[Storage] Recipe "${recipe.title}": cuisine=${recipe.cuisine || 'none'}`);
+    });
+    
     return normalized;
   } catch (error) {
     console.error('Error reading recent recipes from localStorage:', error);
@@ -116,12 +128,15 @@ export function addRecentRecipe(
     const recentRecipes = getRecentRecipes();
 
     // Create new recipe with id and parsedAt
+    console.log('[Storage] 🍽️ Adding recipe to localStorage with cuisine:', recipe.cuisine || 'none');
     const newRecipe: ParsedRecipe = {
       ...recipe,
       instructions: normalizeInstructions(recipe.instructions),
       id: generateId(),
       parsedAt: new Date().toISOString(),
     };
+    
+    console.log('[Storage] 🍽️ Recipe stored with cuisine:', newRecipe.cuisine || 'none');
 
     // Remove duplicate if same URL exists
     const filteredRecipes = recentRecipes.filter((r) => r.url !== recipe.url);
@@ -133,6 +148,7 @@ export function addRecentRecipe(
     const limitedRecipes = updatedRecipes.slice(0, MAX_RECENT_RECIPES);
 
     localStorage.setItem(RECENT_RECIPES_KEY, JSON.stringify(limitedRecipes));
+    console.log('[Storage] ✅ Recipe saved to localStorage successfully');
   } catch (error) {
     console.error('Error adding recent recipe to localStorage:', error);
   }
