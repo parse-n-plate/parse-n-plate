@@ -8,21 +8,18 @@ import {
 import { useRouter } from 'next/navigation';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
-import { useRecipeErrorHandler } from '@/hooks/useRecipeErrorHandler';
 import { errorLogger } from '@/utils/errorLogger';
-import { Search, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Search, X, Upload, Image as ImageIcon, Link as LinkIcon, ChevronDown } from 'lucide-react';
 import LoadingAnimation from './loading-animation';
 import { ParsedRecipe } from '@/lib/storage';
+import { useToast } from '@/hooks/useToast';
+import EmptyState from './empty-state';
 
 interface SearchFormProps {
-  setErrorAction: (error: boolean) => void;
-  setErrorMessage?: (message: string) => void;
   initialUrl?: string;
 }
 
 export default function SearchForm({
-  setErrorAction,
-  setErrorMessage,
   initialUrl = '',
 }: SearchFormProps) {
   const [query, setQuery] = useState('');
@@ -37,7 +34,7 @@ export default function SearchForm({
   
   const { setParsedRecipe } = useRecipe();
   const { addRecipe, recentRecipes } = useParsedRecipes();
-  const { handle: handleError } = useRecipeErrorHandler();
+  const { showError, showSuccess } = useToast();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,16 +107,21 @@ export default function SearchForm({
 
     // Validate file type - only allow images
     if (!file.type.startsWith('image/')) {
-      setErrorAction(true);
-      if (setErrorMessage) setErrorMessage('Please select a valid image file');
+      showError({
+        code: 'ERR_INVALID_FILE_TYPE',
+        message: 'Please select a valid image file',
+      });
       return;
     }
 
     // Validate file size - max 10MB
     const maxSize = 10 * 1024 * 1024; // 10MB in bytes
     if (file.size > maxSize) {
-      setErrorAction(true);
-      if (setErrorMessage) setErrorMessage('Image size must be less than 10MB');
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      showError({
+        code: 'ERR_FILE_TOO_LARGE',
+        message: 'Image size must be less than 10MB',
+      });
       return;
     }
 
@@ -153,8 +155,6 @@ export default function SearchForm({
 
     try {
       setLoading(true);
-      setErrorAction(false);
-      if (setErrorMessage) setErrorMessage('');
 
       console.log('[Client] Parsing recipe from image:', selectedImage.name);
       
@@ -164,10 +164,11 @@ export default function SearchForm({
       // Check if parsing failed
       if (!response.success || response.error) {
         const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
-        const errorMessage = handleError(errorCode);
         errorLogger.log(errorCode, response.error?.message || 'Image parsing failed', selectedImage.name);
-        setErrorAction(true);
-        if (setErrorMessage) setErrorMessage(errorMessage);
+        showError({
+          code: errorCode,
+          message: response.error?.message,
+        });
         return;
       }
 
@@ -198,6 +199,9 @@ export default function SearchForm({
         sourceUrl: response.sourceUrl, // Include source URL if available
       });
 
+      // Show success toast
+      showSuccess('Recipe parsed successfully!', 'Navigating to recipe page...');
+
       // Navigate to parsed recipe page
       router.push('/parsed-recipe-page');
     } catch (err) {
@@ -207,19 +211,19 @@ export default function SearchForm({
         'An unexpected error occurred during image parsing',
         selectedImage.name,
       );
-      setErrorAction(true);
-      if (setErrorMessage)
-        setErrorMessage('An unexpected error occurred. Please try again.');
+      showError({
+        code: 'ERR_UNKNOWN',
+        message: 'An unexpected error occurred. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
   }, [
     selectedImage,
-    setErrorAction,
-    setErrorMessage,
     setParsedRecipe,
     addRecipe,
-    handleError,
+    showError,
+    showSuccess,
     router,
   ]);
 
@@ -228,34 +232,33 @@ export default function SearchForm({
 
     try {
       setLoading(true);
-      setErrorAction(false);
-      if (setErrorMessage) setErrorMessage('');
 
       // Step 1: Quick validation to ensure URL contains recipe-related keywords
       // This provides fast feedback before making the full parsing request
       const validUrlResponse = await validateRecipeUrl(query);
 
       if (!validUrlResponse.success) {
-        const errorMessage = handleError(validUrlResponse.error.code);
         errorLogger.log(
           validUrlResponse.error.code,
           validUrlResponse.error.message,
           query,
         );
-        setErrorAction(true);
-        if (setErrorMessage) setErrorMessage(errorMessage);
+        showError({
+          code: validUrlResponse.error.code,
+          message: validUrlResponse.error.message,
+        });
         return;
       }
 
       if (!validUrlResponse.isRecipe) {
-        const errorMessage = handleError('ERR_NO_RECIPE_FOUND');
         errorLogger.log(
           'ERR_NO_RECIPE_FOUND',
           'No recipe found on this page',
           query,
         );
-        setErrorAction(true);
-        if (setErrorMessage) setErrorMessage(errorMessage);
+        showError({
+          code: 'ERR_NO_RECIPE_FOUND',
+        });
         return;
       }
 
@@ -271,10 +274,11 @@ export default function SearchForm({
       // Check if parsing failed
       if (!response.success || response.error) {
         const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
-        const errorMessage = handleError(errorCode);
         errorLogger.log(errorCode, response.error?.message || 'Parsing failed', query);
-        setErrorAction(true);
-        if (setErrorMessage) setErrorMessage(errorMessage);
+        showError({
+          code: errorCode,
+          message: response.error?.message,
+        });
         return;
       }
 
@@ -320,6 +324,9 @@ export default function SearchForm({
         sourceUrl: response.sourceUrl || query, // Include source URL if available
       });
 
+      // Show success toast
+      showSuccess('Recipe parsed successfully!', 'Navigating to recipe page...');
+
       // Step 5: Navigate to the parsed recipe page
       router.push('/parsed-recipe-page');
     } catch (err) {
@@ -329,19 +336,19 @@ export default function SearchForm({
         'An unexpected error occurred during parsing',
         query,
       );
-      setErrorAction(true);
-      if (setErrorMessage)
-        setErrorMessage('An unexpected error occurred. Please try again.');
+      showError({
+        code: 'ERR_UNKNOWN',
+        message: 'An unexpected error occurred. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
   }, [
     query,
-    setErrorAction,
-    setErrorMessage,
     setParsedRecipe,
     addRecipe,
-    handleError,
+    showError,
+    showSuccess,
     router,
   ]);
 
@@ -391,27 +398,6 @@ export default function SearchForm({
     <>
       <LoadingAnimation isVisible={loading} />
       <div className="relative w-full">
-        {/* Mode Toggle Button - Switches between URL and Image input */}
-        <div className="flex justify-center mb-3">
-          <button
-            type="button"
-            onClick={toggleInputMode}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#d9d9d9] rounded-full hover:border-[#4F46E5] transition-all duration-200 text-sm font-albert text-stone-600"
-          >
-            {inputMode === 'url' ? (
-              <>
-                <ImageIcon className="w-4 h-4" />
-                <span>Switch to Image Upload</span>
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4" />
-                <span>Switch to URL Input</span>
-              </>
-            )}
-          </button>
-        </div>
-
         {/* URL Input Mode */}
         {inputMode === 'url' && (
           <form
@@ -422,28 +408,22 @@ export default function SearchForm({
           >
             <div
               className={`
-                bg-stone-100 rounded-[9999px] border border-[#d9d9d9] 
+                bg-stone-100 rounded-lg border border-[#d9d9d9] 
                 transition-all duration-300 ease-in-out
                 hover:border-[#4F46E5] hover:border-opacity-80
                 ${isFocused ? 'shadow-sm border-[#4F46E5] border-opacity-60' : ''}
               `}
             >
-              <div className="flex items-center px-4 py-4 relative">
-                {/* Search Icon */}
-                <Search className="w-4 h-4 text-stone-600 flex-shrink-0" />
+              <div className="flex items-center px-4 py-3 relative">
+                {/* URL Icon - replaced Search icon */}
+                <LinkIcon className="w-5 h-5 text-stone-600 flex-shrink-0" />
 
               {/* Input */}
-              <div className="flex-1 ml-2 relative">
+              <div className="flex-1 ml-3 relative">
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder={
-                    isFocused
-                      ? query && !isUrl(query)
-                        ? 'Search recipes...'
-                        : 'Try entering a recipe URL'
-                      : 'Try entering a recipe URL'
-                  }
+                  placeholder="Enter a recipe URL"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -453,18 +433,31 @@ export default function SearchForm({
                     w-full bg-transparent font-albert text-[14px] text-stone-600 
                     placeholder:text-stone-500 focus:outline-none border-none
                     transition-all duration-300 ease-in-out
-                    ${isFocused ? 'text-left' : 'text-center'}
                   `}
                   disabled={loading}
                 />
               </div>
+
+              {/* Mode Toggle Chevron - switches between URL and Image */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleInputMode();
+                }}
+                className="ml-2 p-1.5 hover:bg-stone-200 rounded transition-all duration-200 flex-shrink-0"
+                aria-label="Switch input mode"
+                disabled={loading}
+              >
+                <ChevronDown className="w-4 h-4 text-stone-600" />
+              </button>
 
               {/* Clear Button */}
               {query && (
                 <button
                   type="button"
                   onClick={clearInput}
-                  className="ml-2 p-1 hover:bg-stone-200 rounded-full transition-all duration-200 flex-shrink-0"
+                  className="ml-1 p-1 hover:bg-stone-200 rounded transition-all duration-200 flex-shrink-0"
                   disabled={loading}
                 >
                   <X className="w-4 h-4 text-stone-600" />
@@ -475,14 +468,14 @@ export default function SearchForm({
               {query && isUrl(query) && (
                 <button
                   type="submit"
-                  className="ml-2 bg-[#FFA423] hover:bg-[#FF9500] text-white font-albert text-[12px] px-3 py-1.5 rounded-full transition-colors duration-200 flex-shrink-0"
+                  className="ml-2 bg-[#FFA423] hover:bg-[#FF9500] text-white font-albert text-[12px] px-3 py-1.5 rounded transition-colors duration-200 flex-shrink-0"
                   disabled={loading}
                 >
                   Parse Recipe
                 </button>
               )}
+              </div>
             </div>
-          </div>
           </form>
         )}
 
@@ -498,34 +491,44 @@ export default function SearchForm({
               className="hidden"
             />
 
-            {/* Image Upload Button or Preview */}
-            {!imagePreview ? (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-                className="w-full bg-stone-100 rounded-2xl border-2 border-dashed border-[#d9d9d9] hover:border-[#4F46E5] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-3"
-              >
-                <Upload className="w-12 h-12 text-stone-400" />
-                <div className="text-center">
-                  <p className="font-albert text-stone-600 font-medium">
-                    Click to upload recipe image
-                  </p>
-                  <p className="font-albert text-sm text-stone-500 mt-1">
-                    PNG, JPG, or WEBP (max 10MB)
-                  </p>
-                </div>
-              </button>
-            ) : (
-              <div className="space-y-3">
-                {/* Image Preview */}
-                <div className="relative rounded-2xl overflow-hidden border-2 border-[#d9d9d9]">
-                  <img
-                    src={imagePreview}
-                    alt="Recipe preview"
-                    className="w-full h-auto max-h-96 object-contain bg-stone-50"
-                  />
-                  {/* Remove Image Button */}
+            {/* Image Input Field - matches URL input style */}
+            <div
+              className={`
+                bg-stone-100 rounded-lg border border-[#d9d9d9] 
+                transition-all duration-300 ease-in-out
+                hover:border-[#4F46E5] hover:border-opacity-80
+              `}
+            >
+              <div className="flex items-center px-4 py-3 relative">
+                {/* Image Icon */}
+                <ImageIcon className="w-5 h-5 text-stone-600 flex-shrink-0" />
+
+                {/* Clickable area to trigger file input */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  className="flex-1 ml-3 text-left font-albert text-[14px] text-stone-500 hover:text-stone-600 transition-colors"
+                >
+                  {selectedImage ? selectedImage.name : 'Upload recipe image'}
+                </button>
+
+                {/* Mode Toggle Chevron - switches between URL and Image */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleInputMode();
+                  }}
+                  className="ml-2 p-1.5 hover:bg-stone-200 rounded transition-all duration-200 flex-shrink-0"
+                  aria-label="Switch input mode"
+                  disabled={loading}
+                >
+                  <ChevronDown className="w-4 h-4 text-stone-600" />
+                </button>
+
+                {/* Remove Image Button */}
+                {selectedImage && (
                   <button
                     type="button"
                     onClick={() => {
@@ -535,11 +538,24 @@ export default function SearchForm({
                         fileInputRef.current.value = '';
                       }
                     }}
-                    className="absolute top-3 right-3 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all duration-200"
+                    className="ml-1 p-1 hover:bg-stone-200 rounded transition-all duration-200 flex-shrink-0"
                     disabled={loading}
                   >
-                    <X className="w-5 h-5 text-stone-600" />
+                    <X className="w-4 h-4 text-stone-600" />
                   </button>
+                )}
+              </div>
+            </div>
+
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="space-y-3">
+                <div className="relative rounded-lg overflow-hidden border border-[#d9d9d9]">
+                  <img
+                    src={imagePreview}
+                    alt="Recipe preview"
+                    className="w-full h-auto max-h-96 object-contain bg-stone-50"
+                  />
                 </div>
 
                 {/* Parse Button */}
@@ -547,7 +563,7 @@ export default function SearchForm({
                   type="button"
                   onClick={handleImageParse}
                   disabled={loading}
-                  className="w-full bg-[#FFA423] hover:bg-[#FF9500] text-white font-albert font-medium text-base px-6 py-4 rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#FFA423] hover:bg-[#FF9500] text-white font-albert font-medium text-[14px] px-6 py-3 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Parse Recipe from Image
                 </button>
@@ -557,33 +573,39 @@ export default function SearchForm({
         )}
 
         {/* Search Results Dropdown - Only show in URL mode */}
-        {inputMode === 'url' && showDropdown && searchResults.length > 0 && (
+        {inputMode === 'url' && showDropdown && (
           <div
             ref={dropdownRef}
             className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#d9d9d9] rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
           >
-            <div className="p-2">
-              <div className="text-xs font-albert font-medium text-stone-500 px-3 py-2 border-b border-stone-200">
-                Recent Recipes ({searchResults.length})
+            {searchResults.length > 0 ? (
+              <div className="p-2">
+                <div className="text-xs font-albert font-medium text-stone-500 px-3 py-2 border-b border-stone-200">
+                  Recent Recipes ({searchResults.length})
+                </div>
+                {searchResults.map((recipe) => (
+                  <button
+                    key={recipe.id}
+                    onClick={() => handleRecipeSelect(recipe)}
+                    className="w-full text-left p-3 hover:bg-stone-50 transition-colors duration-200 border-b border-stone-100 last:border-b-0"
+                  >
+                    <div className="font-albert font-medium text-[14px] text-stone-800 truncate">
+                      {recipe.title}
+                    </div>
+                    <div className="font-albert text-[12px] text-stone-500 mt-1 line-clamp-2">
+                      {recipe.summary}
+                    </div>
+                    <div className="font-albert text-[10px] text-stone-400 mt-1">
+                      {new Date(recipe.parsedAt).toLocaleDateString()}
+                    </div>
+                  </button>
+                ))}
               </div>
-              {searchResults.map((recipe) => (
-                <button
-                  key={recipe.id}
-                  onClick={() => handleRecipeSelect(recipe)}
-                  className="w-full text-left p-3 hover:bg-stone-50 transition-colors duration-200 border-b border-stone-100 last:border-b-0"
-                >
-                  <div className="font-albert font-medium text-[14px] text-stone-800 truncate">
-                    {recipe.title}
-                  </div>
-                  <div className="font-albert text-[12px] text-stone-500 mt-1 line-clamp-2">
-                    {recipe.summary}
-                  </div>
-                  <div className="font-albert text-[10px] text-stone-400 mt-1">
-                    {new Date(recipe.parsedAt).toLocaleDateString()}
-                  </div>
-                </button>
-              ))}
-            </div>
+            ) : query.trim() && !isUrl(query) ? (
+              <EmptyState variant="no-results" compact />
+            ) : recentRecipes.length === 0 ? (
+              <EmptyState variant="no-recent" compact />
+            ) : null}
           </div>
         )}
       </div>

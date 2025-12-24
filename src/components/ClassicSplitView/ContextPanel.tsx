@@ -52,10 +52,10 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => handleIngredientClick(ing.name)}
-                    className="group flex items-center justify-between p-3 -mx-3 rounded-xl transition-all duration-[180ms] cursor-pointer border border-transparent hover:bg-white hover:border-stone-100"
+                    className="group flex items-center justify-between p-3 -mx-3 rounded-xl cursor-pointer border border-transparent hover:bg-white hover:border-stone-100"
                   >
                     <div className="flex flex-col">
-                      <p className="font-albert text-[17px] text-stone-700 leading-tight transition-colors duration-[180ms] group-hover:text-[#193d34] group-hover:font-medium">
+                      <p className="font-albert text-[17px] text-stone-700 leading-tight group-hover:text-[#193d34] group-hover:font-medium">
                         {ing.name}
                       </p>
                       <p className="font-albert text-[13px] text-stone-400 mt-1">
@@ -63,11 +63,11 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                       </p>
                     </div>
                     <motion.div 
-                      className="w-5 h-5 shrink-0 text-stone-300 group-hover:text-[#193d34] transition-colors duration-[180ms]"
+                      className="w-5 h-5 shrink-0 text-stone-300 group-hover:text-[#193d34]"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 0.4 }}
                       whileHover={{ opacity: 1 }}
-                      transition={{ duration: 0.18 }}
+                      transition={{ duration: 0 }}
                     >
                       <svg
                         width="20"
@@ -109,17 +109,17 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => handleIngredientClick(ingredient)}
-                    className="group flex items-center justify-between p-3 -mx-3 rounded-xl transition-all duration-[180ms] hover:bg-white cursor-pointer border border-transparent hover:border-stone-100"
+                    className="group flex items-center justify-between p-3 -mx-3 rounded-xl hover:bg-white cursor-pointer border border-transparent hover:border-stone-100"
                   >
-                    <p className="font-albert text-[17px] text-stone-500 leading-relaxed transition-colors duration-[180ms] group-hover:text-[#193d34] group-hover:font-medium">
+                    <p className="font-albert text-[17px] text-stone-500 leading-relaxed group-hover:text-[#193d34] group-hover:font-medium">
                       {ingredient}
                     </p>
                     <motion.div 
-                      className="w-5 h-5 shrink-0 text-stone-300 group-hover:text-[#193d34] transition-colors duration-[180ms]"
+                      className="w-5 h-5 shrink-0 text-stone-300 group-hover:text-[#193d34]"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 0.4 }}
                       whileHover={{ opacity: 1 }}
-                      transition={{ duration: 0.18 }}
+                      transition={{ duration: 0 }}
                     >
                       <svg
                         width="20"

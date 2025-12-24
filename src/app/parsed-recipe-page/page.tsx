@@ -513,90 +513,94 @@ export default function ParsedRecipePage({
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Tabs Navigation */}
-                <div className="w-full">
-                  {/* Tab List */}
-                  <Tabs.List className="flex items-start w-full relative">
-                    <Tabs.Trigger
-                      value="prep"
-                      className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
-                    >
-                      <motion.div 
-                        whileHover={{ scale: 1.1, rotate: -5 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="relative shrink-0 w-9 h-9"
+              {/* Tabs Navigation - Edge-to-edge on mobile/tablet, padded on desktop */}
+              <div className="w-full">
+                {/* Tab List Container - Responsive padding: edge-to-edge on mobile/tablet, padded on desktop */}
+                <div className="px-0 lg:px-8">
+                  <div className="max-w-6xl mx-auto">
+                    <Tabs.List className="flex items-start w-full relative">
+                      <Tabs.Trigger
+                        value="prep"
+                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
                       >
-                        <img 
-                          alt="Prep icon" 
-                          className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'prep' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
-                          src="/assets/icons/Prep_Icon.png"
-                        />
-                      </motion.div>
-                      <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'prep' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
-                        Prep
-                      </span>
-                      {activeTab === 'prep' && (
                         <motion.div 
-                          layoutId="activeTab"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                        />
-                      )}
-                    </Tabs.Trigger>
-                    <Tabs.Trigger
-                      value="cook"
-                      className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
-                    >
-                      <motion.div 
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="relative shrink-0 w-9 h-9"
+                          whileHover={{ scale: 1.1, rotate: -5 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="relative shrink-0 w-9 h-9"
+                        >
+                          <img 
+                            alt="Prep icon" 
+                            className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'prep' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
+                            src="/assets/icons/Prep_Icon.png"
+                          />
+                        </motion.div>
+                        <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'prep' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                          Prep
+                        </span>
+                        {activeTab === 'prep' && (
+                          <motion.div 
+                            layoutId="activeTab"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                      </Tabs.Trigger>
+                      <Tabs.Trigger
+                        value="cook"
+                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
                       >
-                        <img 
-                          alt="Cook icon" 
-                          className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'cook' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
-                          src="/assets/icons/Cook_Icon.png"
-                        />
-                      </motion.div>
-                      <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'cook' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
-                        Cook
-                      </span>
-                      {activeTab === 'cook' && (
                         <motion.div 
-                          layoutId="activeTab"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                        />
-                      )}
-                    </Tabs.Trigger>
-                    <Tabs.Trigger
-                      value="plate"
-                      className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
-                    >
-                      <motion.div 
-                        whileHover={{ scale: 1.1, rotate: -3 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="relative shrink-0 w-9 h-9"
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="relative shrink-0 w-9 h-9"
+                        >
+                          <img 
+                            alt="Cook icon" 
+                            className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'cook' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
+                            src="/assets/icons/Cook_Icon.png"
+                          />
+                        </motion.div>
+                        <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'cook' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                          Cook
+                        </span>
+                        {activeTab === 'cook' && (
+                          <motion.div 
+                            layoutId="activeTab"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                      </Tabs.Trigger>
+                      <Tabs.Trigger
+                        value="plate"
+                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
                       >
-                        <img 
-                          alt="Plate icon" 
-                          className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'plate' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
-                          src="/assets/icons/Plate_Icon.png"
-                        />
-                      </motion.div>
-                      <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'plate' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
-                        Plate
-                      </span>
-                      {activeTab === 'plate' && (
                         <motion.div 
-                          layoutId="activeTab"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                        />
-                      )}
-                    </Tabs.Trigger>
-                  </Tabs.List>
+                          whileHover={{ scale: 1.1, rotate: -3 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="relative shrink-0 w-9 h-9"
+                        >
+                          <img 
+                            alt="Plate icon" 
+                            className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 ${activeTab === 'plate' ? 'drop-shadow-sm' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}`}
+                            src="/assets/icons/Plate_Icon.png"
+                          />
+                        </motion.div>
+                        <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'plate' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                          Plate
+                        </span>
+                        {activeTab === 'plate' && (
+                          <motion.div 
+                            layoutId="activeTab"
+                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                      </Tabs.Trigger>
+                    </Tabs.List>
+                  </div>
                 </div>
               </div>
               {/* Full-width border underneath header */}
@@ -686,24 +690,26 @@ export default function ParsedRecipePage({
                                             const ingredientKey = `${groupName}:${ingredientName}`;
                                             const isExpanded = expandedIngredient === ingredientKey;
 
+                                            const ingredientId = `ingredient-group-${groupIdx}-item-${index}`;
                                             return (
-                                              <IngredientCard
-                                                key={index}
-                                                ingredient={ingredient}
-                                                description={undefined}
-                                                isLast={isLast}
-                                                recipeSteps={normalizedSteps.map(s => ({ instruction: s.detail }))}
-                                                groupName={groupName}
-                                                recipeUrl={parsedRecipe?.sourceUrl}
-                                                checked={isChecked}
-                                                onCheckedChange={(checked) => 
-                                                  handleIngredientCheck(groupName, ingredientName, checked)
-                                                }
-                                                isExpanded={isExpanded}
-                                                onExpandChange={(expanding) => 
-                                                  handleIngredientExpand(groupName, ingredientName, expanding)
-                                                }
-                                              />
+                                              <div id={ingredientId} key={index}>
+                                                <IngredientCard
+                                                  ingredient={ingredient}
+                                                  description={undefined}
+                                                  isLast={isLast}
+                                                  recipeSteps={normalizedSteps.map(s => ({ instruction: s.detail }))}
+                                                  groupName={groupName}
+                                                  recipeUrl={parsedRecipe?.sourceUrl}
+                                                  checked={isChecked}
+                                                  onCheckedChange={(checked) => 
+                                                    handleIngredientCheck(groupName, ingredientName, checked)
+                                                  }
+                                                  isExpanded={isExpanded}
+                                                  onExpandChange={(expanding) => 
+                                                    handleIngredientExpand(groupName, ingredientName, expanding)
+                                                  }
+                                                />
+                                              </div>
                                             );
                                           },
                                         )}

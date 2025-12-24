@@ -3,7 +3,6 @@
 import HomepageSkeleton from '@/components/ui/homepage-skeleton';
 import CuisinePills from '@/components/ui/cuisine-pills';
 import RecipeCard, { RecipeCardData } from '@/components/ui/recipe-card';
-import Footer from '@/components/ui/footer';
 import { useState, useEffect, Suspense, use } from 'react';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRecipe } from '@/contexts/RecipeContext';
@@ -11,7 +10,8 @@ import { useAdminSettings } from '@/contexts/AdminSettingsContext';
 import { useRouter } from 'next/navigation';
 import type { CuisineType } from '@/components/ui/cuisine-pills';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Link as LinkIcon, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import SearchForm from '@/components/ui/search-form';
 
 // Placeholder recipe data matching the prototype
 const PLACEHOLDER_RECIPES: RecipeCardData[] = [
@@ -187,29 +187,29 @@ function HomeContent() {
 
       <div className="transition-opacity duration-300 ease-in-out opacity-100 relative z-10 flex-1">
         {/* Main Content Container */}
-        <div className="max-w-6xl mx-auto px-4 md:px-8 pt-12 md:pt-16 pb-12 md:pb-16 flex flex-col gap-12 md:gap-16">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 pt-16 md:pt-24 pb-12 md:pb-16 flex flex-col gap-16 md:gap-20">
           {/* Hero Section */}
-          <div className="text-center space-y-4 md:space-y-5">
-              {/* App Name */}
-              <p className="font-domine text-[16px] md:text-[18px] font-normal text-[#5a5a5a] tracking-[0.08em] uppercase leading-[1.2] mb-4">
-                Mis San Plas
-              </p>
-              <h1 className="font-domine text-[48px] md:text-[72px] font-normal text-black leading-[1.05] mb-4">
-                Cook with confidence,
-                <span className="block"> from prep to plate.</span>
+          <div className="text-center space-y-5 md:space-y-6">
+              <h1 className="font-domine text-[48px] md:text-[56px] font-normal text-black leading-[1.05]">
+                Clean recipes, fast cooking.
               </h1>
-            <p className="font-albert text-[16px] md:text-[18px] text-stone-700 leading-[1.5] max-w-2xl mx-auto">
-                Structured steps, helpful cues, and guidance for every stage of the process.
+              <p className="font-albert text-[16px] md:text-[17px] text-stone-600 leading-[1.6] max-w-2xl mx-auto">
+                No distractions. No clutter. Just clear, elegant recipes designed for people who love to cook.
               </p>
+              
+              {/* Search Form - Command K style search bar */}
+              <div className="max-w-lg mx-auto mt-8 md:mt-10">
+                <SearchForm />
+              </div>
           </div>
 
           {/* Recent Recipes Section */}
           {displayRecentRecipes.length > 0 && (
-            <div className="space-y-6 md:space-y-8">
-              <div className="space-y-3 md:space-y-4">
+            <div className="space-y-8 md:space-y-10">
+              <div className="space-y-4 md:space-y-5">
                 {/* Header with title and Clear All button */}
                 <div className="flex items-center justify-between">
-                  <h2 className="font-domine text-[24px] md:text-[32px] font-normal text-black leading-[1.1]">
+                  <h2 className="font-domine text-[28px] md:text-[36px] font-normal text-black leading-[1.1] tracking-tight">
                     Recent Recipes
                   </h2>
                   {/* Clear All button - positioned to the right */}
@@ -224,7 +224,7 @@ function HomeContent() {
                     <span className="hidden sm:inline">Clear All</span>
                   </Button>
                 </div>
-                <p className="font-albert text-[16px] text-stone-600 leading-[1.4]">
+                <p className="font-albert text-[15px] md:text-[16px] text-stone-500 leading-[1.5]">
                   Fresh pulls from your kitchen queue
                 </p>
               </div>
@@ -246,9 +246,9 @@ function HomeContent() {
           )}
 
           {/* Trending Recipes Section */}
-          <div className="space-y-6 md:space-y-8">
-            <div className="space-y-3 md:space-y-4">
-              <h2 className="font-domine text-[24px] md:text-[32px] font-normal text-black leading-[1.1]">
+          <div className="space-y-8 md:space-y-10">
+            <div className="space-y-4 md:space-y-5">
+              <h2 className="font-domine text-[28px] md:text-[36px] font-normal text-black leading-[1.1] tracking-tight">
                 Trending Recipes
               </h2>
             </div>
@@ -276,9 +276,6 @@ function HomeContent() {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

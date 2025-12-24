@@ -6,6 +6,9 @@ import { AdminSettingsProvider } from '@/contexts/AdminSettingsContext';
 import { RecipeProvider } from '@/contexts/RecipeContext';
 import { ParsedRecipesProvider } from '@/contexts/ParsedRecipesContext';
 import { TimerProvider } from '@/contexts/TimerContext';
+import { CommandKProvider } from '@/contexts/CommandKContext';
+import CommandKModal from '@/components/ui/command-k-modal';
+import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
 // Default fonts: Domine for headings (serif), Albert Sans for body (sans-serif)
@@ -41,8 +44,12 @@ export default function RootLayout({
           <RecipeProvider>
             <ParsedRecipesProvider>
               <TimerProvider>
-                <Navbar />
-                {children}
+                <CommandKProvider>
+                  <Navbar />
+                  {children}
+                  <CommandKModal />
+                  <Toaster />
+                </CommandKProvider>
               </TimerProvider>
             </ParsedRecipesProvider>
           </RecipeProvider>

@@ -11,9 +11,11 @@ import {
   recipeScrape,
   validateRecipeUrl,
 } from '@/utils/recipe-parse';
-import { useRecipeErrorHandler } from '@/hooks/useRecipeErrorHandler';
 import { errorLogger } from '@/utils/errorLogger';
+import { useCommandK } from '@/contexts/CommandKContext';
 import LoadingAnimation from '@/components/ui/loading-animation';
+import { useToast } from '@/hooks/useToast';
+import EmptyState from '@/components/ui/empty-state';
 
 export default function NavbarSearch() {
   const [query, setQuery] = useState('');
@@ -24,7 +26,8 @@ export default function NavbarSearch() {
   const [loading, setLoading] = useState(false);
   const { recentRecipes, addRecipe } = useParsedRecipes();
   const { parsedRecipe, setParsedRecipe } = useRecipe();
-  const { handle: handleError } = useRecipeErrorHandler();
+  const { showError, showSuccess } = useToast();
+  const { open: openCommandK } = useCommandK();
   const router = useRouter();
   const pathname = usePathname();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -148,25 +151,27 @@ export default function NavbarSearch() {
       const validUrlResponse = await validateRecipeUrl(query);
 
       if (!validUrlResponse.success) {
-        const errorMessage = handleError(validUrlResponse.error.code);
         errorLogger.log(
           validUrlResponse.error.code,
           validUrlResponse.error.message,
           query,
         );
-        // Show error - could add toast notification here
-        console.error('Parse error:', errorMessage);
+        showError({
+          code: validUrlResponse.error.code,
+          message: validUrlResponse.error.message,
+        });
         return;
       }
 
       if (!validUrlResponse.isRecipe) {
-        const errorMessage = handleError('ERR_NO_RECIPE_FOUND');
         errorLogger.log(
           'ERR_NO_RECIPE_FOUND',
           'No recipe found on this page',
           query,
         );
-        console.error('Parse error:', errorMessage);
+        showError({
+          code: 'ERR_NO_RECIPE_FOUND',
+        });
         return;
       }
 
@@ -177,9 +182,11 @@ export default function NavbarSearch() {
       // Check if parsing failed
       if (!response.success || response.error) {
         const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
-        const errorMessage = handleError(errorCode);
         errorLogger.log(errorCode, response.error?.message || 'Parsing failed', query);
-        console.error('Parse error:', errorMessage);
+        showError({
+          code: errorCode,
+          message: response.error?.message,
+        });
         return;
       }
 
@@ -219,6 +226,9 @@ export default function NavbarSearch() {
         sourceUrl: response.sourceUrl || query, // Include source URL if available
       });
 
+      // Show success toast
+      showSuccess('Recipe parsed successfully!', 'Navigating to recipe page...');
+
       // Step 5: Navigate to the parsed recipe page
       router.push('/parsed-recipe-page');
       setQuery('');
@@ -231,6 +241,10 @@ export default function NavbarSearch() {
         'An unexpected error occurred during parsing',
         query,
       );
+      showError({
+        code: 'ERR_UNKNOWN',
+        message: 'An unexpected error occurred. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
@@ -238,7 +252,8 @@ export default function NavbarSearch() {
     query,
     setParsedRecipe,
     addRecipe,
-    handleError,
+    showError,
+    showSuccess,
     router,
   ]);
 
@@ -356,11 +371,20 @@ export default function NavbarSearch() {
 
             {/* Keyboard Shortcut Indicator (⌘+K) - shown when not focused or no query, but not on mobile or parsed recipe page showing URL */}
             {!isFocused && !query && !(isOnParsedRecipePage && parsedRecipe?.sourceUrl) && (
-              <div className="hidden md:flex ml-2 items-center gap-1 flex-shrink-0">
-                <kbd className="inline-flex items-center px-2 py-1 text-[10px] font-albert text-stone-500 bg-white border border-[#d9d9d9] rounded">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openCommandK();
+                }}
+                className="hidden md:flex ml-2 items-center gap-1 flex-shrink-0 cursor-pointer"
+                aria-label="Open Command K search"
+              >
+                <kbd className="inline-flex items-center px-2 py-1 text-[10px] font-albert text-stone-500 bg-white border border-[#d9d9d9] rounded hover:border-[#4F46E5] transition-colors">
                   ⌘K
                 </kbd>
-              </div>
+              </button>
             )}
 
             {/* Clear Button */}
@@ -390,33 +414,39 @@ export default function NavbarSearch() {
       </form>
 
       {/* Search Results Dropdown */}
-      {showDropdown && searchResults.length > 0 && (
+      {showDropdown && (
         <div
           ref={dropdownRef}
           className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#d9d9d9] rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
         >
-          <div className="p-2">
-            <div className="text-xs font-albert font-medium text-stone-500 px-3 py-2 border-b border-stone-200">
-              Recent Recipes ({searchResults.length})
+          {searchResults.length > 0 ? (
+            <div className="p-2">
+              <div className="text-xs font-albert font-medium text-stone-500 px-3 py-2 border-b border-stone-200">
+                Recent Recipes ({searchResults.length})
+              </div>
+              {searchResults.map((recipe) => (
+                <button
+                  key={recipe.id}
+                  onClick={() => handleRecipeSelect(recipe)}
+                  className="w-full text-left p-3 hover:bg-stone-50 transition-colors duration-200 border-b border-stone-100 last:border-b-0"
+                >
+                  <div className="font-albert font-medium text-[14px] text-stone-800 truncate">
+                    {recipe.title}
+                  </div>
+                  <div className="font-albert text-[12px] text-stone-500 mt-1 line-clamp-2">
+                    {recipe.summary}
+                  </div>
+                  <div className="font-albert text-[10px] text-stone-400 mt-1">
+                    {new Date(recipe.parsedAt).toLocaleDateString()}
+                  </div>
+                </button>
+              ))}
             </div>
-            {searchResults.map((recipe) => (
-              <button
-                key={recipe.id}
-                onClick={() => handleRecipeSelect(recipe)}
-                className="w-full text-left p-3 hover:bg-stone-50 transition-colors duration-200 border-b border-stone-100 last:border-b-0"
-              >
-                <div className="font-albert font-medium text-[14px] text-stone-800 truncate">
-                  {recipe.title}
-                </div>
-                <div className="font-albert text-[12px] text-stone-500 mt-1 line-clamp-2">
-                  {recipe.summary}
-                </div>
-                <div className="font-albert text-[10px] text-stone-400 mt-1">
-                  {new Date(recipe.parsedAt).toLocaleDateString()}
-                </div>
-              </button>
-            ))}
-          </div>
+          ) : query.trim() && !isUrl(query) ? (
+            <EmptyState variant="no-results" compact />
+          ) : recentRecipes.length === 0 ? (
+            <EmptyState variant="no-recent" compact />
+          ) : null}
         </div>
       )}
       </div>

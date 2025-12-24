@@ -58,7 +58,7 @@ export default function StepDisplay({ step, currentStep, totalSteps, onNext, onP
   };
 
   return (
-    <div className={`shrink-0 bg-white relative overflow-hidden transition-all duration-300 ${paddingMap[stepSizing]}`}>
+    <div id={`step-${currentStep}`} className={`shrink-0 bg-white relative overflow-hidden transition-all duration-300 ${paddingMap[stepSizing]}`}>
       <div className={`flex flex-col ${gapMap[stepSizing]}`}>
         {/* Navigation Header */}
         <div className="flex items-center justify-between">

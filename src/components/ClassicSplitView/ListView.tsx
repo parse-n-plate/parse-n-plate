@@ -49,6 +49,7 @@ export default function ListView({ steps, onSelectStep, allIngredients = [] }: L
         {steps.map((step, index) => (
           <button
             key={index}
+            id={`step-${index}`}
             onClick={() => onSelectStep(index)}
             className={`w-full text-left group relative transition-all duration-200 ease-out rounded-xl hover:bg-stone-50 active:bg-stone-100 ${paddingMap[stepSizing]}`}
           >

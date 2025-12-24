@@ -16,6 +16,8 @@ type AdminSettingsState = {
   showIngredientStepTags: boolean;
   /** Controls whether "Ingredients for this step" list is shown in ContextPanel */
   showIngredientsForStepList: boolean;
+  /** Controls whether error state testing tools are shown */
+  enableErrorStateTesting: boolean;
 };
 
 type AdminSettingsContextType = {
@@ -27,6 +29,8 @@ type AdminSettingsContextType = {
   toggleShowIngredientStepTags: () => void;
   setShowIngredientsForStepList: (value: boolean) => void;
   toggleShowIngredientsForStepList: () => void;
+  setEnableErrorStateTesting: (value: boolean) => void;
+  toggleEnableErrorStateTesting: () => void;
 };
 
 const STORAGE_KEY = 'adminSettings';
@@ -35,6 +39,7 @@ const defaultSettings: AdminSettingsState = {
   showRecentRecipeImages: true,
   showIngredientStepTags: true,
   showIngredientsForStepList: true,
+  enableErrorStateTesting: false,
 };
 
 const AdminSettingsContext = createContext<AdminSettingsContextType | undefined>(
@@ -58,6 +63,8 @@ export function AdminSettingsProvider({ children }: { children: ReactNode }) {
             parsed.showIngredientStepTags ?? defaultSettings.showIngredientStepTags,
           showIngredientsForStepList:
             parsed.showIngredientsForStepList ?? defaultSettings.showIngredientsForStepList,
+          enableErrorStateTesting:
+            parsed.enableErrorStateTesting ?? defaultSettings.enableErrorStateTesting,
         });
       }
     } catch (error) {
@@ -111,6 +118,17 @@ export function AdminSettingsProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const setEnableErrorStateTesting = (value: boolean) => {
+    setSettings((prev) => ({ ...prev, enableErrorStateTesting: value }));
+  };
+
+  const toggleEnableErrorStateTesting = () => {
+    setSettings((prev) => ({
+      ...prev,
+      enableErrorStateTesting: !prev.enableErrorStateTesting,
+    }));
+  };
+
   const value = useMemo(
     () => ({
       settings,
@@ -121,6 +139,8 @@ export function AdminSettingsProvider({ children }: { children: ReactNode }) {
       toggleShowIngredientStepTags,
       setShowIngredientsForStepList,
       toggleShowIngredientsForStepList,
+      setEnableErrorStateTesting,
+      toggleEnableErrorStateTesting,
     }),
     [settings, isReady],
   );

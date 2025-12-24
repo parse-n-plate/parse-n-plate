@@ -2,42 +2,97 @@
 
 import PPLogo from '@/components/ui/Navbar/pplogo';
 import Link from 'next/link';
-import NavbarSearch from '@/components/ui/Navbar/navbar-search';
-import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { useCommandK } from '@/contexts/CommandKContext';
 
 export default function Navbar() {
-  const router = useRouter();
+  const pathname = usePathname();
+  const { open: openCommandK } = useCommandK();
+
+  // Determine active navigation item based on current path
+  const isDiscoverActive = pathname === '/';
+  const isCookbookActive = pathname === '/cookbook';
+  const isAboutActive = pathname === '/about';
+  const isProfileActive = pathname === '/profile';
 
   return (
-    <>
-      <div className="bg-white px-3 md:px-4 py-3 md:py-4 sticky top-0 z-40 border-b border-stone-100">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 md:gap-6">
-          {/* Left: Logo */}
-          <div className="flex items-center flex-shrink-0">
-            <Link href="/" className="hover:opacity-80 transition-opacity">
-              <PPLogo />
-            </Link>
-          </div>
+    <div className="bg-white px-4 md:px-6 py-3 md:py-4 sticky top-0 z-40 border-b border-stone-100">
+      <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 md:gap-6">
+        {/* Left: Logo */}
+        <div className="flex items-center flex-shrink-0">
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <PPLogo />
+          </Link>
+        </div>
 
-          {/* Center: Search - Always visible on all screen sizes */}
-          <div className="flex flex-1 max-w-lg mx-1 md:mx-4">
-            <NavbarSearch />
-          </div>
-
-          {/* Right: Close button on mobile, empty space on desktop */}
-          <div className="hidden md:block flex-shrink-0 w-14"></div>
-          
-          {/* Mobile: Close button - visible only on mobile screens */}
-          <button
-            onClick={() => router.push('/')}
-            className="md:hidden bg-white rounded-full p-4 flex items-center justify-center shrink-0 w-12 h-12 hover:bg-stone-50 transition-colors ml-auto"
-            aria-label="Close and return to homepage"
+        {/* Center: Navigation Items */}
+        <nav className="flex items-center gap-2 md:gap-3 flex-1 justify-center">
+          <Link
+            href="/"
+            className={`
+              font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-colors
+              ${
+                isDiscoverActive
+                  ? 'bg-stone-800 text-white font-medium'
+                  : 'text-stone-600 hover:text-stone-900'
+              }
+            `}
           >
-            <X className="w-6 h-6 text-stone-600" />
+            Discover
+          </Link>
+          <Link
+            href="/cookbook"
+            className={`
+              font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-colors
+              ${
+                isCookbookActive
+                  ? 'bg-stone-800 text-white font-medium'
+                  : 'text-stone-600 hover:text-stone-900'
+              }
+            `}
+          >
+            Cookbook
+          </Link>
+          <Link
+            href="/about"
+            className={`
+              font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-colors
+              ${
+                isAboutActive
+                  ? 'bg-stone-800 text-white font-medium'
+                  : 'text-stone-600 hover:text-stone-900'
+              }
+            `}
+          >
+            About
+          </Link>
+          <Link
+            href="/profile"
+            className={`
+              font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-colors
+              ${
+                isProfileActive
+                  ? 'bg-stone-800 text-white font-medium'
+                  : 'text-stone-600 hover:text-stone-900'
+              }
+            `}
+          >
+            Profile
+          </Link>
+        </nav>
+
+        {/* Right: Search Icon */}
+        <div className="flex items-center flex-shrink-0">
+          <button
+            onClick={() => openCommandK()}
+            className="p-2 hover:bg-stone-100 rounded-lg transition-colors"
+            aria-label="Open search"
+          >
+            <Search className="w-5 h-5 text-stone-600" />
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

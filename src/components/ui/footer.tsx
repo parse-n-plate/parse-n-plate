@@ -3,14 +3,22 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { X, Settings2 } from 'lucide-react';
+import { X, Settings2, AlertCircle } from 'lucide-react';
 import { useAdminSettings } from '@/contexts/AdminSettingsContext';
+import { useToast } from '@/hooks/useToast';
+import { ERROR_CODES } from '@/utils/formatError';
 
 export default function Footer() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { settings, toggleShowRecentRecipeImages } = useAdminSettings();
+  const { settings, toggleShowRecentRecipeImages, toggleEnableErrorStateTesting } = useAdminSettings();
+  const { showError } = useToast();
 
   const closeDrawer = () => setIsDrawerOpen(false);
+
+  // Error state testing functions
+  const triggerError = (code: string) => {
+    showError({ code });
+  };
 
   return (
     <>
@@ -117,6 +125,104 @@ export default function Footer() {
                   <span className="admin-toggle-handle" />
                 </button>
               </div>
+
+              <div className="py-4 flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <p className="font-domine text-lg text-stone-900 leading-[1.2]">
+                    Error state testing
+                  </p>
+                  <p className="font-albert text-sm text-stone-600">
+                    Enable error state testing tools to trigger different error types for UI testing.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.enableErrorStateTesting}
+                  onClick={toggleEnableErrorStateTesting}
+                  className={`admin-toggle ${settings.enableErrorStateTesting ? 'is-on' : ''}`}
+                >
+                  <span className="admin-toggle-handle" />
+                </button>
+              </div>
+
+              {/* Error State Testing Controls - Only shown when enabled */}
+              {settings.enableErrorStateTesting && (
+                <div className="py-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertCircle className="w-4 h-4 text-stone-500" />
+                    <p className="font-albert text-sm font-medium text-stone-700">
+                      Trigger Error States
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_INVALID_URL)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors"
+                    >
+                      Invalid URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_NO_RECIPE_FOUND)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors"
+                    >
+                      No Recipe Found
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_FETCH_FAILED)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors"
+                    >
+                      Fetch Failed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_TIMEOUT)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors"
+                    >
+                      Timeout
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_AI_PARSE_FAILED)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors"
+                    >
+                      AI Parse Failed
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_UNSUPPORTED_DOMAIN)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors"
+                    >
+                      Unsupported Domain
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_INVALID_FILE_TYPE)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors"
+                    >
+                      Invalid File Type
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_FILE_TOO_LARGE)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors"
+                    >
+                      File Too Large
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => triggerError(ERROR_CODES.ERR_UNKNOWN)}
+                      className="px-3 py-2 text-xs font-albert bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition-colors col-span-2"
+                    >
+                      Unknown Error
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="py-4 flex items-center justify-end">
                 <Link
                   href="/admin/debug-parser"
