@@ -9,7 +9,7 @@
   --color-primary-tomato-red: #ff3b3b;
   --color-primary-fresh-green: #00b96d;
   --color-things3-blue: #007aff;
-  --color-background-cream: #fdf7f3;
+  --color-background-cream: #fafaf9; /* stone-50 */
   --color-text-heading: #000000;
   --color-text-body: #333333;
 
@@ -32,7 +32,7 @@
     font-family: var(--font-family-sans);
     line-height: var(--line-height-body);
     color: var(--color-text-body);
-    background-color: var(--color-background-cream);
+    background-color: #fafaf9; /* stone-50 - consistent landing background */
     overflow-x: hidden;
   }
 
