@@ -148,7 +148,7 @@ function HomeContent() {
           {/* Hero Section */}
           <div className={`text-center space-y-5 md:space-y-6 ${isPageLoaded ? 'page-fade-in-up' : 'opacity-0'}`}>
               <h1 className="font-domine text-[48px] md:text-[56px] font-normal text-black leading-[1.05]">
-                Clean recipes, fast cooking.
+                Clean recipes, calm cooking.
               </h1>
               <>
     <p className="font-albert text-[16px] md:text-[17px] text-stone-600 leading-[1.6] max-w-2xl mx-auto">
