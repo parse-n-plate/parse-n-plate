@@ -44,32 +44,16 @@ export default function Navbar() {
           >
             Discover
           </Link>
-          <Link
-            href="/cookbook"
-            className={`
-              font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-colors
-              ${
-                isCookbookActive
-                  ? 'bg-stone-800 text-white font-medium'
-                  : 'text-stone-600 hover:text-stone-900'
-              }
-            `}
+          <span
+            className="font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-stone-400 opacity-50 cursor-not-allowed"
           >
             Cookbook
-          </Link>
-          <Link
-            href="/about"
-            className={`
-              font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-colors
-              ${
-                isAboutActive
-                  ? 'bg-stone-800 text-white font-medium'
-                  : 'text-stone-600 hover:text-stone-900'
-              }
-            `}
+          </span>
+          <span
+            className="font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-stone-400 opacity-50 cursor-not-allowed"
           >
             About
-          </Link>
+          </span>
         </nav>
 
         {/* Right: Search Icon and Profile Icon */}
@@ -81,16 +65,12 @@ export default function Navbar() {
           >
             <Search className="w-5 h-5 text-stone-600" />
           </button>
-          <Link
-            href="/profile"
-            className={`
-              p-2 hover:bg-stone-100 rounded-lg transition-colors
-              ${isProfileActive ? 'bg-stone-100' : ''}
-            `}
+          <span
+            className="p-2 rounded-lg cursor-not-allowed opacity-50"
             aria-label="Profile"
           >
-            <User className="w-5 h-5 text-stone-600" />
-          </Link>
+            <User className="w-5 h-5 text-stone-400" />
+          </span>
         </div>
       </div>
     </div>
