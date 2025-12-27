@@ -9,31 +9,19 @@ import { useRecipe } from '@/contexts/RecipeContext';
 import { useAdminSettings } from '@/contexts/AdminSettingsContext';
 import { useRouter } from 'next/navigation';
 import type { CuisineType } from '@/components/ui/cuisine-pills';
-import { Button } from '@/components/ui/button';
-import { Trash2, Link as LinkIcon, ChevronDown, Image as ImageIcon } from 'lucide-react';
-import { useCommandK } from '@/contexts/CommandKContext';
 
 function HomeContent() {
   const {
     isLoaded,
     recentRecipes,
     getRecipeById,
-    clearRecipes,
     removeRecipe,
   } = useParsedRecipes();
   const { settings } = useAdminSettings();
   const { setParsedRecipe } = useRecipe();
-  const { open: openCommandK } = useCommandK();
   const router = useRouter();
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('All');
-  const [keyboardShortcut, setKeyboardShortcut] = useState<string>('⌘K');
   const [isPageLoaded, setIsPageLoaded] = useState<boolean>(false);
-  
-  // Detect platform for keyboard shortcut display (client-side only to avoid hydration issues)
-  useEffect(() => {
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    setKeyboardShortcut(isMac ? '⌘K' : 'Ctrl+K');
-  }, []);
 
   // Trigger onload animation when component mounts and data is loaded
   useEffect(() => {
@@ -48,19 +36,6 @@ function HomeContent() {
 
   const handleCuisineChange = (cuisine: CuisineType) => {
     setSelectedCuisine(cuisine);
-  };
-
-  // Handler for clearing all recipes with confirmation
-  const handleClearRecipes = () => {
-    // Show confirmation dialog before clearing
-    const confirmed = window.confirm(
-      'Are you sure you want to clear all recent recipes? This action cannot be undone.',
-    );
-
-    if (confirmed) {
-      // Call the clearRecipes function from context
-      clearRecipes();
-    }
   };
 
   // Handle recent recipe click - navigate to parsed recipe page
@@ -155,54 +130,17 @@ function HomeContent() {
         No distractions. No clutter. Just clear, elegant recipes designed<span className="responsive-break"></span> for people who love to cook.
     </p>
 </>
-
-              
-              {/* Command K Search Bar - Opens Command K modal */}
-              <div className="max-w-lg mx-auto mt-8 md:mt-10">
-                <button
-                  onClick={openCommandK}
-                  className="w-full bg-stone-100 rounded-lg border border-[#d9d9d9] 
-                    transition-all duration-300 ease-in-out
-                    hover:border-[#4F46E5] hover:border-opacity-80
-                    focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-opacity-50"
-                >
-                  <div className="flex items-center px-4 py-3 relative">
-                    <LinkIcon className="w-5 h-5 text-stone-600 flex-shrink-0" />
-                    <div className="flex-1 ml-3 text-left">
-                      <span className="font-albert text-[14px] text-stone-500">
-                        Enter a recipe URL
-                      </span>
-                    </div>
-                    <div className="ml-2 flex items-center gap-1 text-stone-400">
-                      <kbd className="hidden sm:inline-flex items-center px-2 py-1 text-xs font-albert border border-stone-300 rounded bg-white text-stone-600">
-                        {keyboardShortcut}
-                      </kbd>
-                    </div>
-                  </div>
-                </button>
-              </div>
           </div>
 
           {/* Recent Recipes Section */}
           {displayRecentRecipes.length > 0 && (
             <div className={`space-y-8 md:space-y-10 ${isPageLoaded ? 'page-fade-in-up page-fade-delay-1' : 'opacity-0'}`}>
               <div className="space-y-4 md:space-y-5">
-                {/* Header with title and Clear All button */}
-                <div className="flex items-center justify-between">
+                {/* Header */}
+                <div>
                   <h2 className="font-domine text-[28px] md:text-[24px] font-normal text-black leading-[1.1] tracking-tight">
                     Recent Recipes
                   </h2>
-                  {/* Clear All button - positioned to the right */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearRecipes}
-                    className="flex items-center gap-2 font-albert text-[14px] text-[#757575] hover:text-[#1e1e1e]"
-                    aria-label="Clear all recent recipes"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Clear All</span>
-                  </Button>
                 </div>
                 <p className="font-albert text-[15px] md:text-[16px] text-stone-500 leading-[1.5]">
                   Fresh pulls from your kitchen queue

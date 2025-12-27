@@ -4,20 +4,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRecipe } from '@/contexts/RecipeContext';
-import {
-  getSearchHistory,
-  clearSearchHistory,
-  removeSearchHistoryItem,
-  addToSearchHistory,
-} from '@/lib/searchHistory';
+import { addToSearchHistory } from '@/lib/searchHistory';
 import {
   recipeScrape,
   validateRecipeUrl,
 } from '@/utils/recipe-parse';
 import { useRecipeErrorHandler } from '@/hooks/useRecipeErrorHandler';
 import { errorLogger } from '@/utils/errorLogger';
-import { isUrl, getDomainFromUrl } from '@/utils/searchUtils';
-import { Search, X, Clock, Trash2, ExternalLink } from 'lucide-react';
+import { isUrl } from '@/utils/searchUtils';
+import { Search, X } from 'lucide-react';
 import { ParsedRecipe } from '@/lib/storage';
 import LoadingAnimation from './loading-animation';
 
@@ -30,7 +25,6 @@ interface CommandKHomeSearchProps {
  * 
  * Home page search interface showing:
  * - Recent recipes (from ParsedRecipesContext)
- * - Recent URL searches (from searchHistory)
  * - New URL input for parsing
  */
 export default function CommandKHomeSearch({
@@ -38,7 +32,6 @@ export default function CommandKHomeSearch({
 }: CommandKHomeSearchProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [searchHistory, setSearchHistory] = useState(getSearchHistory());
   const [recentRecipes, setRecentRecipes] = useState<ParsedRecipe[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -48,10 +41,9 @@ export default function CommandKHomeSearch({
   const { handle: handleError } = useRecipeErrorHandler();
   const router = useRouter();
 
-  // Load recent recipes and search history
+  // Load recent recipes
   useEffect(() => {
     setRecentRecipes(contextRecipes.slice(0, 5)); // Show last 5 recipes
-    setSearchHistory(getSearchHistory().slice(0, 10)); // Show last 10 URLs
   }, [contextRecipes]);
 
   // Focus input on mount
@@ -175,11 +167,6 @@ export default function CommandKHomeSearch({
     onClose();
   };
 
-  // Handle URL history selection
-  const handleUrlSelect = (url: string) => {
-    handleParse(url);
-  };
-
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,33 +175,12 @@ export default function CommandKHomeSearch({
     }
   };
 
-  // Clear all search history
-  const handleClearHistory = () => {
-    if (window.confirm('Clear all search history?')) {
-      clearSearchHistory();
-      setSearchHistory([]);
-    }
-  };
-
-  // Remove individual history item
-  const handleRemoveHistoryItem = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    removeSearchHistoryItem(id);
-    setSearchHistory(getSearchHistory().slice(0, 10));
-  };
-
   return (
     <>
       <LoadingAnimation isVisible={loading} />
       <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#d9d9d9]">
-          <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-stone-600" />
-            <h2 className="font-albert font-semibold text-stone-800">
-              Search Recipes
-            </h2>
-          </div>
+        {/* Close Button */}
+        <div className="flex items-center justify-end p-4 border-b border-[#d9d9d9]">
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-stone-100 rounded-lg transition-colors"
@@ -280,61 +246,12 @@ export default function CommandKHomeSearch({
             </div>
           )}
 
-          {/* Recent URL Searches */}
-          {searchHistory.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-albert font-medium text-xs text-stone-500 uppercase tracking-wide">
-                  Recent Searches
-                </h3>
-                <button
-                  onClick={handleClearHistory}
-                  className="font-albert text-xs text-stone-500 hover:text-stone-700 transition-colors flex items-center gap-1"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  Clear
-                </button>
-              </div>
-              <div className="space-y-1">
-                {searchHistory.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleUrlSelect(item.url)}
-                    className="w-full text-left p-3 rounded-lg hover:bg-stone-50 transition-colors group relative"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-albert font-medium text-sm text-stone-800 truncate">
-                          {item.title || getDomainFromUrl(item.url)}
-                        </div>
-                        <div className="font-albert text-xs text-stone-500 truncate mt-0.5">
-                          {item.url}
-                        </div>
-                        <div className="font-albert text-xs text-stone-400 mt-1">
-                          {new Date(item.searchedAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-stone-400 opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                    </div>
-                    <button
-                      onClick={(e) => handleRemoveHistoryItem(item.id, e)}
-                      className="absolute top-2 right-2 p-1 opacity-0 md:group-hover:opacity-100 md:opacity-100 hover:bg-stone-200 rounded transition-all"
-                      aria-label="Remove"
-                    >
-                      <X className="w-3 h-3 text-stone-500" />
-                    </button>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Empty State */}
-          {recentRecipes.length === 0 && searchHistory.length === 0 && (
+          {recentRecipes.length === 0 && (
             <div className="text-center py-12">
               <p className="font-albert text-sm text-stone-500">
-                No recent recipes or searches
+                No recent recipes
               </p>
               <p className="font-albert text-xs text-stone-400 mt-2">
                 Enter a recipe URL above to get started
