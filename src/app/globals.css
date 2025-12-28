@@ -1468,30 +1468,48 @@
      Reference: https://sonner.emilkowal.ski/styling
   ═══════════════════════════════════════════════════════════════════════════ */
 
-  /* Toast container */
+  /* Toast container - Headless styling */
   .sonner-toast {
     font-family: var(--font-albert) !important;
-    max-width: 400px !important;
+    width: fit-content !important;
+    max-width: 90vw !important;
+    min-width: 300px !important;
+    background: white !important;
+    border: 1px solid #e7e5e4 !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem 1.25rem !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
   }
 
   /* Toast title */
   .sonner-toast-title {
     font-family: var(--font-albert) !important;
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    color: #1c1917 !important;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     line-height: 1.4 !important;
+    margin: 0 !important;
   }
 
-  /* Toast description - where our expandable details component lives */
+  /* Toast description */
   .sonner-toast-description {
     font-family: var(--font-albert) !important;
-    margin-top: 0.5rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    color: #78716c !important;
+    margin-top: 0 !important;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     max-width: 100% !important;
     overflow: visible !important;
+    line-height: 1.5 !important;
   }
 
   /* Toast action button */
@@ -1535,47 +1553,11 @@
     max-width: 100%;
   }
 
-  /* Toggle button for show/hide details */
-  .toast-error-toggle-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    font-family: var(--font-albert);
-    color: #57534e;
-    background: transparent;
-    border: none;
-    padding: 0.25rem 0.5rem;
-    margin-left: -0.5rem;
-    margin-right: 0;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .toast-error-toggle-btn:hover {
-    color: #1c1917;
-    background-color: #f5f5f4;
-  }
-
-  .toast-error-toggle-btn:focus {
-    outline: 2px solid #d6d3d1;
-    outline-offset: 2px;
-  }
-
-  .toast-error-toggle-btn:active {
-    transform: scale(0.98);
-  }
-
   /* Suggestions container */
   .toast-error-suggestions {
     margin-top: 0.5rem;
     padding-top: 0.5rem;
     border-top: 1px solid #e7e5e4;
-    animation: toast-fade-in 0.2s ease-in;
   }
 
   /* Suggestions list */
