@@ -5,6 +5,8 @@ import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useRouter } from 'next/navigation';
 import Bookmark from '@solar-icons/react/csr/school/Bookmark';
+import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 /**
  * HomepageRecentRecipes Component
@@ -14,13 +16,14 @@ import Bookmark from '@solar-icons/react/csr/school/Bookmark';
  * Based on Figma design - clean, minimal vertical list.
  */
 export default function HomepageRecentRecipes() {
-  const { recentRecipes, getRecipeById } = useParsedRecipes();
+  const { recentRecipes, getRecipeById, removeRecipe, clearRecipes } = useParsedRecipes();
   const { setParsedRecipe } = useRecipe();
   const router = useRouter();
+  // Track which recipes are bookmarked (starts empty - all unselected by default)
   const [bookmarkedRecipes, setBookmarkedRecipes] = useState<Set<string>>(new Set());
 
-  // Get recent recipes (limit to show a reasonable number)
-  const displayRecipes = recentRecipes.slice(0, 10);
+  // Get only the 5 most recent recipes
+  const displayRecipes = recentRecipes.slice(0, 5);
 
   // Format time display (e.g., "35m", "3h 30m", "48m")
   const formatTime = (minutes?: number): string => {
@@ -96,6 +99,44 @@ export default function HomepageRecentRecipes() {
     });
   };
 
+  // Handle individual recipe deletion
+  const handleDeleteRecipe = (e: React.MouseEvent, recipeId: string) => {
+    e.stopPropagation(); // Prevent triggering the recipe click
+    
+    // Show confirmation dialog before deleting
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this recipe? This action cannot be undone.'
+    );
+
+    if (confirmed) {
+      // Remove from bookmarked set if it was bookmarked
+      setBookmarkedRecipes((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(recipeId);
+        return newSet;
+      });
+      
+      // Remove recipe from storage and context
+      removeRecipe(recipeId);
+    }
+  };
+
+  // Handle clearing all recipes
+  const handleClearAll = () => {
+    // Show confirmation dialog before clearing
+    const confirmed = window.confirm(
+      'Are you sure you want to clear all recent recipes? This action cannot be undone.'
+    );
+
+    if (confirmed) {
+      // Clear all bookmarks
+      setBookmarkedRecipes(new Set());
+      
+      // Clear all recipes from storage and context
+      clearRecipes();
+    }
+  };
+
   // Don't render if no recipes
   if (displayRecipes.length === 0) {
     return null;
@@ -103,10 +144,22 @@ export default function HomepageRecentRecipes() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      {/* Section Title */}
-      <h2 className="font-albert text-base text-stone-500 text-left mb-4 pl-4 font-medium">
-        Recent Recipes
-      </h2>
+      {/* Section Title and Clear All Button */}
+      <div className="flex items-center justify-between mb-4 pl-4">
+        <h2 className="font-albert text-base text-stone-500 text-left font-medium">
+          Recent Recipes
+        </h2>
+        {displayRecipes.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearAll}
+            className="font-albert text-xs text-stone-500 hover:text-stone-700 mr-4"
+          >
+            Clear all
+          </Button>
+        )}
+      </div>
 
       {/* Recipe List */}
       <div className="space-y-3">
@@ -115,56 +168,82 @@ export default function HomepageRecentRecipes() {
           const displayTime = getDisplayTime(recipe);
 
           return (
-            <button
+            <div
               key={recipe.id}
-              onClick={() => handleRecipeClick(recipe.id)}
               className="
                 w-full flex items-center justify-between
                 py-2 pr-2
                 hover:bg-stone-50 rounded-lg
                 transition-colors duration-200
                 group
-                focus:outline-none focus:ring-2 focus:ring-stone-300 focus:ring-offset-2
               "
             >
-              {/* Left: Recipe Name and Time */}
+              {/* Left: Bookmark Icon (always visible), Recipe Name and Time */}
               <div className="flex items-center gap-3 flex-1 min-w-0 pl-4">
-                <span className="font-albert text-xl text-stone-800 text-left truncate" style={{ fontSize: '16px' }}>
-                  {recipe.title}
-                </span>
-                {displayTime && (
-                  <span className="
-                    font-albert text-sm text-stone-600
-                    bg-stone-100 px-2.5 py-1 rounded-full
-                    flex-shrink-0
-                  ">
-                    {displayTime}
+                {/* Bookmark Icon - Always visible */}
+                <button
+                  onClick={(e) => handleBookmarkToggle(e, recipe.id)}
+                  className="
+                    flex-shrink-0 p-1
+                    rounded-full
+                    transition-colors duration-200
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-1
+                  "
+                  aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark recipe'}
+                >
+                  <Bookmark
+                    className={`
+                      w-5 h-5 transition-colors duration-200
+                      ${isBookmarked 
+                        ? 'fill-[#78716C] text-[#78716C]' 
+                        : 'fill-[#D6D3D1] text-[#D6D3D1] hover:fill-[#A8A29E] hover:text-[#A8A29E]'
+                      }
+                    `}
+                  />
+                </button>
+
+                {/* Recipe Name and Time - Clickable */}
+                <button
+                  onClick={() => handleRecipeClick(recipe.id)}
+                  className="
+                    flex items-center gap-3 flex-1 min-w-0
+                    text-left
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-2 rounded-lg
+                  "
+                >
+                  <span className="font-albert text-xl text-stone-800 text-left truncate" style={{ fontSize: '16px' }}>
+                    {recipe.title}
                   </span>
-                )}
+                  {displayTime && (
+                    <span className="
+                      font-albert text-sm text-stone-600
+                      bg-stone-100 px-2.5 py-1 rounded-full
+                      flex-shrink-0
+                    ">
+                      {displayTime}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              {/* Right: Bookmark Icon */}
-              <button
-                onClick={(e) => handleBookmarkToggle(e, recipe.id)}
-                className="
-                  flex-shrink-0 p-1
-                  rounded-full
-                  transition-colors duration-200
-                  ml-2
-                "
-                aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark recipe'}
-              >
-                <Bookmark
-                  className={`
-                    w-5 h-5 transition-colors duration-200
-                    ${isBookmarked 
-                      ? 'fill-[#78716C] text-[#78716C]' 
-                      : 'text-[#E7E5E4] hover:fill-[#E7E5E4]'
-                    }
-                  `}
-                />
-              </button>
-            </button>
+              {/* Right: Delete Icon - Only visible on hover */}
+              <div className="flex items-center gap-1 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                {/* Delete Icon */}
+                <button
+                  onClick={(e) => handleDeleteRecipe(e, recipe.id)}
+                  className="
+                    flex-shrink-0 p-1
+                    rounded-full
+                    transition-colors duration-200
+                    text-stone-400 hover:text-stone-600
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-1
+                  "
+                  aria-label="Delete recipe"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           );
         })}
       </div>
