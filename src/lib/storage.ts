@@ -24,6 +24,9 @@ export type ParsedRecipe = {
   author?: string; // Recipe author if available
   sourceUrl?: string; // Source URL if available
   cuisine?: string[]; // Cuisine types/tags (e.g., ["Italian", "Mediterranean"])
+  prepTimeMinutes?: number;
+  cookTimeMinutes?: number;
+  totalTimeMinutes?: number;
 };
 
 const RECENT_RECIPES_KEY = 'recentRecipes';
