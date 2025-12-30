@@ -30,6 +30,7 @@ export type ParsedRecipe = {
 };
 
 const RECENT_RECIPES_KEY = 'recentRecipes';
+const BOOKMARKED_RECIPES_KEY = 'bookmarkedRecipes';
 const MAX_RECENT_RECIPES = 10;
 
 // Derive a concise title from a full instruction for legacy data
@@ -203,4 +204,76 @@ export function clearRecentRecipes(): void {
  */
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+/**
+ * Get all bookmarked recipe IDs from localStorage
+ * @returns Array of bookmarked recipe IDs
+ */
+export function getBookmarkedRecipeIds(): string[] {
+  try {
+    const stored = localStorage.getItem(BOOKMARKED_RECIPES_KEY);
+    if (!stored) {
+      return [];
+    }
+    const ids = JSON.parse(stored) as string[];
+    // Validate that we got an array of strings
+    if (!Array.isArray(ids)) {
+      console.warn('[Storage] Invalid bookmarked recipes format, resetting');
+      localStorage.removeItem(BOOKMARKED_RECIPES_KEY);
+      return [];
+    }
+    return ids;
+  } catch (error) {
+    console.error('Error reading bookmarked recipes from localStorage:', error);
+    return [];
+  }
+}
+
+/**
+ * Add a recipe ID to bookmarks
+ * @param id - The recipe ID to bookmark
+ */
+export function addBookmark(id: string): void {
+  try {
+    const bookmarkedIds = getBookmarkedRecipeIds();
+    // Only add if not already bookmarked
+    if (!bookmarkedIds.includes(id)) {
+      const updatedIds = [...bookmarkedIds, id];
+      localStorage.setItem(BOOKMARKED_RECIPES_KEY, JSON.stringify(updatedIds));
+      console.log(`[Storage] ✅ Bookmarked recipe ID: ${id}`);
+    }
+  } catch (error) {
+    console.error('Error adding bookmark to localStorage:', error);
+  }
+}
+
+/**
+ * Remove a recipe ID from bookmarks
+ * @param id - The recipe ID to unbookmark
+ */
+export function removeBookmark(id: string): void {
+  try {
+    const bookmarkedIds = getBookmarkedRecipeIds();
+    const filteredIds = bookmarkedIds.filter((bookmarkId) => bookmarkId !== id);
+    localStorage.setItem(BOOKMARKED_RECIPES_KEY, JSON.stringify(filteredIds));
+    console.log(`[Storage] ✅ Unbookmarked recipe ID: ${id}`);
+  } catch (error) {
+    console.error('Error removing bookmark from localStorage:', error);
+  }
+}
+
+/**
+ * Check if a recipe is bookmarked
+ * @param id - The recipe ID to check
+ * @returns True if the recipe is bookmarked, false otherwise
+ */
+export function isRecipeBookmarked(id: string): boolean {
+  try {
+    const bookmarkedIds = getBookmarkedRecipeIds();
+    return bookmarkedIds.includes(id);
+  } catch (error) {
+    console.error('Error checking bookmark status:', error);
+    return false;
+  }
 }
