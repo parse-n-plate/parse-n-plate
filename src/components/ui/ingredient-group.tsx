@@ -28,6 +28,8 @@ interface IngredientGroupProps {
   onToggle?: (isExpanded: boolean) => void;
   pieLayout?: 'inline' | 'below';
   children: React.ReactNode;
+  /** Callback when progress pie is clicked to toggle all ingredients */
+  onToggleAll?: () => void;
 }
 
 export function IngredientGroup({
@@ -37,7 +39,8 @@ export function IngredientGroup({
   isInitialExpanded = true,
   onToggle,
   pieLayout = 'inline',
-  children
+  children,
+  onToggleAll
 }: IngredientGroupProps) {
   // Internal state for expansion (can be controlled via onToggle)
   const [isExpanded, setIsExpanded] = useState(isInitialExpanded);
@@ -80,7 +83,28 @@ export function IngredientGroup({
 
           {/* Progress Pie - Inline Layout (right next to title) */}
           {pieLayout === 'inline' && (
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div 
+              className="flex items-center gap-2 flex-shrink-0 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering the expand/collapse button
+                if (onToggleAll) {
+                  onToggleAll();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (onToggleAll) {
+                    onToggleAll();
+                  }
+                }
+              }}
+              aria-label={`${checkedCount === totalCount ? 'Uncheck' : 'Check'} all ingredients in ${title}`}
+              title={`${checkedCount === totalCount ? 'Uncheck' : 'Check'} all ingredients in ${title}`}
+            >
               <ProgressPie 
                 percentage={progressPercentage} 
                 size={18} 
@@ -103,7 +127,28 @@ export function IngredientGroup({
 
       {/* Progress Pie - Below Layout (shown when inline is not used) */}
       {pieLayout === 'below' && (
-        <div className="flex items-center gap-2 px-8 pb-2">
+        <div 
+          className="flex items-center gap-2 px-8 pb-2 cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onToggleAll) {
+              onToggleAll();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              if (onToggleAll) {
+                onToggleAll();
+              }
+            }
+          }}
+          aria-label={`${checkedCount === totalCount ? 'Uncheck' : 'Check'} all ingredients in ${title}`}
+          title={`${checkedCount === totalCount ? 'Uncheck' : 'Check'} all ingredients in ${title}`}
+        >
           <ProgressPie 
             percentage={progressPercentage} 
             size={18} 
