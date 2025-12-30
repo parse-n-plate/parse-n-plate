@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useRouter } from 'next/navigation';
@@ -16,11 +15,9 @@ import { Button } from '@/components/ui/button';
  * Based on Figma design - clean, minimal vertical list.
  */
 export default function HomepageRecentRecipes() {
-  const { recentRecipes, getRecipeById, removeRecipe, clearRecipes } = useParsedRecipes();
+  const { recentRecipes, getRecipeById, removeRecipe, clearRecipes, isBookmarked, toggleBookmark } = useParsedRecipes();
   const { setParsedRecipe } = useRecipe();
   const router = useRouter();
-  // Track which recipes are bookmarked (starts empty - all unselected by default)
-  const [bookmarkedRecipes, setBookmarkedRecipes] = useState<Set<string>>(new Set());
 
   // Get only the 5 most recent recipes
   const displayRecipes = recentRecipes.slice(0, 5);
@@ -85,18 +82,10 @@ export default function HomepageRecentRecipes() {
     }
   };
 
-  // Handle bookmark toggle
+  // Handle bookmark toggle - uses context to sync with other components
   const handleBookmarkToggle = (e: React.MouseEvent, recipeId: string) => {
     e.stopPropagation(); // Prevent triggering the recipe click
-    setBookmarkedRecipes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(recipeId)) {
-        newSet.delete(recipeId);
-      } else {
-        newSet.add(recipeId);
-      }
-      return newSet;
-    });
+    toggleBookmark(recipeId);
   };
 
   // Handle individual recipe deletion
@@ -109,14 +98,9 @@ export default function HomepageRecentRecipes() {
     );
 
     if (confirmed) {
-      // Remove from bookmarked set if it was bookmarked
-      setBookmarkedRecipes((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(recipeId);
-        return newSet;
-      });
-      
       // Remove recipe from storage and context
+      // Note: If recipe was bookmarked, it will be removed from bookmarks automatically
+      // when the recipe is deleted (bookmarks reference recipe IDs that no longer exist)
       removeRecipe(recipeId);
     }
   };
@@ -129,10 +113,9 @@ export default function HomepageRecentRecipes() {
     );
 
     if (confirmed) {
-      // Clear all bookmarks
-      setBookmarkedRecipes(new Set());
-      
       // Clear all recipes from storage and context
+      // Note: Bookmarks will remain, but they'll reference recipes that no longer exist
+      // This is intentional - bookmarks persist independently
       clearRecipes();
     }
   };
@@ -164,7 +147,7 @@ export default function HomepageRecentRecipes() {
       {/* Recipe List */}
       <div className="space-y-3">
         {displayRecipes.map((recipe) => {
-          const isBookmarked = bookmarkedRecipes.has(recipe.id);
+          const isBookmarkedState = isBookmarked(recipe.id);
           const displayTime = getDisplayTime(recipe);
 
           return (
@@ -189,12 +172,12 @@ export default function HomepageRecentRecipes() {
                     transition-colors duration-200
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-1
                   "
-                  aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark recipe'}
+                  aria-label={isBookmarkedState ? 'Remove bookmark' : 'Bookmark recipe'}
                 >
                   <Bookmark
                     className={`
                       w-5 h-5 transition-colors duration-200
-                      ${isBookmarked 
+                      ${isBookmarkedState 
                         ? 'fill-[#78716C] text-[#78716C]' 
                         : 'fill-[#D6D3D1] text-[#D6D3D1] hover:fill-[#A8A29E] hover:text-[#A8A29E]'
                       }

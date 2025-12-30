@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Bookmark from '@solar-icons/react/csr/school/Bookmark';
 import MenuDotsCircle from '@solar-icons/react/csr/ui/MenuDotsCircle';
@@ -41,7 +42,6 @@ export default function RecipeCard({
   showDelete = false,
   showImage = false, // Default to false as per new design (using cuisine icons instead)
 }: RecipeCardProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [copiedRecipe, setCopiedRecipe] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ vertical: 'top' | 'bottom'; horizontal: 'left' | 'right' }>({
@@ -51,7 +51,10 @@ export default function RecipeCard({
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { getRecipeById } = useParsedRecipes();
+  const { getRecipeById, isBookmarked, toggleBookmark } = useParsedRecipes();
+  
+  // Get bookmark state from context
+  const isBookmarkedState = isBookmarked(recipe.id);
 
   // Calculate menu position based on available viewport space
   useEffect(() => {
@@ -123,7 +126,8 @@ export default function RecipeCard({
   const handleBookmarkToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsBookmarked(!isBookmarked);
+    // Use context function to toggle bookmark state
+    toggleBookmark(recipe.id);
   };
 
   // Handle ellipsis menu toggle
@@ -232,8 +236,10 @@ export default function RecipeCard({
   };
 
   return (
-    <div
+    <motion.div
       className={`group w-full md:basis-0 md:grow min-h-px md:min-w-px relative rounded-[20px] shrink-0 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer overflow-visible ${isMenuOpen ? 'z-[99]' : ''}`}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
       {/* Border */}
       <div
@@ -243,14 +249,16 @@ export default function RecipeCard({
       
       {/* Bookmark Button */}
       <button
+        onPointerDownCapture={(e) => e.stopPropagation()}
+        onPointerUpCapture={(e) => e.stopPropagation()}
         onClick={handleBookmarkToggle}
         className="absolute top-4 right-12 z-20 p-1.5 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 bg-white/50 backdrop-blur-sm"
-        aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark recipe'}
+        aria-label={isBookmarkedState ? 'Remove bookmark' : 'Bookmark recipe'}
       >
         <Bookmark
           className={`
             w-5 h-5 transition-colors duration-200
-            ${isBookmarked 
+            ${isBookmarkedState 
               ? 'fill-[#78716C] text-[#78716C]' 
               : 'fill-[#D6D3D1] text-[#D6D3D1] hover:fill-[#A8A29E] hover:text-[#A8A29E]'
             }
@@ -262,6 +270,8 @@ export default function RecipeCard({
       <div ref={menuRef} className={`absolute top-4 right-4 ${isMenuOpen ? 'z-[100]' : 'z-30'}`}>
         <button
           ref={buttonRef}
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          onPointerUpCapture={(e) => e.stopPropagation()}
           onClick={handleMenuToggle}
           className="p-1.5 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 bg-white/50 backdrop-blur-sm hover:bg-white/70"
           aria-label="More options"
@@ -280,6 +290,8 @@ export default function RecipeCard({
         {isMenuOpen && (
           <div
             ref={dropdownRef}
+            onPointerDownCapture={(e) => e.stopPropagation()}
+            onPointerUpCapture={(e) => e.stopPropagation()}
             className={`absolute w-60 bg-white rounded-lg border border-stone-200 shadow-xl p-1.5 z-[100] animate-in fade-in duration-200 ${
               menuPosition.vertical === 'bottom'
                 ? 'top-[calc(100%+8px)] slide-in-from-top-2'
@@ -366,6 +378,8 @@ export default function RecipeCard({
         <button
           type="button"
           aria-label="Remove recent recipe"
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          onPointerUpCapture={(e) => e.stopPropagation()}
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -376,7 +390,7 @@ export default function RecipeCard({
           <X className="w-4 h-4" />
         </button>
       )}
-    </div>
+    </motion.div>
   );
 }
 

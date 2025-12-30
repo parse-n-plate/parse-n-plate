@@ -1,10 +1,12 @@
 'use client';
 import { useRecipe } from '@/contexts/RecipeContext';
+import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, use } from 'react';
 import RecipeSkeleton from '@/components/ui/recipe-skeleton';
 import * as Tabs from '@radix-ui/react-tabs';
 import { ArrowLeft, Link, Copy, Check } from 'lucide-react';
+import Bookmark from '@solar-icons/react/csr/school/Bookmark';
 import { motion, AnimatePresence } from 'framer-motion';
 import { scaleIngredients } from '@/utils/ingredientScaler';
 import ClassicSplitView from '@/components/ClassicSplitView';
@@ -151,11 +153,36 @@ export default function ParsedRecipePage({
   if (searchParams) use(searchParams);
   
   const { parsedRecipe, isLoaded } = useRecipe();
+  const { recentRecipes, isBookmarked, toggleBookmark } = useParsedRecipes();
   const router = useRouter();
   const [servings, setServings] = useState<number>(parsedRecipe?.servings || 4);
   const [multiplier, setMultiplier] = useState<string>('1x');
   const [activeTab, setActiveTab] = useState<string>('prep');
   const [copied, setCopied] = useState(false);
+
+  // Find the recipe ID by matching sourceUrl with recipes in recentRecipes
+  // This is needed because RecipeContext's parsedRecipe doesn't have an ID field
+  const recipeId = useMemo(() => {
+    if (!parsedRecipe?.sourceUrl) return null;
+    const matchingRecipe = recentRecipes.find(
+      (recipe) => recipe.sourceUrl === parsedRecipe.sourceUrl || recipe.url === parsedRecipe.sourceUrl
+    );
+    return matchingRecipe?.id || null;
+  }, [parsedRecipe?.sourceUrl, recentRecipes]);
+
+  // Check if current recipe is bookmarked
+  const isBookmarkedState = recipeId ? isBookmarked(recipeId) : false;
+
+  // Handle bookmark toggle
+  const handleBookmarkToggle = () => {
+    if (recipeId) {
+      toggleBookmark(recipeId);
+    } else {
+      // If recipe doesn't exist in recentRecipes yet, we can't bookmark it
+      // This shouldn't happen in normal flow, but handle gracefully
+      console.warn('Cannot bookmark recipe: recipe not found in recent recipes');
+    }
+  };
 
   // --- Persistence & Progress State ---
   const recipeKey = useMemo(() => {
@@ -395,7 +422,7 @@ export default function ParsedRecipePage({
 
   return (
     <UISettingsProvider>
-      <div className="bg-white min-h-screen relative max-w-full overflow-x-hidden mobile-toolbar-page-padding">
+      <div className="bg-white min-h-screen relative max-w-full overflow-x-hidden mobile-toolbar-page-padding pb-12 md:pb-16">
         <div className="transition-opacity duration-300 ease-in-out opacity-100">
           {/* Tabs Root - wraps both navigation and content */}
           <Tabs.Root 
@@ -429,9 +456,29 @@ export default function ParsedRecipePage({
                 <div className="w-full pt-6 pb-0">
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1.5">
-                      <h1 className="font-domine text-[36px] text-[#193d34] leading-[1.2] font-bold">
-                        {parsedRecipe.title || 'Beef Udon'}
-                      </h1>
+                      <div className="flex items-start justify-between gap-4">
+                        <h1 className="font-domine text-[36px] text-[#193d34] leading-[1.2] font-bold flex-1">
+                          {parsedRecipe.title || 'Beef Udon'}
+                        </h1>
+                        {/* Bookmark Button */}
+                        {recipeId && (
+                          <button
+                            onClick={handleBookmarkToggle}
+                            className="flex-shrink-0 p-2 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                            aria-label={isBookmarkedState ? 'Remove bookmark' : 'Bookmark recipe'}
+                          >
+                            <Bookmark
+                              className={`
+                                w-6 h-6 transition-colors duration-200
+                                ${isBookmarkedState 
+                                  ? 'fill-[#78716C] text-[#78716C]' 
+                                  : 'fill-[#D6D3D1] text-[#D6D3D1] hover:fill-[#A8A29E] hover:text-[#A8A29E]'
+                                }
+                              `}
+                            />
+                          </button>
+                        )}
+                      </div>
                       
                       {/* Author and Source URL */}
                       {(parsedRecipe.author?.trim() || parsedRecipe.sourceUrl) && (
