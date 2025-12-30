@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { LayoutGroup, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { SUPPORTED_CUISINES, CUISINE_ICON_MAP } from '@/config/cuisineConfig';
@@ -59,82 +59,60 @@ export default function CuisinePills({ onCuisineChange }: CuisinePillsProps) {
     <div className="relative w-full">
       {/* Scroll container keeps content aligned to parent padding; overflow only to the right */}
       <div className="overflow-x-auto overflow-y-visible pr-6 py-1.5 scrollbar-hide" ref={scrollRef}>
-        <LayoutGroup>
-          <div className="flex items-center gap-2">
-            {/* "All" option - shows all recipes */}
-            <motion.button
-              key="All"
-              layout="position"
-              aria-pressed={selectedCuisine === 'All'}
-              onClick={() => handleCuisineClick('All')}
-              whileHover={{ y: -2, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              animate={{
-                borderColor: selectedCuisine === 'All' ? '#d6d3d1' : '#e7e5e4',
-                backgroundColor: selectedCuisine === 'All' ? '#e7e5e4' : '#ffffff',
-                color: '#0a0a0a',
-              }}
-              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-              className="relative flex-shrink-0 px-5 py-2.5 rounded-full font-albert text-[16px] font-medium leading-[1.4] border whitespace-nowrap bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-0 flex items-center gap-2.5"
-            >
-              {selectedCuisine === 'All' && (
-                <motion.span
-                  layoutId="cuisine-pill-highlight"
-                  className="absolute inset-0 rounded-full bg-stone-200"
-                  transition={{ type: 'spring', stiffness: 500, damping: 42 }}
-                  aria-hidden
-                />
-              )}
-              {/* "All" text - no icon */}
-              <span className="relative z-10">All</span>
-            </motion.button>
-            
-            {/* Individual cuisine pills */}
-            {SUPPORTED_CUISINES.map((cuisine) => {
-              const isSelected = selectedCuisine === cuisine;
-              return (
-                <motion.button
-                  key={cuisine}
-                  layout="position"
-                  aria-pressed={isSelected}
-                  onClick={() => handleCuisineClick(cuisine)}
-                  whileHover={{ y: -2, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  animate={{
-                    borderColor: isSelected ? '#d6d3d1' : '#e7e5e4',
-                    backgroundColor: isSelected ? '#e7e5e4' : '#ffffff',
-                    color: '#0a0a0a',
-                  }}
-                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                  className="relative flex-shrink-0 px-5 py-2.5 rounded-full font-albert text-[16px] font-medium leading-[1.4] border whitespace-nowrap bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-0 flex items-center gap-2.5"
-                >
-                  {isSelected && (
-                    <motion.span
-                      layoutId="cuisine-pill-highlight"
-                      className="absolute inset-0 rounded-full bg-stone-200"
-                      transition={{ type: 'spring', stiffness: 500, damping: 42 }}
-                      aria-hidden
-                    />
-                  )}
-                  {/* Cuisine Icon - Using higher resolution source (64x64) displayed at 32x32 for sharp retina display */}
-                  <span className="relative z-10 flex-shrink-0">
-                    <Image
-                      src={CUISINE_ICON_MAP[cuisine] || ''}
-                      alt={`${cuisine} cuisine icon`}
-                      width={64}
-                      height={64}
-                      quality={100}
-                      unoptimized={true}
-                      className="w-8 h-8 object-contain"
-                    />
-                  </span>
-                  {/* Cuisine Text */}
-                  <span className="relative z-10">{cuisine}</span>
-                </motion.button>
-              );
-            })}
-          </div>
-        </LayoutGroup>
+        <div className="flex items-center gap-2">
+          {/* "All" option - shows all recipes */}
+          <motion.button
+            key="All"
+            aria-pressed={selectedCuisine === 'All'}
+            onClick={() => handleCuisineClick('All')}
+            whileHover={{ y: -2, scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className={`relative flex-shrink-0 px-5 py-2.5 rounded-full font-albert text-[16px] font-medium leading-[1.4] border whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-0 flex items-center gap-2.5 transition-colors duration-150 ${
+              selectedCuisine === 'All'
+                ? 'bg-stone-200 border-stone-300'
+                : 'bg-white border-stone-200'
+            }`}
+          >
+            {/* "All" text - no icon */}
+            <span className="relative z-10">All</span>
+          </motion.button>
+          
+          {/* Individual cuisine pills */}
+          {SUPPORTED_CUISINES.map((cuisine) => {
+            const isSelected = selectedCuisine === cuisine;
+            return (
+              <motion.button
+                key={cuisine}
+                aria-pressed={isSelected}
+                onClick={() => handleCuisineClick(cuisine)}
+                whileHover={{ y: -2, scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                className={`relative flex-shrink-0 px-5 py-2.5 rounded-full font-albert text-[16px] font-medium leading-[1.4] border whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-0 flex items-center gap-2.5 transition-colors duration-150 ${
+                  isSelected
+                    ? 'bg-stone-200 border-stone-300'
+                    : 'bg-white border-stone-200'
+                }`}
+              >
+                {/* Cuisine Icon - Using higher resolution source (64x64) displayed at 32x32 for sharp retina display */}
+                <span className="relative z-10 flex-shrink-0">
+                  <Image
+                    src={CUISINE_ICON_MAP[cuisine] || ''}
+                    alt={`${cuisine} cuisine icon`}
+                    width={64}
+                    height={64}
+                    quality={100}
+                    unoptimized={true}
+                    className="w-8 h-8 object-contain"
+                  />
+                </span>
+                {/* Cuisine Text */}
+                <span className="relative z-10">{cuisine}</span>
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Edge gradients hint at more content off-screen; pointer-events-none so scroll still works */}

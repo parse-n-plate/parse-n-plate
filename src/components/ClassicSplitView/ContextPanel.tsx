@@ -24,7 +24,7 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 space-y-10 bg-[#fafafa] rounded-t-[12px]">
+    <div className="overflow-y-auto pt-8 px-8 pb-8 bg-[#fafafa] rounded-[12px]">
       <AnimatePresence mode="wait">
         <motion.div
           key={step.step} // Use step title as key to trigger re-animation
@@ -41,7 +41,7 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                 <span className="font-albert font-bold text-[12px] uppercase tracking-[0.2em] text-stone-400">
                   Ingredients for this step
                 </span>
-                <div className="h-px bg-stone-100 flex-1" />
+                <div className="h-px bg-stone-200 flex-1" />
               </div>
               
               <div className="flex flex-col gap-2">
@@ -55,7 +55,7 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                     className="group flex items-center justify-between p-3 -mx-3 rounded-xl cursor-pointer border border-transparent hover:bg-white hover:border-stone-100"
                   >
                     <div className="flex flex-col">
-                      <p className="font-albert text-[17px] text-stone-700 leading-tight group-hover:text-[#193d34] group-hover:font-medium">
+                      <p className="font-albert font-medium text-[17px] text-stone-700 leading-tight group-hover:text-[#193d34]">
                         {ing.name}
                       </p>
                       <p className="font-albert text-[13px] text-stone-400 mt-1">
@@ -98,7 +98,7 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                 <span className="font-albert font-bold text-[12px] uppercase tracking-[0.2em] text-stone-400">
                   Ingredients for this step
                 </span>
-                <div className="h-px bg-stone-100 flex-1" />
+                <div className="h-px bg-stone-300 flex-1" />
               </div>
               
               <div className="flex flex-col gap-2">
@@ -111,7 +111,7 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                     onClick={() => handleIngredientClick(ingredient)}
                     className="group flex items-center justify-between p-3 -mx-3 rounded-xl hover:bg-white cursor-pointer border border-transparent hover:border-stone-100"
                   >
-                    <p className="font-albert text-[17px] text-stone-500 leading-relaxed group-hover:text-[#193d34] group-hover:font-medium">
+                    <p className="font-albert font-medium text-[17px] text-stone-500 leading-relaxed group-hover:text-[#193d34]">
                       {ingredient}
                     </p>
                     <motion.div 
