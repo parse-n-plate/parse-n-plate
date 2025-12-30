@@ -60,7 +60,7 @@ export function ServingsControls({
           <button
             onClick={handleDecrementServings}
             disabled={servings <= 1}
-            className="yield-stepper-btn yield-stepper-btn-left"
+            className="yield-stepper-btn yield-stepper-btn-left cursor-pointer"
             aria-label="Decrease servings"
           >
             <Minus className="yield-stepper-icon" strokeWidth={2.5} />
@@ -76,7 +76,7 @@ export function ServingsControls({
           <button
             onClick={handleIncrementServings}
             disabled={servings >= 10}
-            className="yield-stepper-btn yield-stepper-btn-right"
+            className="yield-stepper-btn yield-stepper-btn-right cursor-pointer"
             aria-label="Increase servings"
           >
             <Plus className="yield-stepper-icon" strokeWidth={2.5} />
@@ -97,7 +97,7 @@ export function ServingsControls({
             <button
               key={mult}
               onClick={() => onMultiplierChange(mult)}
-              className={`yield-multiplier-pill ${
+              className={`yield-multiplier-pill cursor-pointer ${
                 multiplier === mult ? 'yield-multiplier-pill-active' : ''
               }`}
               aria-label={`Scale ingredients by ${mult}`}

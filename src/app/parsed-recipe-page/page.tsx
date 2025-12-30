@@ -251,6 +251,32 @@ export default function ParsedRecipePage({
       [groupName]: !isExpanded
     }));
   };
+
+  // Handle toggling all ingredients in a group (via progress pie click)
+  const handleToggleAllIngredients = (groupName: string, groupIngredients: Array<string | { amount?: string; units?: string; ingredient: string }>) => {
+    const groupChecked = checkedIngredients[groupName] || [];
+    const allChecked = groupChecked.length === groupIngredients.length;
+    
+    // Get all ingredient names from the group
+    const allIngredientNames = groupIngredients.map(ing => 
+      typeof ing === 'string' ? ing : ing.ingredient
+    );
+    
+    // If all are checked, uncheck all; otherwise check all
+    if (allChecked) {
+      // Uncheck all ingredients in this group
+      setCheckedIngredients(prev => ({
+        ...prev,
+        [groupName]: []
+      }));
+    } else {
+      // Check all ingredients in this group
+      setCheckedIngredients(prev => ({
+        ...prev,
+        [groupName]: allIngredientNames
+      }));
+    }
+  };
   // --- End Persistence & Progress State ---
 
   // Handle navigation to ingredients from the Cook tab
@@ -442,7 +468,7 @@ export default function ParsedRecipePage({
                       {/* Desktop: Back to Home breadcrumb */}
                       <button
                         onClick={() => router.push('/')}
-                        className="hidden md:flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors"
+                        className="hidden md:flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors cursor-pointer"
                         aria-label="Back to Home"
                       >
                         <ArrowLeft className="w-4 h-4" />
@@ -464,7 +490,7 @@ export default function ParsedRecipePage({
                         {recipeId && (
                           <button
                             onClick={handleBookmarkToggle}
-                            className="flex-shrink-0 p-2 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                            className="flex-shrink-0 p-2 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 bg-white/50 backdrop-blur-sm hover:bg-white/80 cursor-pointer"
                             aria-label={isBookmarkedState ? 'Remove bookmark' : 'Bookmark recipe'}
                           >
                             <Bookmark
@@ -498,7 +524,7 @@ export default function ParsedRecipePage({
                                   href={parsedRecipe.sourceUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1"
+                                  className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1 cursor-pointer"
                                   aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
                                 >
                                   <Link className="w-3 h-3" />
@@ -610,7 +636,7 @@ export default function ParsedRecipePage({
                     <Tabs.List className="flex items-start w-full relative">
                       <Tabs.Trigger
                         value="prep"
-                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
+                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none cursor-pointer"
                       >
                         <motion.div 
                           whileHover={{ scale: 1.1, rotate: -5 }}
@@ -636,7 +662,7 @@ export default function ParsedRecipePage({
                       </Tabs.Trigger>
                       <Tabs.Trigger
                         value="cook"
-                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
+                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none cursor-pointer"
                       >
                         <motion.div 
                           whileHover={{ scale: 1.1, rotate: 5 }}
@@ -662,7 +688,7 @@ export default function ParsedRecipePage({
                       </Tabs.Trigger>
                       <Tabs.Trigger
                         value="plate"
-                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none"
+                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none cursor-pointer"
                       >
                         <motion.div 
                           whileHover={{ scale: 1.1, rotate: -3 }}
@@ -705,7 +731,7 @@ export default function ParsedRecipePage({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="bg-white"
+                      className="bg-white cursor-default"
                     >
                       <div className="p-6 space-y-6">
                         {/* Servings Adjuster and Multiplier Container */}
@@ -720,7 +746,7 @@ export default function ParsedRecipePage({
                         </div>
 
                         {/* Ingredients */}
-                        <div className="bg-white">
+                        <div className="bg-white cursor-default">
                           <h2 className="font-domine text-[20px] text-[#193d34] mb-6 leading-[1.1]">
                             Ingredients
                           </h2>
@@ -752,6 +778,7 @@ export default function ParsedRecipePage({
                                     checkedCount={groupChecked.length}
                                     isInitialExpanded={!isCollapsed}
                                     onToggle={(isExpanded) => handleGroupToggle(groupName, isExpanded)}
+                                    onToggleAll={() => handleToggleAllIngredients(groupName, group.ingredients)}
                                     pieLayout="inline" // You can test "below" too
                                   >
                                     <div className="ingredient-list-container">

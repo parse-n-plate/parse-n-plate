@@ -240,7 +240,7 @@ export default function IngredientCard({
         id={`ingredient-${ingredientNameOnly.toLowerCase().replace(/\s+/g, '-')}`}
         onClick={toggleExpand}
         className={cn(
-          "ingredient-list-item group cursor-pointer",
+          "ingredient-list-item group cursor-default",
           isChecked ? 'is-checked' : '',
           isExpanded && settings.ingredientExpandStyle === 'things3' ? "bg-stone-50/50 shadow-sm rounded-xl border border-stone-100 -mx-1 px-1" : ""
         )}
@@ -257,7 +257,7 @@ export default function IngredientCard({
             <motion.input
               whileTap={{ scale: 0.8 }}
               type="checkbox"
-              className="ingredient-checkbox-input"
+              className="ingredient-checkbox-input cursor-pointer"
               aria-label={`Select ${ingredientText}`}
               checked={isChecked}
               onChange={handleCheckboxChange}
@@ -337,7 +337,7 @@ export default function IngredientCard({
           {/* Swap icon on the right */}
           <button
             type="button"
-            className="ingredient-list-swap-button"
+            className="ingredient-list-swap-button cursor-pointer"
             aria-label={`Reorder ${ingredientText}`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -388,7 +388,7 @@ export default function IngredientCard({
         linkedSteps={linkedSteps}
         onStepClick={handleStepClick}
         isOpen={isExpanded && settings.ingredientExpandStyle === 'modal'}
-        onClose={() => setIsExpanded(false)}
+        onClose={() => onExpandChange ? onExpandChange(false) : setInternalExpanded(false)}
         recipeUrl={recipeUrl}
         onNotesChange={onNotesChange}
       />
@@ -402,7 +402,7 @@ export default function IngredientCard({
         linkedSteps={linkedSteps}
         onStepClick={handleStepClick}
         isOpen={isExpanded && settings.ingredientExpandStyle === 'sidepanel'}
-        onClose={() => setIsExpanded(false)}
+        onClose={() => onExpandChange ? onExpandChange(false) : setInternalExpanded(false)}
         recipeUrl={recipeUrl}
         onNotesChange={onNotesChange}
       />
@@ -413,7 +413,7 @@ export default function IngredientCard({
         linkedSteps={linkedSteps}
         onStepClick={handleStepClick}
         isOpen={isExpanded && settings.ingredientExpandStyle === 'mobile-drawer'}
-        onClose={() => setIsExpanded(false)}
+        onClose={() => onExpandChange ? onExpandChange(false) : setInternalExpanded(false)}
       />
     </div>
   );

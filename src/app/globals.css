@@ -572,6 +572,7 @@
   .ingredient-list-item {
     position: relative;
     width: 100%;
+    cursor: default; /* Container divs should not show pointer cursor - only buttons/links inside should */
   }
 
   .ingredient-list-divider {
