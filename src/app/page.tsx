@@ -104,7 +104,7 @@ function HomeContent() {
                   <img 
                     src="/assets/Illustration Icons/Tomato_Icon.png" 
                     alt="" 
-                    className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0 object-contain"
+                    className="hidden md:block w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0 object-contain"
                     aria-hidden="true"
                   />
                 </span>
@@ -112,7 +112,7 @@ function HomeContent() {
                   <img 
                     src="/assets/Illustration Icons/Pan_Icon.png" 
                     alt="" 
-                    className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0 object-contain"
+                    className="hidden md:block w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0 object-contain"
                     aria-hidden="true"
                   />
                   calm cooking.
@@ -133,11 +133,11 @@ function HomeContent() {
               </div>
           </div>
 
-          {/* Trending Recipes Section */}
+          {/* Saved Recipes Section */}
           <div className={`space-y-8 md:space-y-10 ${isPageLoaded ? 'page-fade-in-up page-fade-delay-2' : 'opacity-0'}`}>
             <div className="space-y-4 md:space-y-5">
               <h2 className="font-domine text-[28px] md:text-[24px] font-normal text-black leading-[1.1] tracking-tight">
-                Trending Recipes
+                Saved Recipes
               </h2>
             </div>
 

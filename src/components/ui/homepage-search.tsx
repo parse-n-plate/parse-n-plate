@@ -409,9 +409,9 @@ export default function HomepageSearch() {
                   className="hidden"
                 />
                 
-                {/* Command+K Shortcut Indicator - Only shown when not focused and no text */}
+                {/* Command+K Shortcut Indicator - Only shown when not focused and no text, hidden on mobile */}
                 {!isSearchFocused && !searchValue && !selectedImage && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-[#e7e5e4] rounded border border-[#d6d3d1] animate-in fade-in duration-200">
+                  <div className="hidden md:flex items-center gap-1 px-2 py-1 bg-[#e7e5e4] rounded border border-[#d6d3d1] animate-in fade-in duration-200">
                     <kbd className="text-[12px] text-[#57534e] font-albert font-medium">⌘K</kbd>
                   </div>
                 )}
