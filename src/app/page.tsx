@@ -8,13 +8,21 @@ import HomepageRecentRecipes from '@/components/ui/homepage-recent-recipes';
 import HomepageBanner from '@/components/ui/homepage-banner';
 import { useState, useEffect, useMemo, Suspense, use } from 'react';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
+import { useRecipe } from '@/contexts/RecipeContext';
+import { useRouter } from 'next/navigation';
 import type { CuisineType } from '@/components/ui/cuisine-pills';
+import Image from 'next/image';
+import { CUISINE_ICON_MAP } from '@/config/cuisineConfig';
 
 function HomeContent() {
   const {
     isLoaded,
     recentRecipes,
+    getBookmarkedRecipes,
+    getRecipeById,
   } = useParsedRecipes();
+  const { setParsedRecipe } = useRecipe();
+  const router = useRouter();
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('All');
   const [isPageLoaded, setIsPageLoaded] = useState<boolean>(false);
 
@@ -31,6 +39,27 @@ function HomeContent() {
 
   const handleCuisineChange = (cuisine: CuisineType) => {
     setSelectedCuisine(cuisine);
+  };
+
+  // Handle recipe click - navigate to parsed recipe page
+  const handleRecipeClick = (recipeId: string) => {
+    try {
+      const fullRecipe = getRecipeById(recipeId);
+      if (fullRecipe && fullRecipe.ingredients && fullRecipe.instructions) {
+        setParsedRecipe({
+          title: fullRecipe.title,
+          ingredients: fullRecipe.ingredients,
+          instructions: fullRecipe.instructions,
+          author: fullRecipe.author,
+          sourceUrl: fullRecipe.sourceUrl || fullRecipe.url,
+          summary: fullRecipe.description || fullRecipe.summary,
+          cuisine: fullRecipe.cuisine,
+        });
+        router.push('/parsed-recipe-page');
+      }
+    } catch (error) {
+      console.error('Error loading recipe:', error);
+    }
   };
 
   // Convert ParsedRecipe to RecipeCardData format
@@ -61,28 +90,30 @@ function HomeContent() {
     };
   };
 
-  // Get recent recipes for display (limit to 6 most recent)
-  const displayRecentRecipes = recentRecipes.slice(0, 6).map(convertToRecipeCardData);
+  // Get bookmarked recipes for the Saved Recipes section
+  const bookmarkedRecipes = useMemo(() => {
+    return getBookmarkedRecipes().map(convertToRecipeCardData);
+  }, [getBookmarkedRecipes]);
 
-  // Filter recipes by selected cuisine
+  // Filter bookmarked recipes by selected cuisine
   const filteredRecipes = useMemo(() => {
-    console.log('[Homepage] 🍽️ Filtering recipes by cuisine:', selectedCuisine);
-    console.log('[Homepage] Available recipes:', displayRecentRecipes.map(r => ({ title: r.title, cuisine: r.cuisine })));
+    console.log('[Homepage] 🍽️ Filtering bookmarked recipes by cuisine:', selectedCuisine);
+    console.log('[Homepage] Available bookmarked recipes:', bookmarkedRecipes.map(r => ({ title: r.title, cuisine: r.cuisine })));
     
     if (selectedCuisine === 'All') {
-      console.log('[Homepage] Showing all recipes (All selected)');
-      return displayRecentRecipes;
+      console.log('[Homepage] Showing all bookmarked recipes (All selected)');
+      return bookmarkedRecipes;
     }
     
-    const filtered = displayRecentRecipes.filter(recipe => {
+    const filtered = bookmarkedRecipes.filter(recipe => {
       const hasMatchingCuisine = recipe.cuisine && recipe.cuisine.includes(selectedCuisine);
       console.log(`[Homepage] Recipe "${recipe.title}": cuisine=${recipe.cuisine}, matches=${hasMatchingCuisine}`);
       return hasMatchingCuisine;
     });
     
-    console.log('[Homepage] Filtered results:', filtered.length, 'recipes match', selectedCuisine);
+    console.log('[Homepage] Filtered results:', filtered.length, 'bookmarked recipes match', selectedCuisine);
     return filtered;
-  }, [selectedCuisine, displayRecentRecipes]);
+  }, [selectedCuisine, bookmarkedRecipes]);
 
   if (!isLoaded) {
     return <HomepageSkeleton />;
@@ -149,24 +180,42 @@ function HomeContent() {
             {/* Recipe Cards Grid - Adjusted for horizontal long cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredRecipes.map((recipe) => (
-                <RecipeCard key={recipe.id} recipe={recipe} />
+                <RecipeCard 
+                  key={recipe.id} 
+                  recipe={recipe} 
+                  onClick={() => handleRecipeClick(recipe.id)}
+                />
               ))}
             </div>
 
-            {/* Show message if no recipes match filter (but only if there are recipes available) */}
-            {filteredRecipes.length === 0 && displayRecentRecipes.length > 0 && (
+            {/* Show message if no recipes match filter (but only if there are bookmarked recipes available) */}
+            {filteredRecipes.length === 0 && bookmarkedRecipes.length > 0 && (
               <div className="text-center py-12">
+                {/* Display cuisine icon if a specific cuisine is selected (not "All") */}
+                {selectedCuisine !== 'All' && CUISINE_ICON_MAP[selectedCuisine] && (
+                  <div className="flex justify-center mb-6">
+                    <Image
+                      src={CUISINE_ICON_MAP[selectedCuisine]}
+                      alt={`${selectedCuisine} cuisine icon`}
+                      width={80}
+                      height={80}
+                      quality={100}
+                      unoptimized={true}
+                      className="w-20 h-20 object-contain"
+                    />
+                  </div>
+                )}
                 <p className="font-albert text-[16px] text-stone-600">
-                  No recipes found for {selectedCuisine === 'All' ? 'this filter' : selectedCuisine}
+                  No bookmarked recipes found for {selectedCuisine === 'All' ? 'this filter' : selectedCuisine}
                 </p>
               </div>
             )}
             
-            {/* Show message if no recipes at all */}
-            {displayRecentRecipes.length === 0 && (
+            {/* Show message if no bookmarked recipes at all */}
+            {bookmarkedRecipes.length === 0 && (
               <div className="text-center py-12">
                 <p className="font-albert text-[16px] text-stone-600">
-                  No recipes yet. Parse your first recipe to see it here!
+                  No saved recipes yet. Bookmark a recipe to see it here!
                 </p>
               </div>
             )}
