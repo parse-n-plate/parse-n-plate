@@ -8,14 +8,12 @@
 - Learning-focused approach to development
 
 ### Communication Preferences
-- Use smaller, incremental changes
 - Provide educational context and explanations
 - Break down complex concepts into simple steps
 - Explain reasoning behind decisions
 - Use clear visual signals: ⚠️ 🛑 ⏸️ 📋 ✅
 
 ### Code Changes
-- Make incremental changes, not large modifications
 - Add detailed comments explaining what and why
 - For large/risky changes:
   - Use "⚠️ LARGE CHANGE ALERT" or "🛑 HIGH RISK MODIFICATION"
