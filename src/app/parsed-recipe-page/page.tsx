@@ -18,6 +18,7 @@ import { AdminPrototypingPanel } from '@/components/ui/admin-prototyping-panel';
 import { CUISINE_ICON_MAP } from '@/config/cuisineConfig';
 import Image from 'next/image';
 import ImagePreview from '@/components/ui/image-preview';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 // Helper function to extract domain from URL for display
 const getDomainFromUrl = (url: string): string => {
@@ -204,6 +205,42 @@ export default function ParsedRecipePage({
       toggleBookmark(recipeId);
     }
   };
+
+  // Keyboard shortcuts for tab navigation
+  // Command+1: Prep, Command+2: Cook, Command+3: Plate
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if Command (Mac) or Ctrl (Windows/Linux) is pressed
+      const isModifierPressed = event.metaKey || event.ctrlKey;
+      
+      // Only handle shortcuts if modifier is pressed and not typing in an input/textarea
+      if (isModifierPressed && !(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)) {
+        // Command+1: Switch to Prep tab
+        if (event.key === '1') {
+          event.preventDefault();
+          setActiveTab('prep');
+        }
+        // Command+2: Switch to Cook tab
+        else if (event.key === '2') {
+          event.preventDefault();
+          setActiveTab('cook');
+        }
+        // Command+3: Switch to Plate tab
+        else if (event.key === '3') {
+          event.preventDefault();
+          setActiveTab('plate');
+        }
+      }
+    };
+
+    // Add event listener when component mounts
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup: remove event listener when component unmounts
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // Empty dependency array means this runs once on mount
 
   // --- Persistence & Progress State ---
   const recipeKey = useMemo(() => {
@@ -471,14 +508,15 @@ export default function ParsedRecipePage({
 
   return (
     <UISettingsProvider>
-      <div className="bg-white min-h-screen relative max-w-full overflow-x-hidden pb-12 md:pb-16">
-        <div className="transition-opacity duration-300 ease-in-out opacity-100">
-          {/* Tabs Root - wraps both navigation and content */}
-          <Tabs.Root 
-            value={activeTab} 
-            onValueChange={setActiveTab} 
-            className="w-full"
-          >
+      <TooltipProvider>
+        <div className="bg-white min-h-screen relative max-w-full overflow-x-hidden pb-12 md:pb-16">
+          <div className="transition-opacity duration-300 ease-in-out opacity-100">
+            {/* Tabs Root - wraps both navigation and content */}
+            <Tabs.Root 
+              value={activeTab} 
+              onValueChange={setActiveTab} 
+              className="w-full"
+            >
             {/* Header Section with #F8F8F4 Background */}
             <div className="bg-[#f8f8f4]">
               {/* Main Content Container with max-width */}
@@ -683,9 +721,16 @@ export default function ParsedRecipePage({
                             src="/assets/icons/Prep_Icon.png"
                           />
                         </motion.div>
-                        <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'prep' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
-                          Prep
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'prep' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
+                              Prep
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <span>⌘1</span>
+                          </TooltipContent>
+                        </Tooltip>
                       </Tabs.Trigger>
                       <Tabs.Trigger
                         value="cook"
@@ -702,9 +747,16 @@ export default function ParsedRecipePage({
                             src="/assets/icons/Cook_Icon.png"
                           />
                         </motion.div>
-                        <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'cook' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
-                          Cook
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'cook' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
+                              Cook
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <span>⌘2</span>
+                          </TooltipContent>
+                        </Tooltip>
                       </Tabs.Trigger>
                       <Tabs.Trigger
                         value="plate"
@@ -721,9 +773,16 @@ export default function ParsedRecipePage({
                             src="/assets/icons/Plate_Icon.png"
                           />
                         </motion.div>
-                        <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'plate' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
-                          Plate
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'plate' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
+                              Plate
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <span>⌘3</span>
+                          </TooltipContent>
+                        </Tooltip>
                       </Tabs.Trigger>
                     </Tabs.List>
                   </div>
@@ -899,6 +958,7 @@ export default function ParsedRecipePage({
         {/* Admin Panel for Prototyping */}
         <AdminPrototypingPanel />
       </div>
+      </TooltipProvider>
     </UISettingsProvider>
   );
 }
