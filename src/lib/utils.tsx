@@ -165,9 +165,6 @@ export function highlightQuantitiesAndIngredients(
   text: string, 
   allIngredients: IngredientInfo[] = []
 ): React.ReactElement {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:109',message:'Function entry',data:{textLength:text?.length,textPreview:text?.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'E'})}).catch(()=>{});
-  // #endregion
   if (!text) {
     return <>{text}</>;
   }
@@ -209,12 +206,7 @@ export function highlightQuantitiesAndIngredients(
 
   // Find all time matches
   const timeRegex = new RegExp(timePattern.source, timePattern.flags);
-  const timeMatchesFound: any[] = [];
   while ((match = timeRegex.exec(text)) !== null) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:152',message:'Time match found',data:{fullMatch:match[0],matchIndex:match.index,matchLength:match[0].length,captureGroups:match.slice(1)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    timeMatchesFound.push({fullMatch: match[0], index: match.index, length: match[0].length});
     matches.push({
       start: match.index,
       end: match.index + match[0].length,
@@ -222,9 +214,6 @@ export function highlightQuantitiesAndIngredients(
       type: 'time',
     });
   }
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:159',message:'All time matches summary',data:{timeMatchesCount:timeMatchesFound.length,timeMatches:timeMatchesFound},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 
   // Find all ingredient matches (including plural forms)
   const lowerText = text.toLowerCase();
@@ -289,9 +278,6 @@ export function highlightQuantitiesAndIngredients(
 
   // Sort matches by start position
   matches.sort((a, b) => a.start - b.start);
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:230',message:'All matches before overlap resolution',data:{totalMatches:matches.length,matches:matches.map(m=>({type:m.type,text:m.text,start:m.start,end:m.end}))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
 
   // Remove overlapping matches (prefer times > quantities > ingredients if they overlap)
   const nonOverlappingMatches: Match[] = [];
@@ -340,9 +326,6 @@ export function highlightQuantitiesAndIngredients(
 
   // Sort again after removing overlaps
   nonOverlappingMatches.sort((a, b) => a.start - b.start);
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:271',message:'Non-overlapping matches after resolution',data:{totalMatches:nonOverlappingMatches.length,matches:nonOverlappingMatches.map(m=>({type:m.type,text:m.text,start:m.start,end:m.end})),timeMatches:nonOverlappingMatches.filter(m=>m.type==='time').map(m=>({text:m.text,start:m.start,end:m.end}))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
 
   // Build the parts array with highlighted spans
   const parts: (string | React.ReactElement)[] = [];
@@ -359,12 +342,6 @@ export function highlightQuantitiesAndIngredients(
     }
 
     // Add the highlighted span
-    // #region agent log
-    if (match.type === 'time') {
-      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:285',message:'Adding time highlight',data:{matchText:match.text,start:match.start,end:match.end,textAround:text.substring(Math.max(0,match.start-10),Math.min(text.length,match.end+10))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-    }
-    // #endregion
-    
     // For ingredient matches, wrap in tooltip to show prep stage details
     if (match.type === 'ingredient' && match.ingredientInfo) {
       const ingredient = match.ingredientInfo;
