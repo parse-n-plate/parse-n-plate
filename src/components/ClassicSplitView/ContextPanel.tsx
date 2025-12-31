@@ -23,6 +23,19 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
     window.dispatchEvent(event);
   };
 
+  // Check if there's any content to show
+  const hasIngredients = adminSettings.showIngredientsForStepList && (
+    matchedIngredients.length > 0 || 
+    (step.ingredients && step.ingredients.length > 0)
+  );
+  const hasTimer = step.time && step.time > 0;
+  const hasTip = step.tips && step.tips.trim().length > 0;
+
+  // If there's no content to display, don't render the panel
+  if (!hasIngredients && !hasTimer && !hasTip) {
+    return null;
+  }
+
   return (
     <div className="overflow-y-auto pt-8 px-8 pb-8 bg-[#fafafa] rounded-[12px] cursor-default">
       <AnimatePresence mode="wait">

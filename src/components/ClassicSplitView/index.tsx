@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MoreHorizontal, ChevronLeft, LayoutList, BookOpen, Search, Link2, Copy, FileText, Edit, Check } from 'lucide-react';
 import { useUISettings } from '@/contexts/UISettingsContext';
 import { useRecipe } from '@/contexts/RecipeContext';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface ClassicSplitViewProps {
   steps: RecipeStep[];
@@ -257,7 +258,8 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
   };
 
   return (
-    <div className="classic-split-view-container bg-white w-full flex flex-col min-h-[calc(100vh-300px)]">
+    <TooltipProvider delayDuration={400} skipDelayDuration={0}>
+      <div className="classic-split-view-container bg-white w-full flex flex-col min-h-[calc(100vh-300px)]">
       {/* Header with View Toggle and Settings */}
       <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white sticky top-0 z-20">
         <div className="flex items-center gap-4">
@@ -498,6 +500,7 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
         </AnimatePresence>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
