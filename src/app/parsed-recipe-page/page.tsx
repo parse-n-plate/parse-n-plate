@@ -18,6 +18,7 @@ import { UISettingsProvider } from '@/contexts/UISettingsContext';
 import { AdminPrototypingPanel } from '@/components/ui/admin-prototyping-panel';
 import { CUISINE_ICON_MAP } from '@/config/cuisineConfig';
 import Image from 'next/image';
+import ImagePreview from '@/components/ui/image-preview';
 
 // Helper function to extract domain from URL for display
 const getDomainFromUrl = (url: string): string => {
@@ -173,14 +174,27 @@ export default function ParsedRecipePage({
   // Check if current recipe is bookmarked
   const isBookmarkedState = recipeId ? isBookmarked(recipeId) : false;
 
-  // Handle bookmark toggle
+  // Handle bookmark toggle - shows confirmation dialog if currently bookmarked
   const handleBookmarkToggle = () => {
-    if (recipeId) {
-      toggleBookmark(recipeId);
-    } else {
+    if (!recipeId) {
       // If recipe doesn't exist in recentRecipes yet, we can't bookmark it
       // This shouldn't happen in normal flow, but handle gracefully
       console.warn('Cannot bookmark recipe: recipe not found in recent recipes');
+      return;
+    }
+
+    // If recipe is currently bookmarked, show confirmation dialog
+    if (isBookmarkedState) {
+      const confirmed = window.confirm(
+        'Are you sure you want to remove this recipe from your bookmarks? You can bookmark it again later.'
+      );
+      
+      if (confirmed) {
+        toggleBookmark(recipeId);
+      }
+    } else {
+      // If not bookmarked, just add the bookmark directly
+      toggleBookmark(recipeId);
     }
   };
 
@@ -506,15 +520,26 @@ export default function ParsedRecipePage({
                         )}
                       </div>
                       
-                      {/* Author and Source URL */}
-                      {(parsedRecipe.author?.trim() || parsedRecipe.sourceUrl) && (
+                      {/* Author and Source URL / Image Preview */}
+                      {(parsedRecipe.author?.trim() || parsedRecipe.sourceUrl || parsedRecipe.imageData) && (
                         <div className="flex items-center gap-2 flex-wrap">
                           {parsedRecipe.author?.trim() && (
                             <p className="font-albert text-[16px] text-stone-400 leading-[1.4]">
                               by {parsedRecipe.author.trim()}
                             </p>
                           )}
-                          {parsedRecipe.sourceUrl && (
+                          {/* Show ImagePreview for uploaded images, otherwise show source URL link */}
+                          {parsedRecipe.imageData && parsedRecipe.sourceUrl?.startsWith('image:') ? (
+                            <>
+                              {parsedRecipe.author?.trim() && (
+                                <span className="text-stone-400">•</span>
+                              )}
+                              <ImagePreview
+                                imageData={parsedRecipe.imageData}
+                                filename={parsedRecipe.imageFilename || 'recipe-image'}
+                              />
+                            </>
+                          ) : parsedRecipe.sourceUrl ? (
                             <>
                               {parsedRecipe.author?.trim() && (
                                 <span className="text-stone-400">•</span>
@@ -563,7 +588,7 @@ export default function ParsedRecipePage({
                                 </button>
                               </div>
                             </>
-                          )}
+                          ) : null}
                         </div>
                       )}
                       
