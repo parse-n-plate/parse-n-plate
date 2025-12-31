@@ -88,6 +88,9 @@ export async function POST(req: NextRequest): Promise<Response> {
         if (result.error === 'ERR_RATE_LIMIT' || result.error.includes('rate limit') || result.error.includes('quota')) {
           errorCode = ERROR_CODES.ERR_RATE_LIMIT;
           errorMessage = 'Too many requests';
+          // Pass through retry-after timestamp if available
+          const retryAfter = result.retryAfter;
+          return NextResponse.json(formatError(errorCode, errorMessage, retryAfter));
         } else if (result.error === 'ERR_API_UNAVAILABLE' || result.error.includes('service unavailable')) {
           errorCode = ERROR_CODES.ERR_API_UNAVAILABLE;
           errorMessage = 'Service temporarily unavailable';
