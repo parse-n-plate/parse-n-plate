@@ -112,7 +112,13 @@ export async function POST(req: NextRequest): Promise<Response> {
       let errorMessage = 'Could not extract recipe from image';
 
       if (result.error) {
-        if (result.error.includes('API key') || result.error.includes('configured')) {
+        if (result.error === 'ERR_RATE_LIMIT' || result.error.includes('rate limit') || result.error.includes('quota')) {
+          errorCode = ERROR_CODES.ERR_RATE_LIMIT;
+          errorMessage = 'Too many requests';
+          // Pass through retry-after timestamp if available
+          const retryAfter = result.retryAfter;
+          return NextResponse.json(formatError(errorCode, errorMessage, retryAfter));
+        } else if (result.error.includes('API key') || result.error.includes('configured')) {
           errorCode = ERROR_CODES.ERR_AI_PARSE_FAILED;
           errorMessage = 'AI service not configured';
         } else if (result.error.includes('No recipe found')) {

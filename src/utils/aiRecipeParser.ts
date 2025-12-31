@@ -126,6 +126,27 @@ export interface ParserResult {
   data?: ParsedRecipe;
   error?: string;
   method?: 'json-ld' | 'ai' | 'none';
+  retryAfter?: number; // Timestamp (milliseconds) when to retry after rate limit
+}
+
+/**
+ * Parse ISO 8601 duration string (e.g., "PT30M", "PT1H30M") to minutes
+ * Returns undefined if parsing fails or duration is invalid
+ */
+function parseISODuration(duration: string): number | undefined {
+  if (!duration || typeof duration !== 'string') return undefined;
+  
+  // ISO 8601 duration format: PT[hours]H[minutes]M
+  // Examples: "PT30M" (30 minutes), "PT1H30M" (1 hour 30 minutes), "PT2H" (2 hours)
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+  if (!match) return undefined;
+  
+  const hours = parseInt(match[1] || '0', 10);
+  const minutes = parseInt(match[2] || '0', 10);
+  const totalMinutes = hours * 60 + minutes;
+  
+  // Return undefined if total is 0 (invalid duration)
+  return totalMinutes > 0 ? totalMinutes : undefined;
 }
 
 /**
@@ -364,10 +385,37 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
                 }
               }
               
-              // Validate servings is a positive number
-              if (servings && (isNaN(servings) || servings <= 0)) {
-                servings = undefined;
-              }
+            // Validate servings is a positive number
+            if (servings && (isNaN(servings) || servings <= 0)) {
+              servings = undefined;
+            }
+            }
+
+            // Extract prep time, cook time, and total time from JSON-LD
+            // These are typically in ISO 8601 duration format (e.g., "PT30M", "PT1H30M")
+            let prepTimeMinutes: number | undefined = undefined;
+            let cookTimeMinutes: number | undefined = undefined;
+            let totalTimeMinutes: number | undefined = undefined;
+            
+            // Extract prepTime (prepTime or prepTimeMinutes)
+            if (recipe.prepTime) {
+              prepTimeMinutes = parseISODuration(recipe.prepTime);
+            } else if (typeof recipe.prepTimeMinutes === 'number' && recipe.prepTimeMinutes > 0) {
+              prepTimeMinutes = recipe.prepTimeMinutes;
+            }
+            
+            // Extract cookTime (cookTime or cookTimeMinutes)
+            if (recipe.cookTime) {
+              cookTimeMinutes = parseISODuration(recipe.cookTime);
+            } else if (typeof recipe.cookTimeMinutes === 'number' && recipe.cookTimeMinutes > 0) {
+              cookTimeMinutes = recipe.cookTimeMinutes;
+            }
+            
+            // Extract totalTime (totalTime or totalTimeMinutes)
+            if (recipe.totalTime) {
+              totalTimeMinutes = parseISODuration(recipe.totalTime);
+            } else if (typeof recipe.totalTimeMinutes === 'number' && recipe.totalTimeMinutes > 0) {
+              totalTimeMinutes = recipe.totalTimeMinutes;
             }
 
             const normalizedInstructions = normalizeInstructionSteps(instructions);
@@ -380,14 +428,17 @@ function extractFromJsonLd($: cheerio.CheerioAPI): ParsedRecipe | null {
               normalizedInstructions.length > 0
             ) {
               console.log(
-                `[JSON-LD] Found recipe: "${title}" with ${ingredients[0].ingredients.length} ingredients and ${normalizedInstructions.length} instructions${author ? `, author: "${author}"` : ''}${servings ? `, servings: ${servings}` : ''}`
+                `[JSON-LD] Found recipe: "${title}" with ${ingredients[0].ingredients.length} ingredients and ${normalizedInstructions.length} instructions${author ? `, author: "${author}"` : ''}${servings ? `, servings: ${servings}` : ''}${prepTimeMinutes ? `, prepTime: ${prepTimeMinutes}min` : ''}${cookTimeMinutes ? `, cookTime: ${cookTimeMinutes}min` : ''}${totalTimeMinutes ? `, totalTime: ${totalTimeMinutes}min` : ''}`
               );
               return { 
                 title, 
                 ingredients, 
                 instructions: normalizedInstructions, 
                 author,
-                ...(servings && { servings })
+                ...(servings && { servings }),
+                ...(prepTimeMinutes && { prepTimeMinutes }),
+                ...(cookTimeMinutes && { cookTimeMinutes }),
+                ...(totalTimeMinutes && { totalTimeMinutes })
               };
             }
           }
@@ -525,6 +576,9 @@ Required JSON structure:
   "title": "string (cleaned recipe title following TITLE EXTRACTION RULES - no prefixes/suffixes)",
   "author": "string (optional - recipe author name if found)",
   "servings": 4, // Only include if found in HTML - omit if not available
+  "prepTimeMinutes": 15, // Prep time in minutes - only include if found in HTML
+  "cookTimeMinutes": 30, // Cook time in minutes - only include if found in HTML
+  "totalTimeMinutes": 45, // Total time in minutes - only include if found in HTML (or calculate as prep+cook if both available)
   "cuisine": ["Italian", "Mediterranean"],
   "ingredients": [
     {
@@ -811,6 +865,9 @@ Example showing logical ingredient groupings (ALWAYS create groups):
 {
   "title": "Gochujang Pasta",
   "servings": 4, // Only include if found in HTML - omit if not available
+  "prepTimeMinutes": 10, // Only include if found in HTML
+  "cookTimeMinutes": 20, // Only include if found in HTML
+  "totalTimeMinutes": 30, // Only include if found in HTML (or calculate as prep+cook)
   "ingredients": [
     {
       "groupName": "For the sauce",
@@ -1212,7 +1269,31 @@ ABSOLUTE REQUIREMENTS:
         error?.message?.includes('quota') ||
         error?.response?.status === 429) {
       console.error('[AI Parser] Rate limit detected');
-      throw new Error('ERR_RATE_LIMIT');
+      
+      // Extract retry-after header if available
+      // Groq SDK may return headers in error.headers or error.response.headers
+      const retryAfterHeader = 
+        error?.headers?.['retry-after'] || 
+        error?.headers?.['Retry-After'] ||
+        error?.response?.headers?.['retry-after'] ||
+        error?.response?.headers?.['Retry-After'];
+      
+      // Calculate retry timestamp (retry-after is typically in seconds)
+      let retryAfter: number | undefined;
+      if (retryAfterHeader) {
+        const retrySeconds = parseInt(retryAfterHeader, 10);
+        if (!isNaN(retrySeconds) && retrySeconds > 0) {
+          // Add buffer time (add 5 seconds to be safe)
+          retryAfter = Date.now() + (retrySeconds + 5) * 1000;
+        }
+      }
+      
+      // Create error with retry-after information
+      const rateLimitError: any = new Error('ERR_RATE_LIMIT');
+      if (retryAfter) {
+        rateLimitError.retryAfter = retryAfter;
+      }
+      throw rateLimitError;
     }
     
     // Check for service unavailable
@@ -1269,13 +1350,17 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
                                     (aiResult.ingredients.length === 1 && aiResult.ingredients[0].groupName !== 'Main');
           
           if (hasBetterGroupings) {
-            // Merge JSON-LD data (title, author, servings, etc.) with AI-detected groupings and cuisine
+            // Merge JSON-LD data (title, author, servings, times, etc.) with AI-detected groupings and cuisine
             const mergedRecipe: ParsedRecipe = {
               ...jsonLdResult,
               ingredients: aiResult.ingredients, // Use AI-detected groupings
               cuisine: aiResult.cuisine, // Include AI-detected cuisine tags
               // Preserve servings from JSON-LD if available, otherwise use AI-detected servings
               ...(jsonLdResult.servings ? { servings: jsonLdResult.servings } : (aiResult.servings ? { servings: aiResult.servings } : {})),
+              // Preserve times from JSON-LD if available, otherwise use AI-detected times
+              ...(jsonLdResult.prepTimeMinutes ? { prepTimeMinutes: jsonLdResult.prepTimeMinutes } : (aiResult.prepTimeMinutes ? { prepTimeMinutes: aiResult.prepTimeMinutes } : {})),
+              ...(jsonLdResult.cookTimeMinutes ? { cookTimeMinutes: jsonLdResult.cookTimeMinutes } : (aiResult.cookTimeMinutes ? { cookTimeMinutes: aiResult.cookTimeMinutes } : {})),
+              ...(jsonLdResult.totalTimeMinutes ? { totalTimeMinutes: jsonLdResult.totalTimeMinutes } : (aiResult.totalTimeMinutes ? { totalTimeMinutes: aiResult.totalTimeMinutes } : {})),
             };
             
             const summary = await generateRecipeSummary(mergedRecipe);
@@ -1316,6 +1401,10 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
         ...(aiResult?.cuisine && aiResult.cuisine.length > 0 && { cuisine: aiResult.cuisine }), // Add cuisine from AI if detected
         // Preserve servings from JSON-LD if available, otherwise use AI-detected servings
         ...(jsonLdResult.servings ? { servings: jsonLdResult.servings } : (aiResult?.servings ? { servings: aiResult.servings } : {})),
+        // Preserve times from JSON-LD if available, otherwise use AI-detected times
+        ...(jsonLdResult.prepTimeMinutes ? { prepTimeMinutes: jsonLdResult.prepTimeMinutes } : (aiResult?.prepTimeMinutes ? { prepTimeMinutes: aiResult.prepTimeMinutes } : {})),
+        ...(jsonLdResult.cookTimeMinutes ? { cookTimeMinutes: jsonLdResult.cookTimeMinutes } : (aiResult?.cookTimeMinutes ? { cookTimeMinutes: aiResult.cookTimeMinutes } : {})),
+        ...(jsonLdResult.totalTimeMinutes ? { totalTimeMinutes: jsonLdResult.totalTimeMinutes } : (aiResult?.totalTimeMinutes ? { totalTimeMinutes: aiResult.totalTimeMinutes } : {})),
       };
       
       console.log('[Recipe Parser] ✅ Final merged recipe cuisine:', mergedRecipe.cuisine || 'none');
@@ -1396,10 +1485,13 @@ export async function parseRecipe(rawHtml: string): Promise<ParserResult> {
         error?.status === 429 || 
         error?.message?.includes('rate limit') || 
         error?.message?.includes('quota')) {
+      // Pass through retry-after timestamp if available
+      const retryAfter = error?.retryAfter;
       return {
         success: false,
         error: 'ERR_RATE_LIMIT',
         method: 'none',
+        retryAfter, // Include retry timestamp if available
       };
     }
     
@@ -1711,10 +1803,28 @@ Start your response with { and end with }`,
         error?.message?.includes('rate limit') || 
         error?.message?.includes('quota') ||
         error?.response?.status === 429) {
+      // Extract retry-after header if available
+      const retryAfterHeader = 
+        error?.headers?.['retry-after'] || 
+        error?.headers?.['Retry-After'] ||
+        error?.response?.headers?.['retry-after'] ||
+        error?.response?.headers?.['Retry-After'];
+      
+      // Calculate retry timestamp (retry-after is typically in seconds)
+      let retryAfter: number | undefined;
+      if (retryAfterHeader) {
+        const retrySeconds = parseInt(retryAfterHeader, 10);
+        if (!isNaN(retrySeconds) && retrySeconds > 0) {
+          // Add buffer time (add 5 seconds to be safe)
+          retryAfter = Date.now() + (retrySeconds + 5) * 1000;
+        }
+      }
+      
       return {
         success: false,
         error: 'ERR_RATE_LIMIT',
         method: 'none',
+        retryAfter, // Include retry timestamp if available
       };
     }
     
