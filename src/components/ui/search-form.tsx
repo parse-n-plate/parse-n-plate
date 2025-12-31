@@ -200,6 +200,9 @@ export default function SearchForm({
         instructions: response.instructions,
         author: response.author, // Include author if available
         sourceUrl: response.sourceUrl, // Include source URL if available
+        ...(response.servings !== undefined && { servings: response.servings }), // Include servings/yield if available
+        imageData: imagePreview || undefined, // Store base64 image data for preview
+        imageFilename: selectedImage.name, // Store original filename
       });
 
       // Show success toast
@@ -296,6 +299,9 @@ export default function SearchForm({
       }
 
       console.log('[Client] Successfully parsed recipe:', response.title);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'search-form.tsx:298',message:'API response received',data:{hasServings:'servings' in response,servings:response.servings,servingsType:typeof response.servings,servingsValue:response.servings,hasAuthor:'author' in response,author:response.author,responseKeys:Object.keys(response)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
 
       // Step 3: Store parsed recipe in context
       // The new parser already returns data in the correct grouped format
@@ -307,7 +313,11 @@ export default function SearchForm({
         sourceUrl: response.sourceUrl || query, // Use sourceUrl from response or fallback to query URL
         summary: response.summary, // Include AI-generated summary if available
         cuisine: response.cuisine, // Include cuisine tags if available
+        ...(response.servings !== undefined && { servings: response.servings }), // Include servings/yield if available
       };
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'search-form.tsx:310',message:'recipeToStore created',data:{hasServings:'servings' in recipeToStore,servings:recipeToStore.servings,servingsType:typeof recipeToStore.servings,servingsValue:recipeToStore.servings,keys:Object.keys(recipeToStore)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       
       // Store recipe first (this writes to localStorage synchronously)
       setParsedRecipe(recipeToStore);
@@ -335,6 +345,7 @@ export default function SearchForm({
         author: response.author, // Include author if available
         sourceUrl: response.sourceUrl || query, // Include source URL if available
         cuisine: response.cuisine, // Include cuisine tags if available
+        ...(response.servings !== undefined && { servings: response.servings }), // Include servings/yield if available
       });
 
       // Show success toast

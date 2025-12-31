@@ -74,6 +74,8 @@ export default function HomepageRecentRecipes() {
           sourceUrl: fullRecipe.sourceUrl || fullRecipe.url,
           summary: fullRecipe.description || fullRecipe.summary,
           cuisine: fullRecipe.cuisine,
+          imageData: fullRecipe.imageData, // Include image data if available (for uploaded images)
+          imageFilename: fullRecipe.imageFilename, // Include image filename if available
         });
         router.push('/parsed-recipe-page');
       }
