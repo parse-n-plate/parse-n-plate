@@ -205,7 +205,7 @@
     align-items: center;
     background: white;
     border-radius: 0.75rem;
-    border: 1px solid #e7e5e4;
+    border: 1px solid rgba(231, 229, 228, 1);
     box-shadow: 
       0 1px 2px rgba(0, 0, 0, 0.04),
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -629,13 +629,13 @@
   .ingredient-checkbox-input:checked::after {
     content: '';
     position: absolute;
-    left: 4px;
-    top: 2px;
+    left: 50%;
+    top: 50%;
     width: 5px;
     height: 10px;
     border: solid white;
     border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    transform: translate(-50%, -50%) rotate(45deg);
   }
 
   .ingredient-list-text-content {
