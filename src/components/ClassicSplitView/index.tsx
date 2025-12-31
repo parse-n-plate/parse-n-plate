@@ -5,7 +5,9 @@ import { RecipeStep } from './types';
 import ListView from './ListView';
 import CardView from './CardView';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreHorizontal, ChevronLeft, LayoutList, BookOpen, Search, Link2, Copy, FileText, Edit, Check } from 'lucide-react';
+import { MoreHorizontal, ChevronLeft, Search, Link2, Copy, FileText, Edit, Check } from 'lucide-react';
+import List from '@solar-icons/react/csr/list/List';
+import Book from '@solar-icons/react/csr/school/Book';
 import { useUISettings } from '@/contexts/UISettingsContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -261,38 +263,44 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
     <TooltipProvider delayDuration={400} skipDelayDuration={0}>
       <div className="classic-split-view-container bg-white w-full flex flex-col min-h-[calc(100vh-300px)]">
       {/* Header with View Toggle and Settings */}
-      <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white sticky top-0 z-20">
-        <div className="flex items-center gap-4">
+      <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between bg-white sticky top-0 z-20">
+        <div className="flex items-center gap-2 md:gap-4">
           {view === 'card' && (
             <button
               onClick={handleBackToList}
-              className="p-2 -ml-2 rounded-full hover:bg-stone-50 text-stone-500 transition-colors"
+              className="p-2 -ml-2 rounded-full hover:bg-stone-50 text-stone-500 transition-colors flex items-center justify-center"
               aria-label="Back to list"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
           )}
-          <h2 className="font-domine text-[18px] font-bold text-[#193d34]">
-            {view === 'list' ? 'Steps' : `Step ${currentStep + 1} of ${steps.length}`}
-          </h2>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* View Toggle */}
-          <div className="flex items-center bg-stone-100 p-1 rounded-lg mr-2">
+        <div className="flex items-center gap-1 md:gap-3">
+          {/* View Selection - Two separate pills for switching */}
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setView('list')}
-              className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-white shadow-sm text-[#193d34]' : 'text-stone-500 hover:text-stone-700'}`}
-              title="List View"
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all border ${
+                view === 'list' 
+                  ? 'bg-[#0C0A09] text-white border-[#0C0A09] shadow-sm' 
+                  : 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50 hover:text-stone-700'
+              }`}
             >
-              <LayoutList className="w-4 h-4" />
+              <List className={`w-4 h-4 ${view === 'list' ? 'text-white' : 'text-stone-400'}`} />
+              <span className="font-albert text-[11px] font-bold uppercase tracking-wider hidden sm:inline">List View</span>
             </button>
+            
             <button
               onClick={() => setView('card')}
-              className={`p-1.5 rounded-md transition-all ${view === 'card' ? 'bg-white shadow-sm text-[#193d34]' : 'text-stone-500 hover:text-stone-700'}`}
-              title="Card View"
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all border ${
+                view === 'card' 
+                  ? 'bg-[#0C0A09] text-white border-[#0C0A09] shadow-sm' 
+                  : 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50 hover:text-stone-700'
+              }`}
             >
-              <BookOpen className="w-4 h-4" />
+              <Book className={`w-4 h-4 ${view === 'card' ? 'text-white' : 'text-stone-400'}`} />
+              <span className="font-albert text-[11px] font-bold uppercase tracking-wider hidden sm:inline">Focus View</span>
             </button>
           </div>
 
@@ -315,7 +323,7 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
                   className="absolute right-0 mt-2 w-72 bg-white border border-stone-200 rounded-xl shadow-xl z-50 overflow-hidden"
                 >
                   {/* Search Bar */}
-                  <div className="p-3 border-b border-stone-100">
+                  <div className="p-3 border-b border-stone-200">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                       <input
@@ -324,14 +332,14 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
                         placeholder="Search actions..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="menu-search-input w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#193d34]/20 focus:border-[#193d34]/30 transition-all"
+                        className="menu-search-input w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#0C0A09]/20 focus:border-[#0C0A09]/30 transition-all"
                       />
                     </div>
                   </div>
 
                   {/* Font Family Selector */}
                   {showFontSection && (
-                    <div className="p-3 border-b border-stone-100">
+                    <div className="p-3 border-b border-stone-200">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="menu-section-label text-[11px] font-semibold uppercase tracking-wider text-stone-500">
                           Font
@@ -342,7 +350,7 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
                         onClick={() => setFontFamily('sans')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border transition-all ${
                           settings.fontFamily === 'sans'
-                            ? 'bg-[#193d34] text-white border-[#193d34]'
+                            ? 'bg-[#0C0A09] text-white border-[#0C0A09]'
                             : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
                         }`}
                       >
@@ -353,7 +361,7 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
                         onClick={() => setFontFamily('serif')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border transition-all ${
                           settings.fontFamily === 'serif'
-                            ? 'bg-[#193d34] text-white border-[#193d34]'
+                            ? 'bg-[#0C0A09] text-white border-[#0C0A09]'
                             : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
                         }`}
                       >
@@ -423,18 +431,18 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
 
                   {/* Step Sizing */}
                   {showStepSizingSection && (
-                    <div className="p-3 border-t border-stone-100">
+                    <div className="p-3 border-t border-stone-200">
                       <label className="menu-section-label text-[11px] font-semibold uppercase tracking-wider text-stone-500 block mb-2">
                         Step Sizing
                       </label>
-                    <div className="grid grid-cols-3 gap-1 bg-stone-50 p-1 rounded-lg border border-stone-100">
+                    <div className="grid grid-cols-3 gap-1 bg-stone-50 p-1 rounded-lg border border-stone-200">
                       {(['sm', 'med', 'lg'] as const).map((size) => (
                         <button
                           key={size}
                           onClick={() => setStepSizing(size)}
                           className={`py-1.5 text-[11px] font-bold uppercase rounded-md transition-all ${
                             settings.stepSizing === size
-                              ? 'bg-white text-[#193d34] shadow-sm ring-1 ring-stone-200'
+                              ? 'bg-white text-[#0C0A09] shadow-sm ring-1 ring-stone-200'
                               : 'text-stone-500 hover:text-stone-700'
                           }`}
                         >

@@ -65,10 +65,10 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => handleIngredientClick(ing.name)}
-                    className="group flex items-center justify-between p-3 -mx-3 rounded-xl cursor-pointer border border-transparent hover:bg-white hover:border-stone-100"
+                    className="group flex items-center justify-between p-3 -mx-3 rounded-xl cursor-pointer border border-transparent hover:bg-white hover:border-stone-200"
                   >
                     <div className="flex flex-col">
-                      <p className="font-albert font-medium text-[17px] text-stone-700 leading-tight group-hover:text-[#193d34]">
+                      <p className="font-albert font-medium text-[17px] text-stone-700 leading-tight group-hover:text-[#0C0A09]">
                         {ing.name}
                       </p>
                       <p className="font-albert text-[13px] text-stone-400 mt-1">
@@ -76,7 +76,7 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                       </p>
                     </div>
                     <motion.div 
-                      className="w-5 h-5 shrink-0 text-stone-300 group-hover:text-[#193d34]"
+                      className="w-5 h-5 shrink-0 text-stone-300 group-hover:text-[#0C0A09]"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 0.4 }}
                       whileHover={{ opacity: 1 }}
@@ -122,13 +122,13 @@ export default function ContextPanel({ step, allIngredients }: ContextPanelProps
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => handleIngredientClick(ingredient)}
-                    className="group flex items-center justify-between p-3 -mx-3 rounded-xl hover:bg-white cursor-pointer border border-transparent hover:border-stone-100"
+                    className="group flex items-center justify-between p-3 -mx-3 rounded-xl hover:bg-white cursor-pointer border border-transparent hover:border-stone-200"
                   >
-                    <p className="font-albert font-medium text-[17px] text-stone-500 leading-relaxed group-hover:text-[#193d34]">
+                    <p className="font-albert font-medium text-[17px] text-stone-500 leading-relaxed group-hover:text-[#0C0A09]">
                       {ingredient}
                     </p>
                     <motion.div 
-                      className="w-5 h-5 shrink-0 text-stone-300 group-hover:text-[#193d34]"
+                      className="w-5 h-5 shrink-0 text-stone-300 group-hover:text-[#0C0A09]"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 0.4 }}
                       whileHover={{ opacity: 1 }}

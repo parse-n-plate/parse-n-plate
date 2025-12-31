@@ -39,7 +39,7 @@ export default function CardView({ steps, currentStep, onNext, onPrev, onBackToL
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col h-full bg-white border-t border-stone-100"
+      className="flex flex-col h-full bg-white"
     >
       {/* Top Half: Step Display */}
       <StepDisplay

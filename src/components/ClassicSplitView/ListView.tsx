@@ -70,7 +70,7 @@ export default function ListView({ steps, onSelectStep, allIngredients = [] }: L
               
               {/* Right side: Square image */}
               {step.imageUrl && (
-                <div className={`flex-shrink-0 rounded-lg overflow-hidden border border-stone-100 bg-stone-50 transition-all duration-300 ${imageSizeMap[stepSizing]}`}>
+                <div className={`flex-shrink-0 rounded-lg overflow-hidden border border-stone-200 bg-stone-50 transition-all duration-300 ${imageSizeMap[stepSizing]}`}>
                   {/* Use regular img for external URLs, Next.js Image for local paths */}
                   {step.imageUrl.startsWith('/') || step.imageUrl.startsWith('http://localhost') ? (
                     <Image
@@ -95,7 +95,7 @@ export default function ListView({ steps, onSelectStep, allIngredients = [] }: L
             
             {/* Subtle separator line - disappears on hover of itself or neighbors */}
             {index < steps.length - 1 && (
-              <div className="absolute bottom-0 left-4 right-4 h-px bg-stone-100 group-hover:opacity-0 transition-opacity duration-200" />
+              <div className="absolute bottom-0 left-4 right-4 h-px bg-stone-200/50 group-hover:opacity-0 transition-opacity duration-200" />
             )}
           </button>
         ))}
