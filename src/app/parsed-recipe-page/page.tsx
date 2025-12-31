@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, use } from 'react';
 import RecipeSkeleton from '@/components/ui/recipe-skeleton';
 import * as Tabs from '@radix-ui/react-tabs';
-import { ArrowLeft, Link, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Link, Copy, Check, Clock } from 'lucide-react';
 import Bookmark from '@solar-icons/react/csr/school/Bookmark';
 import { motion, AnimatePresence } from 'framer-motion';
 import { scaleIngredients } from '@/utils/ingredientScaler';
@@ -482,46 +482,46 @@ export default function ParsedRecipePage({
             {/* Header Section with #F8F8F4 Background */}
             <div className="bg-[#f8f8f4]">
               {/* Main Content Container with max-width */}
-              <div className="max-w-6xl mx-auto px-4 md:px-8 pt-8 md:pt-12 pb-0">
+              <div className="max-w-6xl mx-auto px-4 md:px-8 pt-6 md:pt-10 pb-0">
                 {/* Header Section with Navigation */}
-                <div className="w-full mb-8">
+                <div className="w-full mb-6 md:mb-10">
                   <div className="flex flex-col gap-4">
                     {/* Responsive Navigation: Back to Home breadcrumb */}
                     <div className="flex gap-3 items-center justify-between">
                       {/* Desktop: Back to Home breadcrumb */}
                       <button
                         onClick={() => router.push('/')}
-                        className="hidden md:flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors cursor-pointer"
+                        className="hidden md:flex items-center gap-2 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer group"
                         aria-label="Back to Home"
                       >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span className="font-albert text-[14px]">Back to Home</span>
+                        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+                        <span className="font-albert text-[14px] font-medium">Back to Home</span>
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {/* Recipe Info Section */}
-                <div className="w-full pt-6 pb-0">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-1.5">
+                <div className="w-full pb-8 md:pb-12">
+                  <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-3">
                       <div className="flex items-start justify-between gap-4">
-                        <h1 className="font-domine text-[36px] text-[#193d34] leading-[1.2] font-bold flex-1">
-                          {parsedRecipe.title || 'Beef Udon'}
+                        <h1 className="font-domine text-[32px] md:text-[42px] text-[#0C0A09] leading-[1.15] font-bold flex-1 tracking-tight">
+                          {parsedRecipe.title || 'Untitled Recipe'}
                         </h1>
                         {/* Bookmark Button */}
                         {recipeId && (
                           <button
                             onClick={handleBookmarkToggle}
-                            className="flex-shrink-0 p-2 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 bg-white/50 backdrop-blur-sm hover:bg-white/80 cursor-pointer"
+                            className="flex-shrink-0 p-2.5 rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 bg-white shadow-sm border border-stone-200/50 hover:shadow-md hover:bg-stone-50 cursor-pointer mt-1"
                             aria-label={isBookmarkedState ? 'Remove bookmark' : 'Bookmark recipe'}
                           >
                             <Bookmark
                               className={`
-                                w-6 h-6 transition-colors duration-200
+                                w-5 h-5 transition-colors duration-200
                                 ${isBookmarkedState 
-                                  ? 'fill-[#78716C] text-[#78716C]' 
-                                  : 'fill-[#D6D3D1] text-[#D6D3D1] hover:fill-[#A8A29E] hover:text-[#A8A29E]'
+                                  ? 'fill-stone-600 text-stone-600' 
+                                  : 'text-stone-400'
                                 }
                               `}
                             />
@@ -533,15 +533,15 @@ export default function ParsedRecipePage({
                       {(parsedRecipe.author?.trim() || parsedRecipe.sourceUrl || parsedRecipe.imageData) && (
                         <div className="flex items-center gap-2 flex-wrap">
                           {parsedRecipe.author?.trim() && (
-                            <p className="font-albert text-[16px] text-stone-400 leading-[1.4]">
-                              by {parsedRecipe.author.trim()}
+                            <p className="font-albert text-[15px] md:text-[16px] text-stone-500 leading-[1.4] font-medium">
+                              <span className="text-stone-400 font-normal">by</span> {parsedRecipe.author.trim()}
                             </p>
                           )}
                           {/* Show ImagePreview for uploaded images, otherwise show source URL link */}
                           {parsedRecipe.imageData && parsedRecipe.sourceUrl?.startsWith('image:') ? (
                             <>
                               {parsedRecipe.author?.trim() && (
-                                <span className="text-stone-400">•</span>
+                                <span className="text-stone-300 mx-1">•</span>
                               )}
                               <ImagePreview
                                 imageData={parsedRecipe.imageData}
@@ -551,23 +551,23 @@ export default function ParsedRecipePage({
                           ) : parsedRecipe.sourceUrl ? (
                             <>
                               {parsedRecipe.author?.trim() && (
-                                <span className="text-stone-400">•</span>
+                                <span className="text-stone-300 mx-1">•</span>
                               )}
                               <div className="flex items-center gap-1 group">
                                 <a
                                   href={parsedRecipe.sourceUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="font-albert text-[16px] text-stone-400 hover:text-[#193d34] transition-colors flex items-center gap-1 cursor-pointer"
+                                  className="font-albert text-[15px] md:text-[16px] text-stone-500 hover:text-stone-800 transition-colors flex items-center gap-1.5 cursor-pointer underline-offset-4 hover:underline decoration-stone-300"
                                   aria-label={`View original recipe on ${getDomainFromUrl(parsedRecipe.sourceUrl)}`}
                                 >
-                                  <Link className="w-3 h-3" />
+                                  <Link className="w-3.5 h-3.5 text-stone-400" />
                                   {getDomainFromUrl(parsedRecipe.sourceUrl)}
                                 </a>
                                 
                                 {/* Simple Copy Button - slides out from under URL on hover */}
                                 <button
-                                  className="opacity-0 group-hover:opacity-100 translate-x-[-8px] group-hover:translate-x-0 transition-all duration-150 p-1 flex items-center justify-center cursor-pointer"
+                                  className="opacity-0 group-hover:opacity-100 translate-x-[-8px] group-hover:translate-x-0 transition-all duration-150 p-1 flex items-center justify-center cursor-pointer ml-1"
                                   onClick={() => handleCopy(parsedRecipe.sourceUrl || '')}
                                   title="Copy recipe URL"
                                 >
@@ -603,58 +603,58 @@ export default function ParsedRecipePage({
                       
                       {/* AI-Generated Summary */}
                       {parsedRecipe.summary?.trim() && (
-                        <p className="font-albert text-[16px] text-stone-600 leading-[1.5] italic">
-                          {parsedRecipe.summary.trim()}
-                        </p>
+                        <div className="mt-1 relative">
+                          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-stone-200/50 rounded-full hidden md:block" />
+                          <p className="font-albert text-[16px] md:text-[17px] text-stone-600 leading-[1.6] italic md:pl-5 max-w-3xl">
+                            {parsedRecipe.summary.trim()}
+                          </p>
+                        </div>
                       )}
                     </div>
                     
-                    {/* Time and Servings */}
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-albert text-[16px] text-stone-500 leading-[1.4]">
-                          {formatTimeDisplay(
-                            parsedRecipe.prepTimeMinutes,
-                            parsedRecipe.cookTimeMinutes,
-                            parsedRecipe.totalTimeMinutes,
-                            parsedRecipe.servings
-                          )}
-                        </p>
+                    {/* Time, Servings and Cuisine */}
+                    <div className="flex items-center gap-4 flex-wrap border-t border-stone-200/40 pt-6">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex items-center gap-2 bg-stone-200/30 px-3 py-1.5 rounded-lg border border-stone-200/50">
+                          <Clock className="w-4 h-4 text-stone-500" />
+                          <p className="font-albert text-[14px] md:text-[15px] text-stone-700 leading-none font-medium">
+                            {formatTimeDisplay(
+                              parsedRecipe.prepTimeMinutes,
+                              parsedRecipe.cookTimeMinutes,
+                              parsedRecipe.totalTimeMinutes,
+                              parsedRecipe.servings
+                            )}
+                          </p>
+                        </div>
+
                         {/* Cuisine Badges */}
                         {parsedRecipe.cuisine && parsedRecipe.cuisine.length > 0 && (
-                          <>
-                            <span className="text-stone-400">•</span>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {parsedRecipe.cuisine.map((cuisineName) => {
-                                const iconPath = CUISINE_ICON_MAP[cuisineName];
-                                if (!iconPath) {
-                                  console.warn(`[ParsedRecipePage] ⚠️ Missing icon for cuisine: "${cuisineName}". Check cuisineConfig.ts and ensure icon file exists.`);
-                                  return null;
-                                }
-                                console.log(`[ParsedRecipePage] 🍽️ Displaying cuisine badge for "${cuisineName}" on recipe "${parsedRecipe.title}"`);
-                                return (
-                                  <div
-                                    key={cuisineName}
-                                    className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-stone-100 border border-stone-200"
-                                    title={cuisineName}
-                                  >
-                                    <Image
-                                      src={iconPath}
-                                      alt={`${cuisineName} cuisine icon`}
-                                      width={16}
-                                      height={16}
-                                      quality={100}
-                                      unoptimized={true}
-                                      className="w-4 h-4 object-contain"
-                                    />
-                                    <span className="font-albert text-[14px] text-stone-700">
-                                      {cuisineName}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {parsedRecipe.cuisine.map((cuisineName) => {
+                              const iconPath = CUISINE_ICON_MAP[cuisineName];
+                              if (!iconPath) return null;
+                              return (
+                                <div
+                                  key={cuisineName}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white shadow-sm border border-stone-200/60 hover:border-stone-300 transition-colors"
+                                  title={cuisineName}
+                                >
+                                  <Image
+                                    src={iconPath}
+                                    alt={`${cuisineName} cuisine icon`}
+                                    width={18}
+                                    height={18}
+                                    quality={100}
+                                    unoptimized={true}
+                                    className="w-4.5 h-4.5 object-contain"
+                                  />
+                                  <span className="font-albert text-[14px] font-medium text-stone-700">
+                                    {cuisineName}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -665,17 +665,17 @@ export default function ParsedRecipePage({
               {/* Tabs Navigation - Edge-to-edge on mobile/tablet, padded on desktop */}
               <div className="w-full">
                 {/* Tab List Container - Responsive padding: edge-to-edge on mobile/tablet, padded on desktop */}
-                <div className="px-0 lg:px-8">
+                <div className="px-4 md:px-8">
                   <div className="max-w-6xl mx-auto">
-                    <Tabs.List className="flex items-start w-full relative">
+                    <Tabs.List className="flex items-end w-full relative gap-1 md:gap-2">
                       <Tabs.Trigger
                         value="prep"
-                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none cursor-pointer"
+                        className="folder-tab-trigger group flex-1 h-[58px] md:h-[64px]"
                       >
                         <motion.div 
                           whileHover={{ scale: 1.1, rotate: -5 }}
                           whileTap={{ scale: 0.95 }}
-                          className="relative shrink-0 w-9 h-9"
+                          className="relative shrink-0 w-8 h-8 md:w-9 md:h-9"
                         >
                           <img 
                             alt="Prep icon" 
@@ -683,25 +683,18 @@ export default function ParsedRecipePage({
                             src="/assets/icons/Prep_Icon.png"
                           />
                         </motion.div>
-                        <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'prep' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                        <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'prep' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
                           Prep
                         </span>
-                        {activeTab === 'prep' && (
-                          <motion.div 
-                            layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                          />
-                        )}
                       </Tabs.Trigger>
                       <Tabs.Trigger
                         value="cook"
-                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none cursor-pointer"
+                        className="folder-tab-trigger group flex-1 h-[58px] md:h-[64px]"
                       >
                         <motion.div 
                           whileHover={{ scale: 1.1, rotate: 5 }}
                           whileTap={{ scale: 0.95 }}
-                          className="relative shrink-0 w-9 h-9"
+                          className="relative shrink-0 w-8 h-8 md:w-9 md:h-9"
                         >
                           <img 
                             alt="Cook icon" 
@@ -709,25 +702,18 @@ export default function ParsedRecipePage({
                             src="/assets/icons/Cook_Icon.png"
                           />
                         </motion.div>
-                        <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'cook' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                        <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'cook' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
                           Cook
                         </span>
-                        {activeTab === 'cook' && (
-                          <motion.div 
-                            layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                          />
-                        )}
                       </Tabs.Trigger>
                       <Tabs.Trigger
                         value="plate"
-                        className="group flex-1 h-[58px] flex items-center justify-center gap-2 px-0 py-0 relative transition-all duration-300 outline-none cursor-pointer"
+                        className="folder-tab-trigger group flex-1 h-[58px] md:h-[64px]"
                       >
                         <motion.div 
                           whileHover={{ scale: 1.1, rotate: -3 }}
                           whileTap={{ scale: 0.95 }}
-                          className="relative shrink-0 w-9 h-9"
+                          className="relative shrink-0 w-8 h-8 md:w-9 md:h-9"
                         >
                           <img 
                             alt="Plate icon" 
@@ -735,16 +721,9 @@ export default function ParsedRecipePage({
                             src="/assets/icons/Plate_Icon.png"
                           />
                         </motion.div>
-                        <span className={`font-albert font-medium text-[16px] transition-colors duration-300 ${activeTab === 'plate' ? 'text-[#193d34]' : 'text-[#79716b] group-hover:text-[#193d34]'}`}>
+                        <span className={`font-albert font-medium text-[15px] md:text-[16px] transition-colors duration-300 ${activeTab === 'plate' ? 'text-[#0C0A09]' : 'text-[#79716b] group-hover:text-[#0C0A09]'}`}>
                           Plate
                         </span>
-                        {activeTab === 'plate' && (
-                          <motion.div 
-                            layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#193d34] z-10"
-                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                          />
-                        )}
                       </Tabs.Trigger>
                     </Tabs.List>
                   </div>
@@ -755,7 +734,7 @@ export default function ParsedRecipePage({
             </div>
 
             {/* Main Content - Tab Content Sections */}
-            <div className="max-w-6xl mx-auto px-4 md:px-8">
+            <div className="max-w-6xl mx-auto px-4 md:px-8 pt-8 md:pt-12">
               <AnimatePresence mode="wait">
                 {/* Prep Tab Content */}
                 {activeTab === 'prep' && (
@@ -781,7 +760,7 @@ export default function ParsedRecipePage({
 
                         {/* Ingredients */}
                         <div className="bg-white cursor-default">
-                          <h2 className="font-domine text-[20px] text-[#193d34] mb-6 leading-[1.1]">
+                          <h2 className="font-domine text-[20px] text-[#0C0A09] mb-6 leading-[1.1]">
                             Ingredients
                           </h2>
                           {Array.isArray(scaledIngredients) &&
@@ -845,7 +824,7 @@ export default function ParsedRecipePage({
                                                   ingredient={ingredient}
                                                   description={undefined}
                                                   isLast={isLast}
-                                                  recipeSteps={normalizedSteps.map(s => ({ instruction: s.detail }))}
+                                                  recipeSteps={normalizedSteps.map(s => ({ instruction: s.detail, title: s.step }))}
                                                   groupName={groupName}
                                                   recipeUrl={parsedRecipe?.sourceUrl}
                                                   checked={isChecked}
@@ -899,7 +878,7 @@ export default function ParsedRecipePage({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.3, ease: "easeOut" }}
-                      className="bg-white border-t border-stone-200"
+                      className="bg-white"
                     >
                       <div className="p-6">
                         <div className="text-center py-12">
