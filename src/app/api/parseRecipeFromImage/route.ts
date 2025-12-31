@@ -171,6 +171,11 @@ export async function POST(req: NextRequest): Promise<Response> {
       title: result.data.title,
       ingredients: result.data.ingredients,
       instructions: result.data.instructions,
+      summary: result.data.summary, // Include AI-generated summary
+      author: result.data.author, // Include author if available
+      cuisine: result.data.cuisine, // Include cuisine if available
+      imageData: base64DataUrl, // Return the base64 image data for preview
+      imageFilename: imageFile.name, // Return the original filename
     });
   } catch (error) {
     console.error('[API /parseRecipeFromImage] Unexpected error:', error);
