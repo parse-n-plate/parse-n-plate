@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { findIngredientsInText, IngredientInfo } from '@/utils/ingredientMatcher';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -95,13 +96,68 @@ export function highlightQuantities(text: string): React.ReactElement {
   return <>{parts}</>;
 }
 
+// Component for ingredient tooltip that works with tap on mobile
+const IngredientTooltipWrapper = React.memo(({ 
+  text, 
+  tooltipContent, 
+  highlightClassName,
+  tooltipKey 
+}: { 
+  text: string; 
+  tooltipContent: string; 
+  highlightClassName: string;
+  tooltipKey: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  
+  return (
+    <Tooltip 
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <TooltipTrigger asChild>
+        <span 
+          className={highlightClassName}
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+          onClick={(e) => {
+            // Stop event propagation to prevent triggering parent click handlers
+            // (e.g., step navigation in ListView)
+            e.stopPropagation()
+            // Toggle tooltip on tap (mobile)
+            setOpen(!open)
+          }}
+          onPointerDown={(e) => {
+            // Also stop pointer events from bubbling
+            e.stopPropagation()
+          }}
+        >
+          {text}
+        </span>
+      </TooltipTrigger>
+          <TooltipContent 
+            side="top" 
+            className="max-w-xs"
+            onPointerDownOutside={(e) => {
+              // Close tooltip when tapping outside
+              setOpen(false)
+            }}
+          >
+        <p className="text-sm font-medium">{tooltipContent}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+});
+
+IngredientTooltipWrapper.displayName = 'IngredientTooltipWrapper';
+
 /**
- * Highlights quantities, measurements, and ingredient names in recipe text
+ * Highlights quantities, measurements, ingredient names, and times in recipe text
  * Uses consistent styling across ListView and CardView (StepDisplay)
  * 
  * Highlights:
  * - Quantities and measurements (250g, 1 cup, 2 tbsp, etc.)
- * - Ingredient names found in the ingredient list
+ * - Ingredient names found in the ingredient list (including plural forms)
+ * - Time expressions (5 minutes, 10 min, 30 seconds, etc.)
  * 
  * Style: Bold, underline, with hover color change (matching CardView)
  */
@@ -109,6 +165,9 @@ export function highlightQuantitiesAndIngredients(
   text: string, 
   allIngredients: IngredientInfo[] = []
 ): React.ReactElement {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:109',message:'Function entry',data:{textLength:text?.length,textPreview:text?.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'E'})}).catch(()=>{});
+  // #endregion
   if (!text) {
     return <>{text}</>;
   }
@@ -116,23 +175,30 @@ export function highlightQuantitiesAndIngredients(
   // Pattern to match quantities: numbers (including fractions) followed by units
   const quantityPattern = /(\d+(?:\s+\d+\/\d+|\/\d+)?)\s*(?:of\s+)?(pinch|pinches|tbsp|tbsps|tablespoon|tablespoons|tsp|tsps|teaspoon|teaspoons|cup|cups|g|gram|grams|kg|kilogram|kilograms|oz|ounce|ounces|lb|lbs|pound|pounds|ml|milliliter|milliliters|l|liter|liters|fl\s*oz|fluid\s*ounce|fluid\s*ounces|piece|pieces|slice|slices|stalk|stalks|clove|cloves|head|heads|bunch|bunches|can|cans|package|packages|pack|packs|bottle|bottles|jar|jars|box|boxes|bag|bags|sheet|sheets|strip|strips|fillet|fillets|serving|servings|portion|portions|dash|dashes|drop|drops|splash|splashes|handful|handfuls|sprig|sprigs|leaf|leaves|bulb|bulbs|pod|pods)/gi;
 
+  // Pattern to match time expressions: numbers (including ranges) followed by time units
+  // Matches: "5 minutes", "10 min", "30 seconds", "2-3 minutes", "2–3 minutes" (en dash), "10-15 min", "1 hour", "2 hrs", "45 sec", etc.
+  // Includes ranges like "2-3", "2–3" (en dash), "10-15", etc.
+  // Note: Put plural forms FIRST in alternation to match them before singular forms
+  const timePattern = /(\d+(?:[–-]\d+)?(?:\s+\d+\/\d+|\/\d+)?)\s*(minutes|minute|mins|min|seconds|second|secs|sec|hours|hour|hrs|hr|h)/gi;
+
   // Find all ingredient matches in the text
   const matchedIngredients = findIngredientsInText(text, allIngredients);
 
-  // Create a map of all matches (quantities and ingredients) with their positions
+  // Create a map of all matches (quantities, ingredients, and times) with their positions
   interface Match {
     start: number;
     end: number;
     text: string;
-    type: 'quantity' | 'ingredient';
+    type: 'quantity' | 'ingredient' | 'time';
+    ingredientInfo?: IngredientInfo; // Store ingredient details for tooltip
   }
 
   const matches: Match[] = [];
 
   // Find all quantity matches
   let match;
-  const regex = new RegExp(quantityPattern);
-  while ((match = regex.exec(text)) !== null) {
+  const quantityRegex = new RegExp(quantityPattern.source, quantityPattern.flags);
+  while ((match = quantityRegex.exec(text)) !== null) {
     matches.push({
       start: match.index,
       end: match.index + match[0].length,
@@ -141,68 +207,142 @@ export function highlightQuantitiesAndIngredients(
     });
   }
 
-  // Find all ingredient matches
+  // Find all time matches
+  const timeRegex = new RegExp(timePattern.source, timePattern.flags);
+  const timeMatchesFound: any[] = [];
+  while ((match = timeRegex.exec(text)) !== null) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:152',message:'Time match found',data:{fullMatch:match[0],matchIndex:match.index,matchLength:match[0].length,captureGroups:match.slice(1)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    timeMatchesFound.push({fullMatch: match[0], index: match.index, length: match[0].length});
+    matches.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      text: match[0],
+      type: 'time',
+    });
+  }
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:159',message:'All time matches summary',data:{timeMatchesCount:timeMatchesFound.length,timeMatches:timeMatchesFound},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
+  // Find all ingredient matches (including plural forms)
   const lowerText = text.toLowerCase();
+  const ingredientMatches = new Set<string>(); // Track matches to avoid duplicates
+  
   matchedIngredients.forEach((ingredient) => {
     const lowerName = ingredient.name.toLowerCase();
-    let searchIndex = 0;
     
-    // Find all occurrences of this ingredient name
+    // Helper function to check if a position is a word boundary
+    const isWordBoundary = (pos: number, length: number): boolean => {
+      const beforeChar = pos > 0 ? lowerText[pos - 1] : ' ';
+      const afterChar = pos + length < lowerText.length ? lowerText[pos + length] : ' ';
+      // Word boundary: before and after are not letters
+      return !/[a-z]/.test(beforeChar) && !/[a-z]/.test(afterChar);
+    };
+    
+    // Helper function to add match if it's a whole word and not duplicate
+    const addMatchIfValid = (start: number, end: number) => {
+      const matchKey = `${start}-${end}`;
+      if (!ingredientMatches.has(matchKey) && isWordBoundary(start, end - start)) {
+        ingredientMatches.add(matchKey);
+        const actualText = text.substring(start, end);
+        matches.push({
+          start,
+          end,
+          text: actualText,
+          type: 'ingredient',
+          ingredientInfo: ingredient, // Store ingredient info for tooltip
+        });
+      }
+    };
+    
+    // Find all occurrences of this ingredient name (exact match)
+    let searchIndex = 0;
     while ((searchIndex = lowerText.indexOf(lowerName, searchIndex)) !== -1) {
       const endIndex = searchIndex + lowerName.length;
-      // Get the actual text from the original (preserving case)
-      const actualText = text.substring(searchIndex, endIndex);
-      
-      matches.push({
-        start: searchIndex,
-        end: endIndex,
-        text: actualText,
-        type: 'ingredient',
-      });
-      
+      addMatchIfValid(searchIndex, endIndex);
       searchIndex = endIndex;
+    }
+
+    // Also check for plural/singular variations
+    // If ingredient name ends with 's', also search for singular form
+    if (lowerName.endsWith('s') && lowerName.length > 1) {
+      const singular = lowerName.slice(0, -1);
+      searchIndex = 0;
+      while ((searchIndex = lowerText.indexOf(singular, searchIndex)) !== -1) {
+        const afterIndex = searchIndex + singular.length;
+        addMatchIfValid(searchIndex, afterIndex);
+        searchIndex = afterIndex;
+      }
+    } else {
+      // If ingredient name doesn't end with 's', also search for plural form
+      const plural = lowerName + 's';
+      searchIndex = 0;
+      while ((searchIndex = lowerText.indexOf(plural, searchIndex)) !== -1) {
+        const afterIndex = searchIndex + plural.length;
+        addMatchIfValid(searchIndex, afterIndex);
+        searchIndex = afterIndex;
+      }
     }
   });
 
   // Sort matches by start position
   matches.sort((a, b) => a.start - b.start);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:230',message:'All matches before overlap resolution',data:{totalMatches:matches.length,matches:matches.map(m=>({type:m.type,text:m.text,start:m.start,end:m.end}))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
 
-  // Remove overlapping matches (prefer quantities over ingredients if they overlap)
+  // Remove overlapping matches (prefer times > quantities > ingredients if they overlap)
   const nonOverlappingMatches: Match[] = [];
   for (let i = 0; i < matches.length; i++) {
     const current = matches[i];
-    let hasOverlap = false;
+    let shouldAdd = true;
 
     // Check if this match overlaps with any already added match
-    for (const existing of nonOverlappingMatches) {
-      if (
-        (current.start < existing.end && current.end > existing.start)
-      ) {
-        hasOverlap = true;
-        // If both are quantities or both are ingredients, keep the longer one
-        // Otherwise, prefer quantity over ingredient
-        if (current.type === existing.type) {
+    for (let j = 0; j < nonOverlappingMatches.length; j++) {
+      const existing = nonOverlappingMatches[j];
+      if (current.start < existing.end && current.end > existing.start) {
+        // There's an overlap - determine which one to keep
+        // Priority: time > quantity > ingredient
+        const typePriority: Record<string, number> = { time: 3, quantity: 2, ingredient: 1 };
+        const currentPriority = typePriority[current.type] || 0;
+        const existingPriority = typePriority[existing.type] || 0;
+
+        if (currentPriority > existingPriority) {
+          // Current has higher priority, replace existing
+          nonOverlappingMatches[j] = current;
+          shouldAdd = false;
+          break;
+        } else if (currentPriority < existingPriority) {
+          // Existing has higher priority, skip current
+          shouldAdd = false;
+          break;
+        } else {
+          // Same priority - keep the longer one
           if (current.end - current.start > existing.end - existing.start) {
-            // Replace the shorter one with the longer one
-            const index = nonOverlappingMatches.indexOf(existing);
-            nonOverlappingMatches[index] = current;
+            nonOverlappingMatches[j] = current;
+            shouldAdd = false;
+            break;
+          } else {
+            // Existing is longer or same, skip current
+            shouldAdd = false;
+            break;
           }
-        } else if (current.type === 'quantity') {
-          // Replace ingredient with quantity
-          const index = nonOverlappingMatches.indexOf(existing);
-          nonOverlappingMatches[index] = current;
         }
-        break;
       }
     }
 
-    if (!hasOverlap) {
+    if (shouldAdd) {
       nonOverlappingMatches.push(current);
     }
   }
 
   // Sort again after removing overlaps
   nonOverlappingMatches.sort((a, b) => a.start - b.start);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:271',message:'Non-overlapping matches after resolution',data:{totalMatches:nonOverlappingMatches.length,matches:nonOverlappingMatches.map(m=>({type:m.type,text:m.text,start:m.start,end:m.end})),timeMatches:nonOverlappingMatches.filter(m=>m.type==='time').map(m=>({text:m.text,start:m.start,end:m.end}))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
 
   // Build the parts array with highlighted spans
   const parts: (string | React.ReactElement)[] = [];
@@ -219,14 +359,46 @@ export function highlightQuantitiesAndIngredients(
     }
 
     // Add the highlighted span
-    parts.push(
-      <span
-        key={`highlight-${keyCounter++}`}
-        className={highlightClassName}
-      >
-        {match.text}
-      </span>
-    );
+    // #region agent log
+    if (match.type === 'time') {
+      fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'utils.tsx:285',message:'Adding time highlight',data:{matchText:match.text,start:match.start,end:match.end,textAround:text.substring(Math.max(0,match.start-10),Math.min(text.length,match.end+10))},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
+    }
+    // #endregion
+    
+    // For ingredient matches, wrap in tooltip to show prep stage details
+    if (match.type === 'ingredient' && match.ingredientInfo) {
+      const ingredient = match.ingredientInfo;
+      // Format tooltip content: amount + unit + name
+      const tooltipParts: string[] = [];
+      if (ingredient.amount && ingredient.amount.trim() && ingredient.amount !== 'as needed') {
+        tooltipParts.push(ingredient.amount.trim());
+      }
+      if (ingredient.units && ingredient.units.trim()) {
+        tooltipParts.push(ingredient.units.trim());
+      }
+      tooltipParts.push(ingredient.name);
+      const tooltipContent = tooltipParts.join(' ');
+      
+      parts.push(
+        <IngredientTooltipWrapper
+          key={`highlight-${keyCounter++}`}
+          text={match.text}
+          tooltipContent={tooltipContent}
+          highlightClassName={highlightClassName}
+          tooltipKey={`tooltip-${keyCounter}`}
+        />
+      );
+    } else {
+      // For non-ingredient matches (quantities, times), use regular span
+      parts.push(
+        <span
+          key={`highlight-${keyCounter++}`}
+          className={highlightClassName}
+        >
+          {match.text}
+        </span>
+      );
+    }
 
     lastIndex = match.end;
   });
