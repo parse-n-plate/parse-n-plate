@@ -10,7 +10,7 @@ import List from '@solar-icons/react/csr/list/List';
 import Book from '@solar-icons/react/csr/school/Book';
 import { useUISettings } from '@/contexts/UISettingsContext';
 import { useRecipe } from '@/contexts/RecipeContext';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ClassicSplitViewProps {
   steps: RecipeStep[];
@@ -132,16 +132,37 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't handle shortcuts if user is typing in an input, textarea, or contenteditable element
+      const target = event.target as HTMLElement;
+      const isInputElement = 
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.isContentEditable;
+
       // Copy link shortcut: ⌘L (Mac) or Ctrl+L (Windows/Linux)
       if ((event.metaKey || event.ctrlKey) && event.key === 'l') {
         event.preventDefault();
         handleCopyLink();
+        return;
+      }
+
+      // Toggle between List and Focus views: ⌘J (Mac) or Ctrl+J (Windows/Linux)
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'j' || event.key === 'J')) {
+        event.preventDefault();
+        // Toggle: if currently on list view, switch to card (Focus), otherwise switch to list
+        setView(view === 'list' ? 'card' : 'list');
+        return;
+      }
+
+      // Only handle other shortcuts if not typing in an input field
+      if (isInputElement) {
+        return; // Let the user type normally in input fields
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [view, handleCopyLink]); // Include view and handleCopyLink in dependencies
 
   // Close settings when clicking outside
   useEffect(() => {
@@ -268,29 +289,45 @@ export default function ClassicSplitView({ steps, title = 'Recipe Steps', allIng
           {/* View Selection - Left aligned, acts as back button in Focus view */}
           <div className="flex items-center gap-3">
             <div className="flex bg-stone-100/60 p-1 rounded-full">
-              <button
-                onClick={() => setView('list')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all ${
-                  view === 'list' 
-                    ? 'bg-white text-stone-900 shadow-sm' 
-                    : 'text-stone-400 hover:text-stone-600'
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-                <span className="font-albert text-[11px] font-bold uppercase tracking-wider">List</span>
-              </button>
+              {/* List View Button with Tooltip */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setView('list')}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all ${
+                      view === 'list' 
+                        ? 'bg-white text-stone-900 shadow-sm' 
+                        : 'text-stone-400 hover:text-stone-600'
+                    }`}
+                  >
+                    <List className="w-3.5 h-3.5" />
+                    <span className="font-albert text-[11px] font-bold uppercase tracking-wider">List</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Toggle view (⌘J)
+                </TooltipContent>
+              </Tooltip>
               
-              <button
-                onClick={() => setView('card')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all ${
-                  view === 'card' 
-                    ? 'bg-white text-stone-900 shadow-sm' 
-                    : 'text-stone-400 hover:text-stone-600'
-                }`}
-              >
-                <Book className="w-3.5 h-3.5" />
-                <span className="font-albert text-[11px] font-bold uppercase tracking-wider">Focus</span>
-              </button>
+              {/* Focus View Button with Tooltip */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setView('card')}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all ${
+                      view === 'card' 
+                        ? 'bg-white text-stone-900 shadow-sm' 
+                        : 'text-stone-400 hover:text-stone-600'
+                    }`}
+                  >
+                    <Book className="w-3.5 h-3.5" />
+                    <span className="font-albert text-[11px] font-bold uppercase tracking-wider">Focus</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Toggle view (⌘J)
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
 

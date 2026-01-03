@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { RecipeStep } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { highlightQuantitiesAndIngredients } from '@/lib/utils';
 import { useUISettings } from '@/contexts/UISettingsContext';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface StepDisplayProps {
   step: RecipeStep;
@@ -19,6 +21,46 @@ interface StepDisplayProps {
 export default function StepDisplay({ step, currentStep, totalSteps, onNext, onPrev, onBackToList, allIngredients }: StepDisplayProps) {
   const { settings } = useUISettings();
   const { stepSizing } = settings;
+
+  // Keyboard navigation: Arrow keys to navigate between steps
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't handle arrow keys if user is typing in an input, textarea, or contenteditable element
+      const target = event.target as HTMLElement;
+      const isInputElement = 
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.isContentEditable;
+
+      if (isInputElement) {
+        return; // Let the user type normally in input fields
+      }
+
+      // Handle left arrow key: go to previous step
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        if (currentStep > 0) {
+          onPrev();
+        }
+      }
+      
+      // Handle right arrow key: go to next step
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        if (currentStep < totalSteps - 1) {
+          onNext();
+        }
+      }
+    };
+
+    // Add event listener when component mounts
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Clean up: remove event listener when component unmounts
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentStep, totalSteps, onNext, onPrev]); // Re-run if these values change
 
   // Sizing maps shifted: sm -> old med, med -> old lg, lg -> new step
   const titleSizeMap = {
@@ -83,9 +125,17 @@ export default function StepDisplay({ step, currentStep, totalSteps, onNext, onP
               <ChevronLeft className="w-5 h-5" />
             </motion.button>
             
-            <span className="font-albert font-bold text-[12px] uppercase tracking-[0.2em] text-stone-400 min-w-[80px] text-center">
-              {currentStep + 1} / {totalSteps}
-            </span>
+            {/* Step indicator with tooltip showing keyboard shortcut */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="font-albert font-bold text-[12px] uppercase tracking-[0.2em] text-stone-400 min-w-[80px] text-center cursor-help">
+                  {currentStep + 1} / {totalSteps}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                Use ← → arrow keys to navigate
+              </TooltipContent>
+            </Tooltip>
 
             <motion.button
               whileHover={{ scale: 1.1 }}
