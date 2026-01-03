@@ -404,6 +404,7 @@ export default function HomepageSearch() {
                         src={imagePreviewUrl} 
                         alt={selectedImage.name}
                         className="size-[28px] rounded object-cover flex-shrink-0"
+                        draggable="false"
                       />
                     )}
                     <span className="font-albert font-medium text-[#0c0a09] text-[13px]">{selectedImage.name}</span>

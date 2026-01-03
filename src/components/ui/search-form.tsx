@@ -599,6 +599,7 @@ export default function SearchForm({
                     src={imagePreview}
                     alt="Recipe preview"
                     className="w-full h-auto max-h-96 object-contain bg-stone-50"
+                    draggable="false"
                   />
                 </div>
 

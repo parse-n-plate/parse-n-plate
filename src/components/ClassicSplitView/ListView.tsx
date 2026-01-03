@@ -80,6 +80,7 @@ export default function ListView({ steps, onSelectStep, allIngredients = [] }: L
                       height={150}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       unoptimized={step.imageUrl.startsWith('http://localhost')}
+                      draggable={false}
                     />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -87,6 +88,7 @@ export default function ListView({ steps, onSelectStep, allIngredients = [] }: L
                       src={step.imageUrl}
                       alt={`Step ${index + 1}: ${step.step}`}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                      draggable="false"
                     />
                   )}
                 </div>

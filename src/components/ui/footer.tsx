@@ -31,6 +31,7 @@ export default function Footer() {
                     width={36}
                     height={36}
                     className="object-contain"
+                    draggable={false}
                   />
                 </div>
                 {/* Title */}
@@ -65,6 +66,7 @@ export default function Footer() {
                     width={37}
                     height={37}
                     className="object-cover rounded-full"
+                    draggable={false}
                   />
                 </Link>
                 {/* Michelle Avatar */}
@@ -81,6 +83,7 @@ export default function Footer() {
                     width={37}
                     height={37}
                     className="object-cover rounded-full"
+                    draggable={false}
                   />
                 </Link>
                 {/* Will Avatar */}
@@ -97,6 +100,7 @@ export default function Footer() {
                     width={37}
                     height={37}
                     className="object-cover rounded-full"
+                    draggable={false}
                   />
                 </Link>
               </div>
@@ -115,6 +119,7 @@ export default function Footer() {
             fill
             className="object-contain object-bottom"
             priority
+            draggable={false}
           />
         </div>
       </div>

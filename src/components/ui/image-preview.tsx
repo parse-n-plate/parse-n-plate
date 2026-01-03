@@ -65,6 +65,7 @@ export default function ImagePreview({ imageData, filename = 'recipe-image', cla
             src={imageData}
             alt="Recipe image preview"
             className="w-full h-full object-cover"
+            draggable="false"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
             <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -118,6 +119,7 @@ export default function ImagePreview({ imageData, filename = 'recipe-image', cla
                 src={imageData}
                 alt="Full-size recipe image"
                 className="max-w-full max-h-full object-contain rounded-lg"
+                draggable="false"
               />
 
               {/* Download Button Overlay */}
