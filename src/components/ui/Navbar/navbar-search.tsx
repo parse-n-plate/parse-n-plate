@@ -345,9 +345,15 @@ export default function NavbarSearch() {
     }, 100);
   };
 
+  // Handle cancel loading
+  const handleCancelLoading = () => {
+    setLoading(false);
+    setDetectedCuisine(undefined);
+  };
+
   return (
     <>
-      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} />
+      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} onCancel={handleCancelLoading} />
       <div className="relative w-full">
         <form onSubmit={handleSubmit}>
         <div

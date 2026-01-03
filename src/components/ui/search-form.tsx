@@ -464,9 +464,16 @@ export default function SearchForm({
     }, 100);
   };
 
+  // Handle cancel loading
+  const handleCancelLoading = () => {
+    setLoading(false);
+    setDetectedCuisine(undefined);
+    // Note: API calls will continue but UI will stop showing loading state
+  };
+
   return (
     <>
-      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} />
+      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} onCancel={handleCancelLoading} />
       <div className="relative w-full">
         {/* URL Input Mode */}
         {inputMode === 'url' && (

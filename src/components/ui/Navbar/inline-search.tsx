@@ -315,9 +315,15 @@ export default function InlineSearch() {
     }
   };
 
+  // Handle cancel loading
+  const handleCancelLoading = () => {
+    setLoading(false);
+    setDetectedCuisine(undefined);
+  };
+
   return (
     <>
-      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} />
+      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} onCancel={handleCancelLoading} />
       <div 
         ref={containerRef}
         className="relative flex-1 max-w-md"

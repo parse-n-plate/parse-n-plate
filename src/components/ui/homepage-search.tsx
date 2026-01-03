@@ -367,9 +367,14 @@ export default function HomepageSearch() {
     fileInputRef.current?.click();
   };
 
+  // Handle cancel loading
+  const handleCancelLoading = () => {
+    setLoading(false);
+  };
+
   return (
     <>
-      <LoadingAnimation isVisible={loading} />
+      <LoadingAnimation isVisible={loading} onCancel={handleCancelLoading} />
       <div className="w-full max-w-2xl mx-auto">
         <form onSubmit={handleSubmit} className="w-full">
           <div 
