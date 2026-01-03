@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, use, useRef } from 'react';
 import RecipeSkeleton from '@/components/ui/recipe-skeleton';
 import * as Tabs from '@radix-ui/react-tabs';
-import { ArrowLeft, Link, Copy, Check, Clock } from 'lucide-react';
+import { ArrowLeft, Link, Copy, Check, Clock, Trash2 } from 'lucide-react';
 import Bookmark from '@solar-icons/react/csr/school/Bookmark';
 import Settings from '@solar-icons/react/csr/settings/Settings';
 import LinkIcon from '@solar-icons/react/csr/text-formatting/Link';
@@ -160,7 +160,7 @@ export default function ParsedRecipePage({
   if (searchParams) use(searchParams);
   
   const { parsedRecipe, isLoaded } = useRecipe();
-  const { recentRecipes, isBookmarked, toggleBookmark } = useParsedRecipes();
+  const { recentRecipes, isBookmarked, toggleBookmark, removeRecipe } = useParsedRecipes();
   const router = useRouter();
   // #region agent log
   if (parsedRecipe) {
@@ -510,6 +510,31 @@ export default function ParsedRecipePage({
     }
   };
 
+  // Handle delete recipe - shows confirmation dialog before deleting
+  const handleDeleteRecipe = () => {
+    if (!recipeId) {
+      // If recipe doesn't exist in recentRecipes, we can't delete it
+      console.warn('Cannot delete recipe: recipe not found in recent recipes');
+      return;
+    }
+
+    // Show confirmation dialog before deleting
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this recipe? This action cannot be undone.'
+    );
+
+    if (confirmed) {
+      // Remove recipe from storage and context
+      removeRecipe(recipeId);
+      
+      // Close the settings menu
+      setIsSettingsOpen(false);
+      
+      // Navigate back to home page after deletion
+      router.push('/');
+    }
+  };
+
 
   // Redirect if loaded and no recipe
   // Check both state and localStorage to handle race conditions where navigation
@@ -754,6 +779,20 @@ export default function ParsedRecipePage({
                                   <Download weight="Bold" className="w-4 h-4 text-stone-400 flex-shrink-0" />
                                   <span className="font-albert font-medium whitespace-nowrap">Download Recipe as JPG</span>
                                 </button>
+
+                                {/* Divider before delete option */}
+                                <div className="h-px bg-stone-200 my-1" />
+
+                                {/* Delete Recipe Option */}
+                                {recipeId && (
+                                  <button
+                                    onClick={handleDeleteRecipe}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors font-albert rounded-md"
+                                  >
+                                    <Trash2 className="w-4 h-4 flex-shrink-0" />
+                                    <span className="font-albert font-medium whitespace-nowrap">Delete Recipe</span>
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
