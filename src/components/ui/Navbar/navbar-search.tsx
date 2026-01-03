@@ -25,6 +25,7 @@ export default function NavbarSearch() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState<ParsedRecipe[]>([]);
   const [loading, setLoading] = useState(false);
+  const [detectedCuisine, setDetectedCuisine] = useState<string[] | undefined>(undefined);
   const { recentRecipes, addRecipe } = useParsedRecipes();
   const { parsedRecipe, setParsedRecipe } = useRecipe();
   const { showError, showSuccess, showInfo } = useToast();
@@ -183,6 +184,7 @@ export default function NavbarSearch() {
       const validUrlResponse = await validateRecipeUrl(query);
 
       if (!validUrlResponse.success) {
+        setLoading(false);
         errorLogger.log(
           validUrlResponse.error.code,
           validUrlResponse.error.message,
@@ -196,6 +198,7 @@ export default function NavbarSearch() {
       }
 
       if (!validUrlResponse.isRecipe) {
+        setLoading(false);
         errorLogger.log(
           'ERR_NO_RECIPE_FOUND',
           'No recipe found on this page',
@@ -213,6 +216,7 @@ export default function NavbarSearch() {
 
       // Check if parsing failed
       if (!response.success || response.error) {
+        setLoading(false);
         const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
         errorLogger.log(errorCode, response.error?.message || 'Parsing failed', query);
         showError({
@@ -224,6 +228,11 @@ export default function NavbarSearch() {
       }
 
       console.log('[Navbar] Successfully parsed recipe:', response.title);
+
+      // Store detected cuisine for reveal
+      if (response.cuisine) {
+        setDetectedCuisine(response.cuisine);
+      }
 
       // Step 3: Store parsed recipe in context
       const recipeToStore = {
@@ -272,11 +281,14 @@ export default function NavbarSearch() {
       // Show success toast
       showSuccess('Recipe parsed successfully!', 'Navigating to recipe page...');
 
-      // Step 5: Navigate to the parsed recipe page
-      router.push('/parsed-recipe-page');
-      setQuery('');
-      setIsFocused(false);
-      setShowDropdown(false);
+      // Step 5: Navigate to the parsed recipe page with delay for reveal
+      setTimeout(() => {
+        setLoading(false);
+        router.push('/parsed-recipe-page');
+        setQuery('');
+        setIsFocused(false);
+        setShowDropdown(false);
+      }, 1500);
     } catch (err) {
       console.error('[Navbar] Parse error:', err);
       errorLogger.log(
@@ -288,8 +300,9 @@ export default function NavbarSearch() {
         code: 'ERR_UNKNOWN',
         message: 'An unexpected error occurred. Please try again.',
       });
-    } finally {
       setLoading(false);
+    } finally {
+      // setLoading(false) handled in success/error paths
     }
   }, [
     query,
@@ -334,7 +347,7 @@ export default function NavbarSearch() {
 
   return (
     <>
-      <LoadingAnimation isVisible={loading} />
+      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} />
       <div className="relative w-full">
         <form onSubmit={handleSubmit}>
         <div

@@ -26,6 +26,7 @@ export default function InlineSearch() {
   const [query, setQuery] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [detectedCuisine, setDetectedCuisine] = useState<string[] | undefined>(undefined);
   const [recentRecipes, setRecentRecipes] = useState<ParsedRecipe[]>([]);
   const [filteredRecipes, setFilteredRecipes] = useState<ParsedRecipe[]>([]);
   const [showRecents, setShowRecents] = useState(false);
@@ -149,6 +150,7 @@ export default function InlineSearch() {
         const response = await recipeScrape(url);
 
         if (!response.success || response.error) {
+          setLoading(false);
           const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
           errorLogger.log(errorCode, response.error?.message || 'Parsing failed', url);
           showError({
@@ -156,8 +158,12 @@ export default function InlineSearch() {
             message: response.error?.message,
             retryAfter: response.error?.retryAfter, // Pass through retry-after timestamp
           });
-          setLoading(false);
           return;
+        }
+
+        // Store detected cuisine for reveal
+        if (response.cuisine) {
+          setDetectedCuisine(response.cuisine);
         }
 
         // Store parsed recipe
@@ -206,11 +212,14 @@ export default function InlineSearch() {
         // Add to search history
         addToSearchHistory(url, response.title);
 
-        // Navigate to recipe page
-        router.push('/parsed-recipe-page');
-        setQuery('');
-        setIsExpanded(false);
-        setShowRecents(false);
+        // Navigate to recipe page with delay for reveal
+        setTimeout(() => {
+          setLoading(false);
+          router.push('/parsed-recipe-page');
+          setQuery('');
+          setIsExpanded(false);
+          setShowRecents(false);
+        }, 1500);
       } catch (err) {
         console.error('[InlineSearch] Parse error:', err);
         errorLogger.log('ERR_UNKNOWN', 'An unexpected error occurred', url);
@@ -218,8 +227,9 @@ export default function InlineSearch() {
           code: 'ERR_UNKNOWN',
           message: 'An unexpected error occurred. Please try again.',
         });
-      } finally {
         setLoading(false);
+      } finally {
+        // setLoading(false) handled in success/error paths
       }
     },
     [setParsedRecipe, addRecipe, showError, showInfo, router],
@@ -307,7 +317,7 @@ export default function InlineSearch() {
 
   return (
     <>
-      <LoadingAnimation isVisible={loading} />
+      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} />
       <div 
         ref={containerRef}
         className="relative flex-1 max-w-md"

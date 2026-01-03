@@ -24,6 +24,7 @@ export default function SearchForm({
 }: SearchFormProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [detectedCuisine, setDetectedCuisine] = useState<string[] | undefined>(undefined);
   const [isFocused, setIsFocused] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState<ParsedRecipe[]>([]);
@@ -167,6 +168,7 @@ export default function SearchForm({
 
       // Check if parsing failed
       if (!response.success || response.error) {
+        setLoading(false);
         const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
         errorLogger.log(errorCode, response.error?.message || 'Image parsing failed', selectedImage.name);
         showError({
@@ -178,6 +180,11 @@ export default function SearchForm({
       }
 
       console.log('[Client] Successfully parsed recipe from image:', response.title);
+
+      // Store detected cuisine for the loading animation reveal
+      if (response.cuisine) {
+        setDetectedCuisine(response.cuisine);
+      }
 
       // Store parsed recipe in context with image data
       // imagePreview is already a base64 data URL from handleImageSelect
@@ -220,8 +227,11 @@ export default function SearchForm({
       // Show success toast
       showSuccess('Recipe parsed successfully!', 'Navigating to recipe page...');
 
-      // Navigate to parsed recipe page
-      router.push('/parsed-recipe-page');
+      // Wait a moment for the loading animation to show the reveal before navigating
+      setTimeout(() => {
+        setLoading(false);
+        router.push('/parsed-recipe-page');
+      }, 1500);
     } catch (err) {
       console.error('[Client] Image parse error:', err);
       errorLogger.log(
@@ -233,8 +243,10 @@ export default function SearchForm({
         code: 'ERR_UNKNOWN',
         message: 'An unexpected error occurred. Please try again.',
       });
-    } finally {
       setLoading(false);
+    } finally {
+      // setLoading(false) is now handled after a delay in the success path
+      // or immediately if there was an error that returned early
     }
   }, [
     selectedImage,
@@ -266,6 +278,7 @@ export default function SearchForm({
       const validUrlResponse = await validateRecipeUrl(query);
 
       if (!validUrlResponse.success) {
+        setLoading(false);
         errorLogger.log(
           validUrlResponse.error.code,
           validUrlResponse.error.message,
@@ -279,6 +292,7 @@ export default function SearchForm({
       }
 
       if (!validUrlResponse.isRecipe) {
+        setLoading(false);
         errorLogger.log(
           'ERR_NO_RECIPE_FOUND',
           'No recipe found on this page',
@@ -301,6 +315,7 @@ export default function SearchForm({
 
       // Check if parsing failed
       if (!response.success || response.error) {
+        setLoading(false);
         const errorCode = response.error?.code || 'ERR_NO_RECIPE_FOUND';
         errorLogger.log(errorCode, response.error?.message || 'Parsing failed', query);
         showError({
@@ -312,6 +327,12 @@ export default function SearchForm({
       }
 
       console.log('[Client] Successfully parsed recipe:', response.title);
+      
+      // Store detected cuisine for the loading animation reveal
+      if (response.cuisine) {
+        setDetectedCuisine(response.cuisine);
+      }
+      
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'search-form.tsx:298',message:'API response received',data:{hasServings:'servings' in response,servings:response.servings,servingsType:typeof response.servings,servingsValue:response.servings,hasAuthor:'author' in response,author:response.author,responseKeys:Object.keys(response)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
@@ -370,8 +391,11 @@ export default function SearchForm({
       // Show success toast
       showSuccess('Recipe parsed successfully!', 'Navigating to recipe page...');
 
-      // Step 5: Navigate to the parsed recipe page
-      router.push('/parsed-recipe-page');
+      // Wait a moment for the loading animation to show the reveal before navigating
+      setTimeout(() => {
+        setLoading(false);
+        router.push('/parsed-recipe-page');
+      }, 1500);
     } catch (err) {
       console.error('[Client] Parse error:', err);
       errorLogger.log(
@@ -383,8 +407,10 @@ export default function SearchForm({
         code: 'ERR_UNKNOWN',
         message: 'An unexpected error occurred. Please try again.',
       });
-    } finally {
       setLoading(false);
+    } finally {
+      // setLoading(false) is now handled after a delay in the success path
+      // or immediately if there was an error that returned early
     }
   }, [
     query,
@@ -440,7 +466,7 @@ export default function SearchForm({
 
   return (
     <>
-      <LoadingAnimation isVisible={loading} />
+      <LoadingAnimation isVisible={loading} cuisine={detectedCuisine} />
       <div className="relative w-full">
         {/* URL Input Mode */}
         {inputMode === 'url' && (
