@@ -80,6 +80,70 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
+     LOADING ANIMATION - Vertical Step State
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .loading-step-card {
+    background: #ffffff;
+    border: 1px solid #e7e5e4;
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  }
+
+  .loading-progress-container {
+    width: 100%;
+    height: 6px;
+    background: #e7e5e4;
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .loading-progress-bar {
+    height: 100%;
+    background: #000000;
+    border-radius: 100px;
+    transition: width 0.5s ease-out;
+  }
+
+  .step-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    transition: all 0.3s ease-in-out;
+  }
+
+  .step-icon-container {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .step-title {
+    font-family: var(--font-albert), 'Helvetica', 'system-ui', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .step-subtitle {
+    font-family: var(--font-albert), 'Helvetica', 'system-ui', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
      IMAGE PROTECTION - Disable dragging and right-click on images
      Prevents users from dragging images or accessing context menu
   ═══════════════════════════════════════════════════════════════════════════ */
