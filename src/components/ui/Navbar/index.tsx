@@ -3,7 +3,7 @@
 import PPLogo from '@/components/ui/Navbar/pplogo';
 import InlineSearch from '@/components/ui/Navbar/inline-search';
 import Link from 'next/link';
-import { User } from 'lucide-react';
+import { User, Plus } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
@@ -48,11 +48,6 @@ export default function Navbar() {
           <span
             className="font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-stone-400 opacity-50 cursor-not-allowed"
           >
-            Cookbook
-          </span>
-          <span
-            className="font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-stone-400 opacity-50 cursor-not-allowed"
-          >
             About
           </span>
           <span
@@ -61,6 +56,14 @@ export default function Navbar() {
           >
             <User className="w-5 h-5 text-stone-400" />
           </span>
+          {/* Main CTA: Add Recipe - Subtle link matching navbar style */}
+          <Link
+            href="/"
+            className="font-albert text-[14px] md:text-[15px] px-3 md:px-4 py-1.5 md:py-2 rounded-full text-stone-600 hover:text-stone-900 transition-colors flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Recipe</span>
+          </Link>
         </div>
       </div>
     </div>
