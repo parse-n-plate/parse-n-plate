@@ -79,6 +79,7 @@ export default function HomepageRecentRecipes() {
           prepTimeMinutes: fullRecipe.prepTimeMinutes, // Include prep time if available
           cookTimeMinutes: fullRecipe.cookTimeMinutes, // Include cook time if available
           totalTimeMinutes: fullRecipe.totalTimeMinutes, // Include total time if available
+          servings: fullRecipe.servings, // Include servings if available
         });
         router.push('/parsed-recipe-page');
       }
@@ -149,7 +150,7 @@ export default function HomepageRecentRecipes() {
   return (
     <div className="w-full max-w-2xl mx-auto">
       {/* Section Title and Clear All Button */}
-      <div className="flex items-center justify-between mb-4 pl-4">
+      <div className="flex items-center justify-between mb-4 pl-4 group">
         <h2 className="font-albert text-base text-stone-500 text-left font-medium">
           Recent Recipes
         </h2>
@@ -158,7 +159,7 @@ export default function HomepageRecentRecipes() {
             variant="ghost"
             size="sm"
             onClick={handleClearAll}
-            className="font-albert text-xs text-stone-500 hover:text-stone-700 mr-4"
+            className="font-albert text-xs text-stone-500 hover:text-stone-700 mr-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           >
             Clear all
           </Button>

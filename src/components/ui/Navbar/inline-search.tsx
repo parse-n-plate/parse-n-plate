@@ -240,6 +240,7 @@ export default function InlineSearch() {
       prepTimeMinutes: recipe.prepTimeMinutes, // Include prep time if available
       cookTimeMinutes: recipe.cookTimeMinutes, // Include cook time if available
       totalTimeMinutes: recipe.totalTimeMinutes, // Include total time if available
+      servings: recipe.servings, // Include servings if available
     });
     router.push('/parsed-recipe-page');
     setQuery('');

@@ -44,6 +44,7 @@ export default function RecentRecipesList() {
           prepTimeMinutes: fullRecipe.prepTimeMinutes, // Include prep time if available
           cookTimeMinutes: fullRecipe.cookTimeMinutes, // Include cook time if available
           totalTimeMinutes: fullRecipe.totalTimeMinutes, // Include total time if available
+          servings: fullRecipe.servings, // Include servings if available
         });
 
         // Navigate to the parsed recipe page
