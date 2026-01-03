@@ -60,7 +60,9 @@ const formatTimeDisplay = (
     parts.push(`${servings} servings`);
   }
   
-  return parts.join(' • ');
+  // Return formatted string, or "Time not specified" if no time or servings data
+  const result = parts.join(' • ');
+  return result || 'Time not specified';
 };
 
 // Helper function to extract step title from instruction text
@@ -161,6 +163,9 @@ export default function ParsedRecipePage({
     fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'parsed-recipe-page/page.tsx:155',message:'parsedRecipe from context',data:{hasServings:'servings' in parsedRecipe,servings:parsedRecipe.servings,servingsType:typeof parsedRecipe.servings,servingsValue:parsedRecipe.servings,hasAuthor:'author' in parsedRecipe,author:parsedRecipe.author,keys:Object.keys(parsedRecipe)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
   }
   // #endregion
+  // Store original servings from recipe (never changes) - use useMemo to preserve it
+  const originalServings = useMemo(() => parsedRecipe?.servings, [parsedRecipe?.servings]);
+  
   const [servings, setServings] = useState<number | undefined>(parsedRecipe?.servings);
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'parsed-recipe-page/page.tsx:158',message:'servings state initialized',data:{servings,servingsType:typeof servings,parsedRecipeServings:parsedRecipe?.servings,parsedRecipeServingsType:typeof parsedRecipe?.servings,parsedRecipeExists:!!parsedRecipe},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'D'})}).catch(()=>{});
@@ -442,6 +447,14 @@ export default function ParsedRecipePage({
     setMultiplier(newMultiplier);
   };
 
+  // Reset to original servings handler - resets both servings and multiplier
+  const handleResetServings = () => {
+    if (originalServings !== undefined) {
+      setServings(originalServings);
+      setMultiplier('1x');
+    }
+  };
+
   // Memoize normalized steps for bidirectional linking
   const normalizedSteps = useMemo(() => {
     if (!parsedRecipe || !Array.isArray(parsedRecipe.instructions)) return [];
@@ -653,17 +666,44 @@ export default function ParsedRecipePage({
                     {/* Time, Servings and Cuisine */}
                     <div className="flex items-center gap-4 flex-wrap border-t border-stone-200/40 pt-6">
                       <div className="flex items-center gap-4 flex-wrap">
-                        <div className="flex items-center gap-2 bg-stone-200/30 px-3 py-1.5 rounded-lg border border-stone-200/50">
-                          <Clock className="w-4 h-4 text-stone-500" />
-                          <p className="font-albert text-[14px] md:text-[15px] text-stone-700 leading-none font-medium">
-                            {formatTimeDisplay(
-                              parsedRecipe.prepTimeMinutes,
-                              parsedRecipe.cookTimeMinutes,
-                              parsedRecipe.totalTimeMinutes,
-                              parsedRecipe.servings
-                            )}
-                          </p>
-                        </div>
+                        {/* Prep Time Pill */}
+                        {parsedRecipe.prepTimeMinutes !== undefined && parsedRecipe.prepTimeMinutes !== null && parsedRecipe.prepTimeMinutes > 0 && (
+                          <div className="flex items-center gap-2 bg-stone-200/30 px-3 py-1.5 rounded-lg border border-stone-200/50">
+                            <Clock className="w-4 h-4 text-stone-500" />
+                            <p className="font-albert text-[14px] md:text-[15px] text-stone-700 leading-none font-medium">
+                              <span className="text-stone-500">Prep</span> {parsedRecipe.prepTimeMinutes}min
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Cook Time Pill */}
+                        {parsedRecipe.cookTimeMinutes !== undefined && parsedRecipe.cookTimeMinutes !== null && parsedRecipe.cookTimeMinutes > 0 && (
+                          <div className="flex items-center gap-2 bg-stone-200/30 px-3 py-1.5 rounded-lg border border-stone-200/50">
+                            <Clock className="w-4 h-4 text-stone-500" />
+                            <p className="font-albert text-[14px] md:text-[15px] text-stone-700 leading-none font-medium">
+                              <span className="text-stone-500">Cook</span> {parsedRecipe.cookTimeMinutes}min
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Total Time Pill - only show if prep and cook aren't both available */}
+                        {parsedRecipe.totalTimeMinutes !== undefined && parsedRecipe.totalTimeMinutes !== null && parsedRecipe.totalTimeMinutes > 0 && !parsedRecipe.prepTimeMinutes && !parsedRecipe.cookTimeMinutes && (
+                          <div className="flex items-center gap-2 bg-stone-200/30 px-3 py-1.5 rounded-lg border border-stone-200/50">
+                            <Clock className="w-4 h-4 text-stone-500" />
+                            <p className="font-albert text-[14px] md:text-[15px] text-stone-700 leading-none font-medium">
+                              <span className="text-stone-500">Total</span> {parsedRecipe.totalTimeMinutes}min
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Servings Pill */}
+                        {parsedRecipe.servings !== undefined && parsedRecipe.servings !== null && parsedRecipe.servings > 0 && (
+                          <div className="flex items-center gap-2 bg-stone-200/30 px-3 py-1.5 rounded-lg border border-stone-200/50">
+                            <p className="font-albert text-[14px] md:text-[15px] text-stone-700 leading-none font-medium">
+                              <span className="text-stone-500">Servings</span> {parsedRecipe.servings}
+                            </p>
+                          </div>
+                        )}
 
                         {/* Cuisine Badges */}
                         {parsedRecipe.cuisine && parsedRecipe.cuisine.length > 0 && (
@@ -814,6 +854,8 @@ export default function ParsedRecipePage({
                             onServingsChange={handleServingsChange}
                             multiplier={multiplier}
                             onMultiplierChange={handleMultiplierChange}
+                            originalServings={originalServings}
+                            onResetServings={handleResetServings}
                           />
                         </div>
 

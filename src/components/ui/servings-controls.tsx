@@ -25,6 +25,8 @@ interface ServingsControlsProps {
   onServingsChange: (servings: number) => void;
   multiplier: string;
   onMultiplierChange: (multiplier: string) => void;
+  originalServings?: number; // Original recipe servings for reset functionality
+  onResetServings?: () => void; // Callback to reset servings to original
 }
 
 export function ServingsControls({
@@ -32,6 +34,8 @@ export function ServingsControls({
   onServingsChange,
   multiplier,
   onMultiplierChange,
+  originalServings,
+  onResetServings,
 }: ServingsControlsProps) {
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/211f35f0-b7c4-4493-a3d1-13dbeecaabb1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'servings-controls.tsx:30',message:'ServingsControls received props',data:{servings,servingsType:typeof servings,servingsUndefined:servings===undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
@@ -75,8 +79,14 @@ export function ServingsControls({
             <Minus className="yield-stepper-icon" strokeWidth={2.5} />
           </button>
           
-          {/* Central value display */}
-          <div className="yield-value-display">
+          {/* Central value display - clickable to reset to original */}
+          <button
+            onClick={onResetServings}
+            disabled={!onResetServings || originalServings === undefined || (servings === originalServings && multiplier === '1x')}
+            className="yield-value-display cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-default disabled:opacity-100"
+            aria-label={`Reset to original ${originalServings} servings`}
+            title={originalServings !== undefined ? `Reset to ${originalServings} servings` : undefined}
+          >
             {displayServings !== null ? (
               <>
                 <span className="yield-value-number">{displayServings}</span>
@@ -88,7 +98,7 @@ export function ServingsControls({
                 <span className="yield-value-unit" style={{ fontSize: '0.75rem', opacity: 0.5 }}>yield</span>
               </>
             )}
-          </div>
+          </button>
           
           {/* Increment button */}
           <button

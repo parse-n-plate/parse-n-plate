@@ -276,6 +276,20 @@
     border-right: 1px solid #f5f5f4;
     min-width: 5.5rem;
     justify-content: center;
+    /* Reset button styles when used as button */
+    background: transparent;
+    border-top: none;
+    border-bottom: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+  }
+  
+  /* When disabled, remove hover effect */
+  .yield-value-display:disabled {
+    cursor: default;
+    opacity: 1;
   }
 
   /* The big number */
