@@ -164,8 +164,13 @@ export function IngredientExpandedContent({
             linkedSteps.map((stepNum) => {
               // Get the step title from the map, if available
               const stepTitle = stepTitlesMap?.[stepNum];
-              // Format button text: "Step 3: Cook Beans and Meats" or just "Step 3" if no title
-              const buttonText = stepTitle 
+              // Check if stepTitle is meaningful (not just "Step X" repeated)
+              // If stepTitle exists and is different from just the step number, include it
+              const hasMeaningfulTitle = stepTitle && 
+                stepTitle.trim() !== `Step ${stepNum}` && 
+                stepTitle.trim() !== `step ${stepNum}`;
+              // Format button text: "Step 3: Cook Beans and Meats" or just "Step 3" if no meaningful title
+              const buttonText = hasMeaningfulTitle
                 ? `Step ${stepNum}: ${stepTitle}`
                 : `Step ${stepNum}`;
               
