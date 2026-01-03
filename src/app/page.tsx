@@ -24,7 +24,7 @@ function HomeContent() {
   } = useParsedRecipes();
   const { setParsedRecipe } = useRecipe();
   const router = useRouter();
-  const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('All');
+  const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isPageLoaded, setIsPageLoaded] = useState<boolean>(false);
 
@@ -112,8 +112,8 @@ function HomeContent() {
     
     let filtered = bookmarkedRecipes;
     
-    // Filter by cuisine
-    if (selectedCuisine !== 'All') {
+    // Filter by cuisine (only if a cuisine is selected)
+    if (selectedCuisine !== null) {
       filtered = filtered.filter(recipe => {
         const hasMatchingCuisine = recipe.cuisine && recipe.cuisine.includes(selectedCuisine);
         console.log(`[Homepage] Recipe "${recipe.title}": cuisine=${recipe.cuisine}, matches=${hasMatchingCuisine}`);
@@ -157,6 +157,7 @@ function HomeContent() {
                     alt="" 
                     className="hidden md:block w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0 object-contain"
                     aria-hidden="true"
+                    draggable="false"
                   />
                 </span>
                 <span className="flex items-center gap-2 md:gap-3">
@@ -165,6 +166,7 @@ function HomeContent() {
                     alt="" 
                     className="hidden md:block w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0 object-contain"
                     aria-hidden="true"
+                    draggable="false"
                   />
                   calm cooking.
                 </span>
@@ -234,8 +236,8 @@ function HomeContent() {
             {/* Show message if no recipes match filter (but only if there are bookmarked recipes available) */}
             {filteredRecipes.length === 0 && bookmarkedRecipes.length > 0 && (
               <div className="text-center py-12">
-                {/* Display cuisine icon if a specific cuisine is selected (not "All") */}
-                {selectedCuisine !== 'All' && CUISINE_ICON_MAP[selectedCuisine] && (
+                {/* Display cuisine icon if a specific cuisine is selected */}
+                {selectedCuisine !== null && CUISINE_ICON_MAP[selectedCuisine] && (
                   <div className="flex justify-center mb-6">
                     <Image
                       src={CUISINE_ICON_MAP[selectedCuisine]}
@@ -249,7 +251,7 @@ function HomeContent() {
                   </div>
                 )}
                 <p className="font-albert text-[16px] text-stone-600">
-                  No bookmarked recipes found for {selectedCuisine === 'All' ? 'this filter' : selectedCuisine}
+                  No bookmarked recipes found{selectedCuisine !== null ? ` for ${selectedCuisine}` : ''}
                 </p>
               </div>
             )}
