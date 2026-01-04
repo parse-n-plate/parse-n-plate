@@ -677,8 +677,8 @@ export default function ParsedRecipePage({
               onValueChange={setActiveTab} 
               className="w-full"
             >
-            {/* Header Section with #F8F8F4 Background */}
-            <div className="bg-[#f8f8f4]">
+            {/* Header Section with #FAFAF9 Background */}
+            <div className="bg-[#FAFAF9]">
               {/* Main Content Container with max-width */}
               <div className="max-w-6xl mx-auto px-4 md:px-8 pt-6 md:pt-10 pb-0">
                 {/* Header Section with Navigation */}
