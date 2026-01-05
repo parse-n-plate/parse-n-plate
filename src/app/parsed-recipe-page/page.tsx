@@ -34,6 +34,27 @@ const getDomainFromUrl = (url: string): string => {
   }
 };
 
+// Helper function to format minutes as hours and minutes
+// Converts minutes to a readable format: "11h 15min" for 675 minutes, or "45min" for less than 60 minutes
+const formatMinutesAsHours = (minutes: number): string => {
+  // If less than 60 minutes, just show minutes
+  if (minutes < 60) {
+    return `${minutes}min`;
+  }
+  
+  // Calculate hours and remaining minutes
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  
+  // If there are remaining minutes, show both hours and minutes
+  if (remainingMinutes > 0) {
+    return `${hours}h ${remainingMinutes}min`;
+  }
+  
+  // If it's exactly a whole number of hours, just show hours
+  return `${hours}h`;
+};
+
 // Helper function to format time display
 const formatTimeDisplay = (
   prepTime?: number,
@@ -910,7 +931,7 @@ export default function ParsedRecipePage({
                           <div className="flex items-center gap-2 bg-stone-200/30 px-3 py-1.5 rounded-lg border border-stone-200/50">
                             <Clock className="w-4 h-4 text-stone-500" />
                             <p className="font-albert text-[14px] md:text-[15px] text-stone-700 leading-none font-medium">
-                              <span className="text-stone-500">Total</span> {parsedRecipe.totalTimeMinutes}min
+                              <span className="text-stone-500">Total</span> {formatMinutesAsHours(parsedRecipe.totalTimeMinutes)}
                             </p>
                           </div>
                         )}
