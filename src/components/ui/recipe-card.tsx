@@ -260,7 +260,7 @@ export default function RecipeCard({
 
   return (
     <motion.div
-      className={`group w-full md:basis-0 md:grow min-h-px md:min-w-px relative rounded-[20px] shrink-0 bg-white hover:bg-gray-50 transition-colors duration-200 cursor-pointer overflow-visible ${isMenuOpen ? 'z-[99]' : ''}`}
+      className={`group w-full md:basis-0 md:grow min-h-px md:min-w-px relative rounded-[20px] shrink-0 bg-white hover:bg-[#FAFAFA] transition-colors duration-200 cursor-pointer overflow-visible ${isMenuOpen ? 'z-[99]' : ''}`}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
