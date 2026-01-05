@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParsedRecipes } from '@/contexts/ParsedRecipesContext';
 import { useRecipe } from '@/contexts/RecipeContext';
 import { useRouter } from 'next/navigation';
@@ -18,9 +19,12 @@ export default function HomepageRecentRecipes() {
   const { recentRecipes, getRecipeById, removeRecipe, clearRecipes, isBookmarked, toggleBookmark } = useParsedRecipes();
   const { setParsedRecipe } = useRecipe();
   const router = useRouter();
+  const [showAll, setShowAll] = useState(false);
 
-  // Get only the 5 most recent recipes
-  const displayRecipes = recentRecipes.slice(0, 5);
+  // Determine which recipes to display
+  // Show 5 by default, or all if showAll is true
+  const displayRecipes = showAll ? recentRecipes : recentRecipes.slice(0, 5);
+  const hasMoreThanFive = recentRecipes.length > 5;
 
   // Format time display (e.g., "35m", "3h 30m", "48m")
   const formatTime = (minutes?: number): string => {
@@ -167,7 +171,7 @@ export default function HomepageRecentRecipes() {
       </div>
 
       {/* Recipe List */}
-      <div className="space-y-3">
+      <div className="space-y-3 group">
         {displayRecipes.map((recipe) => {
           const isBookmarkedState = isBookmarked(recipe.id);
           const displayTime = getDisplayTime(recipe);
@@ -251,6 +255,20 @@ export default function HomepageRecentRecipes() {
             </div>
           );
         })}
+        
+        {/* See More Button - Only shows if more than 5 recipes and not already showing all */}
+        {hasMoreThanFive && !showAll && (
+          <div className="pl-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAll(true)}
+              className="font-albert text-xs text-stone-500 hover:text-stone-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            >
+              See more
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
