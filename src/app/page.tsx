@@ -27,7 +27,6 @@ interface RecipeListItemProps {
   isBookmarked: boolean;
   onBookmarkToggle: () => void;
   getRecipeById: (id: string) => any;
-  isLast: boolean;
   onEdit?: () => void;
   onUnsave?: () => void;
 }
@@ -38,7 +37,6 @@ function RecipeListItem({
   isBookmarked,
   onBookmarkToggle,
   getRecipeById,
-  isLast,
   onEdit,
   onUnsave,
 }: RecipeListItemProps) {
@@ -243,7 +241,7 @@ function RecipeListItem({
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-4 py-4 group">
+      <div className="flex items-center gap-4 py-4 px-4 -mx-4 group hover:bg-stone-50 rounded-lg transition-colors">
         {/* Cuisine Icon */}
         <div className="flex-shrink-0">
           <Image
@@ -258,7 +256,7 @@ function RecipeListItem({
         {/* Recipe Info - Clickable */}
         <button
           onClick={onClick}
-          className="flex-1 flex items-center justify-between min-w-0 text-left hover:bg-stone-50 -ml-4 pl-4 pr-4 py-2 -my-2 rounded transition-colors"
+          className="flex-1 flex items-center justify-between min-w-0 text-left"
         >
           <div className="flex-1 min-w-0">
             <h3 className="font-albert text-[16px] text-stone-900 font-medium group-hover:text-stone-700 transition-colors">
@@ -365,11 +363,6 @@ function RecipeListItem({
           </div>
         </div>
       </div>
-      
-      {/* Separator Line */}
-      {!isLast && (
-        <div className="border-b border-stone-200" />
-      )}
     </div>
   );
 }
@@ -673,7 +666,6 @@ function HomeContent() {
                       }
                     }}
                     getRecipeById={getRecipeById}
-                    isLast={index === filteredRecipes.length - 1}
                   />
                 ))}
               </div>
