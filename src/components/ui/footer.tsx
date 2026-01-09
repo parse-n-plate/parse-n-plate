@@ -14,7 +14,7 @@ export default function Footer() {
   return (
     // Footer wrapper: Full-width background with rounded top corners
     // This ensures the #FAFAF9 background fills edge-to-edge, eliminating negative space
-    <footer className="bg-[#FAFAF9] w-full pt-6 md:pt-8 pb-12 md:pb-16 relative overflow-hidden rounded-t-[32px]">
+    <footer className="hidden md:block bg-[#FAFAF9] w-full pt-6 md:pt-8 pb-12 md:pb-16 relative overflow-hidden rounded-t-[32px]">
       {/* Content container: Centered content with max-width constraint */}
       <div className="max-w-6xl mx-auto px-4 md:px-8 relative z-10">
         <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 md:gap-8 relative min-h-[250px] md:min-h-[300px]">
